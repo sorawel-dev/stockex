@@ -6,6 +6,7 @@ from . import compat
 from . import models
 from . import kobo_config
 from . import stock_location
+from . import product_category
 from . import res_config_settings
 from . import inventory_dashboard
 from . import kobo_submission

@@ -33,7 +33,7 @@ Ce module permet de gérer les inventaires de stock avec :
         'python': ['openpyxl', 'python-barcode'],
     },
     'category': 'Inventory/Inventory',
-    'version': '18.0.3.2.0',
+    'version': '18.0.3.3.0',
     # Compatible avec Odoo 18.0 et 19.0
     'data': [
         'security/stockex_security.xml',
@@ -46,6 +46,7 @@ Ce module permet de gérer les inventaires de stock avec :
         'views/stock_warehouse_views.xml',
         'views/stock_location_views.xml',
         'views/product_category_config_views.xml',
+        'views/product_category_views.xml',
         'views/kobo_config_views.xml',
         'views/inventory_dashboard_views.xml',
         'views/dashboard_home_form_view.xml',
