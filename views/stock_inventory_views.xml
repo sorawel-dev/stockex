@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View for Stock Inventory Lines -->
+    <record id="view_stockex_inventory_line_list" model="ir.ui.view">
+        <field name="name">stockex.stock.inventory.line.list</field>
+        <field name="model">stockex.stock.inventory.line</field>
+        <field name="arch" type="xml">
+            <list editable="bottom" decoration-danger="difference &lt; 0" decoration-success="difference &gt; 0">
+                <field name="product_id" readonly="1"/>
+                <field name="location_id" readonly="1"/>
+                <field name="theoretical_qty" readonly="1"/>
+                <field name="product_qty"/>
+                <field name="standard_price" readonly="1" optional="show"/>
+                <field name="difference" column_invisible="1"/>
+                <field name="difference_display" readonly="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Search View for Stock Inventory Lines -->
+    <record id="view_stockex_inventory_line_search" model="ir.ui.view">
+        <field name="name">stockex.stock.inventory.line.search</field>
+        <field name="model">stockex.stock.inventory.line</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher Lignes">
+                <field name="product_id" string="Produit"/>
+                <field name="location_id" string="Emplacement"/>
+                <separator/>
+                <filter string="Écarts négatifs" name="negative_diff" domain="[('difference', '&lt;', 0)]"/>
+                <filter string="Écarts positifs" name="positive_diff" domain="[('difference', '&gt;', 0)]"/>
+                <filter string="Pas d'écart" name="no_diff" domain="[('difference', '=', 0)]"/>
+                <separator/>
+                <group expand="0" string="Grouper par">
+                    <filter string="Emplacement" name="group_location" context="{'group_by':'location_id'}"/>
+                    <filter string="Produit" name="group_product" context="{'group_by':'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- List View for Stock Inventory -->
+    <record id="view_stockex_inventory_list" model="ir.ui.view">
+        <field name="name">stockex.stock.inventory.list</field>
+        <field name="model">stockex.stock.inventory</field>
+        <field name="arch" type="xml">
+            <list string="Inventaires" decoration-info="state == 'draft'" decoration-warning="state == 'in_progress'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'">
+                <header>
+                    <button name="%(action_import_inventory_wizard)d" string="Importer CSV" type="action" class="btn-primary" icon="fa-upload"/>
+                </header>
+                <field name="name"/>
+                <field name="date"/>
+                <field name="location_id" optional="show"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state == 'in_progress'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View for Stock Inventory -->
+    <record id="view_stockex_inventory_form" model="ir.ui.view">
+        <field name="name">stockex.stock.inventory.form</field>
+        <field name="model">stockex.stock.inventory</field>
+        <field name="arch" type="xml">
+            <form string="Inventaire">
+                <header>
+                    <button name="action_start" string="Démarrer" type="object" invisible="state != 'draft'" class="oe_highlight"/>
+                    <button name="action_validate" string="Valider" type="object" invisible="state != 'in_progress'" class="oe_highlight"/>
+                    <button name="action_export_excel" string="📥 Export Excel" type="object" icon="fa-file-excel-o" class="btn-success"/>
+                    <button name="action_print_pdf" string="🖨️ Imprimer PDF" type="object" icon="fa-print" class="btn-primary"/>
+                    <button name="action_cancel" string="Annuler" type="object" invisible="state not in ['draft', 'in_progress']"/>
+                    <button name="action_draft" string="Remettre en brouillon" type="object" invisible="state != 'cancel'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Référence de l'inventaire" readonly="state != 'draft'"/></h1>
+                    </div>
+                    <group name="main_info">
+                        <group name="left_info">
+                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="location_id" options="{'no_create': True}" readonly="state != 'draft'"/>
+                        </group>
+                        <group name="right_info">
+                            <field name="user_id" widget="many2one_avatar_user" options="{'no_create': True}" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Lignes d'inventaire" name="inventory_lines">
+                            <field name="line_ids" readonly="state == 'done'" 
+                                   widget="one2many" 
+                                   context="{'tree_view_ref': 'stockex.view_stockex_inventory_line_list', 'search_view_ref': 'stockex.view_stockex_inventory_line_search'}"/>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="description" placeholder="Notes et observations..." readonly="state == 'done'"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View for Stock Inventory -->
+    <record id="view_stockex_inventory_search" model="ir.ui.view">
+        <field name="name">stockex.stock.inventory.search</field>
+        <field name="model">stockex.stock.inventory</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher Inventaire">
+                <field name="name" string="Référence" filter_domain="[('name','ilike',self)]"/>
+                <field name="date"/>
+                <field name="location_id"/>
+                <field name="user_id"/>
+                <separator/>
+                <filter string="Brouillon" name="draft" domain="[('state','=','draft')]"/>
+                <filter string="En cours" name="in_progress" domain="[('state','=','in_progress')]"/>
+                <filter string="Validé" name="done" domain="[('state','=','done')]"/>
+                <separator/>
+                <filter string="Mes inventaires" name="my_inventories" domain="[('user_id','=',uid)]"/>
+                <filter string="Ce mois" name="this_month" domain="[('date','&gt;=',context_today().strftime('%Y-%m-01'))]"/>
+                <separator/>
+                <group expand="0" string="Grouper par">
+                    <filter string="État" name="group_state" context="{'group_by':'state'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by':'date'}"/>
+                    <filter string="Emplacement" name="group_location" context="{'group_by':'location_id'}"/>
+                    <filter string="Responsable" name="group_user" context="{'group_by':'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Stock Inventory -->
+    <record id="action_stockex_inventory" model="ir.actions.act_window">
+        <field name="name">Inventaires de Stock</field>
+        <field name="res_model">stockex.stock.inventory</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_stockex_inventory_search"/>
+        <field name="context">{'search_default_draft': 1, 'search_default_in_progress': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer un nouvel inventaire de stock
+            </p>
+            <p>
+                Cliquez sur le bouton "Nouveau" pour créer votre premier inventaire.
+            </p>
+        </field>
+    </record>
+
+
+</odoo>

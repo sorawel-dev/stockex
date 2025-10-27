@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Catégorie de module -->
+    <record id="module_category_stockex" model="ir.module.category">
+        <field name="name">Gestion d'Inventaire</field>
+        <field name="description">Gestion des inventaires de stock</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <!-- Groupe Utilisateur : Accès de base -->
+    <record id="group_stockex_user" model="res.groups">
+        <field name="name">Utilisateur Inventaire</field>
+        <field name="category_id" ref="module_category_stockex"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Peut créer et gérer ses propres inventaires</field>
+    </record>
+
+    <!-- Groupe Manager : Accès complet -->
+    <record id="group_stockex_manager" model="res.groups">
+        <field name="name">Responsable Inventaire</field>
+        <field name="category_id" ref="module_category_stockex"/>
+        <field name="implied_ids" eval="[(4, ref('group_stockex_user'))]"/>
+        <field name="comment">Peut gérer tous les inventaires et configurations</field>
+    </record>
+
+    <!-- Règles d'enregistrement : Les utilisateurs ne voient que leurs inventaires -->
+    <record id="stockex_inventory_user_rule" model="ir.rule">
+        <field name="name">Inventaire : Utilisateur voit ses propres inventaires</field>
+        <field name="model_id" ref="model_stockex_stock_inventory"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_stockex_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Règles d'enregistrement : Les managers voient tout -->
+    <record id="stockex_inventory_manager_rule" model="ir.rule">
+        <field name="name">Inventaire : Manager voit tous les inventaires</field>
+        <field name="model_id" ref="model_stockex_stock_inventory"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_stockex_manager'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+</odoo>

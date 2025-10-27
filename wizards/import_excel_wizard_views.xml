@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire du wizard Excel -->
+    <record id="view_import_excel_wizard_form" model="ir.ui.view">
+        <field name="name">stockex.import.excel.wizard.form</field>
+        <field name="model">stockex.import.excel.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" placeholder="Ex: Inventaire Mensuel Octobre 2025"/>
+                            <field name="date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="file" filename="filename"/>
+                            <field name="filename" invisible="1"/>
+                            <field name="sheet_name" widget="radio"/>
+                        </group>
+                    </group>
+                    
+                    <group string="Options d'import">
+                        <group>
+                            <field name="create_missing_products"/>
+                            <field name="create_missing_locations"/>
+                            <field name="import_geolocation"/>
+                        </group>
+                        <group>
+                            <field name="update_product_prices"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="📋 Instructions" name="instructions">
+                            <group>
+                                <div class="alert alert-info" role="alert">
+                                    <h4>Comment importer votre fichier Excel :</h4>
+                                    <ol>
+                                        <li><strong>Sélectionnez votre fichier Excel</strong> (.xlsx) contenant les données d'inventaire</li>
+                                        <li><strong>Choisissez la feuille</strong> à importer :
+                                            <ul>
+                                                <li><strong>Données Inventaire</strong> : Import complet avec tous les détails</li>
+                                                <li><strong>Liste des Produits</strong> : Import uniquement des produits</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Configurez les options</strong> selon vos besoins</li>
+                                        <li><strong>Prévisualisez</strong> pour vérifier les données</li>
+                                        <li><strong>Importez</strong> pour créer l'inventaire</li>
+                                    </ol>
+                                    
+                                    <h4>Format attendu du fichier Excel :</h4>
+                                    <p>Le fichier doit contenir les colonnes suivantes :</p>
+                                    <ul>
+                                        <li><code>CODE PRODUIT</code> : Code article (obligatoire)</li>
+                                        <li><code>PRODUIT</code> : Désignation de l'article</li>
+                                        <li><code>CODE ENTREPOT</code> : Code de l'emplacement (obligatoire)</li>
+                                        <li><code>ENTREPOT</code> : Nom de l'emplacement</li>
+                                        <li><code>QUANTITE</code> : Quantité inventoriée</li>
+                                        <li><code>COUT UNITAIRE</code> : Prix unitaire (optionnel)</li>
+                                        <li><code>UDM</code> : Unité de mesure</li>
+                                        <li><code>LATITUDE</code> : Latitude GPS (optionnel)</li>
+                                        <li><code>LONGITUDE</code> : Longitude GPS (optionnel)</li>
+                                        <li><code>VILLE</code> : Ville de l'emplacement (optionnel)</li>
+                                        <li><code>ADRESSE</code> : Adresse complète (optionnel)</li>
+                                        <li><code>TELEPHONE</code> : Téléphone (optionnel)</li>
+                                    </ul>
+                                    
+                                    <h4>⚙️ Options disponibles :</h4>
+                                    <ul>
+                                        <li><strong>Créer les produits manquants</strong> : Les produits non trouvés seront créés automatiquement</li>
+                                        <li><strong>Créer les emplacements manquants</strong> : Les emplacements non trouvés seront créés automatiquement</li>
+                                        <li><strong>Importer la géolocalisation</strong> : Les coordonnées GPS et informations de contact seront importées</li>
+                                        <li><strong>Mettre à jour les prix</strong> : Les prix des produits existants seront mis à jour</li>
+                                    </ul>
+                                </div>
+                            </group>
+                        </page>
+                        
+                        <page string="💡 Conseils" name="tips">
+                            <group>
+                                <div class="alert alert-warning" role="alert">
+                                    <h4>Conseils pour un import réussi :</h4>
+                                    <ul>
+                                        <li>✅ Assurez-vous que les codes produits correspondent à ceux de votre base Odoo</li>
+                                        <li>✅ Vérifiez que les emplacements existent ou activez l'option de création automatique</li>
+                                        <li>✅ Les quantités doivent être des nombres (pas de texte)</li>
+                                        <li>✅ Utilisez le bouton "Prévisualiser" avant d'importer pour vérifier les données</li>
+                                        <li>✅ Pour les gros fichiers (>1000 lignes), l'import peut prendre quelques minutes</li>
+                                        <li>⚠️ L'import crée un inventaire en brouillon que vous devrez valider manuellement</li>
+                                    </ul>
+                                    
+                                    <h4>En cas d'erreur :</h4>
+                                    <ul>
+                                        <li>Les lignes en erreur seront ignorées</li>
+                                        <li>Un résumé des erreurs sera affiché à la fin de l'import</li>
+                                        <li>Vous pourrez corriger les erreurs et réimporter si nécessaire</li>
+                                    </ul>
+                                </div>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                
+                <footer>
+                    <button string="🔍 Prévisualiser" name="action_preview" type="object" class="btn-secondary"/>
+                    <button string="📥 Importer" name="action_import" type="object" class="btn-primary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action pour ouvrir le wizard -->
+    <record id="action_import_excel_wizard" model="ir.actions.act_window">
+        <field name="name">Import Excel d'Inventaire</field>
+        <field name="res_model">stockex.import.excel.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_stockex_stock_inventory"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

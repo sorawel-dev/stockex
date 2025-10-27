@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Action pour Configurer les Catégories de Produits -->
+    <record id="action_configure_product_categories" model="ir.actions.act_window">
+        <field name="name">Catégories de Produits</field>
+        <field name="res_model">product.category</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Configurer les catégories de produits
+            </p>
+            <p>
+                Définissez la méthode de coût et la valorisation pour chaque catégorie de produits.<br/>
+                <strong>Méthodes de coût :</strong> Standard, FIFO, AVCO<br/>
+                <strong>Valorisation :</strong> Manuel ou Temps Réel (automatique)
+            </p>
+        </field>
+    </record>
+    
+    <!-- Menu dans Configuration > Stock -->
+    <menuitem 
+        id="menu_configure_product_categories"
+        name="Catégories de Produits"
+        parent="stock.menu_stock_config_settings"
+        action="action_configure_product_categories"
+        sequence="10"
+        groups="stock.group_stock_manager"/>
+    
+</odoo>
+

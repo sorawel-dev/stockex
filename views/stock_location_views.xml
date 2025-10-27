@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue formulaire héritée pour ajouter la géolocalisation -->
+    <record id="view_location_form_geoloc" model="ir.ui.view">
+        <field name="name">stock.location.form.geoloc</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_form"/>
+        <field name="arch" type="xml">
+            
+            <!-- Ajouter les champs GPS après le champ company_id -->
+            <xpath expr="//field[@name='company_id']" position="after">
+                <separator string="Géolocalisation" colspan="2"/>
+                <field name="latitude" widget="float"/>
+                <field name="longitude" widget="float"/>
+                <field name="coordinates" readonly="1"/>
+                <field name="google_maps_url" invisible="1"/>
+            </xpath>
+            
+            <!-- Ajouter les informations de contact après location_id -->
+            <xpath expr="//field[@name='location_id']" position="after">
+                <field name="city" placeholder="Ville"/>
+                <field name="address" placeholder="Adresse complète..." colspan="2"/>
+                <field name="phone" widget="phone" placeholder="+237 XX XX XX XX XX"/>
+                <field name="email" widget="email" placeholder="contact@sorawel.com"/>
+            </xpath>
+            
+        </field>
+    </record>
+
+    <!-- Vue liste héritée pour afficher les coordonnées -->
+    <record id="view_location_list_geoloc" model="ir.ui.view">
+        <field name="name">stock.location.list.geoloc</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_tree2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='usage']" position="after">
+                <field name="city" optional="hide"/>
+                <field name="coordinates" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Vue recherche héritée -->
+    <record id="view_location_search_geoloc" model="ir.ui.view">
+        <field name="name">stock.location.search.geoloc</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <group expand="0" string="Regrouper par">
+                    <filter string="Ville" name="group_by_city" 
+                            domain="[]" context="{'group_by': 'city'}"/>
+                    <filter string="Pays" name="group_by_country" 
+                            domain="[]" context="{'group_by': 'country_id'}"/>
+                </group>
+                <field name="city"/>
+                <field name="country_id"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

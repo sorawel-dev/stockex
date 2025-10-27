@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Exemple de configuration de catégories de produits -->
+        
+        <!-- Catégorie: Matières Premières -->
+        <record id="product_category_raw_materials" model="product.category">
+            <field name="name">Matières Premières</field>
+            <field name="property_cost_method">standard</field>
+            <field name="property_valuation">manual_periodic</field>
+            <!-- Les comptes seront configurés manuellement selon le plan comptable -->
+        </record>
+        
+        <!-- Catégorie: Produits Finis -->
+        <record id="product_category_finished_goods" model="product.category">
+            <field name="name">Produits Finis</field>
+            <field name="property_cost_method">fifo</field>
+            <field name="property_valuation">manual_periodic</field>
+            <!-- Pour utiliser real_time, configurez les comptes de stock dans Configuration -->
+        </record>
+        
+        <!-- Catégorie: Fournitures -->
+        <record id="product_category_supplies" model="product.category">
+            <field name="name">Fournitures</field>
+            <field name="property_cost_method">average</field>
+            <field name="property_valuation">manual_periodic</field>
+        </record>
+        
+        <!-- Catégorie: Marchandises -->
+        <record id="product_category_merchandise" model="product.category">
+            <field name="name">Marchandises</field>
+            <field name="property_cost_method">fifo</field>
+            <field name="property_valuation">manual_periodic</field>
+            <!-- Pour utiliser real_time, configurez les comptes de stock dans Configuration -->
+        </record>
+        
+    </data>
+</odoo>

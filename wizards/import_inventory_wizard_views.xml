@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Form View du Wizard Import -->
+    <record id="view_import_inventory_wizard_form" model="ir.ui.view">
+        <field name="name">stockex.import.inventory.wizard.form</field>
+        <field name="model">stockex.import.inventory.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import d'Inventaire CSV">
+                <sheet>
+                    <group name="main_info">
+                        <group name="inventory_info">
+                            <field name="name" placeholder="Ex: Inventaire Annuel 2025"/>
+                            <field name="date"/>
+                        </group>
+                        <group name="file_info">
+                            <field name="file" filename="filename"/>
+                            <field name="filename" invisible="1"/>
+                        </group>
+                    </group>
+                    
+                    <group string="Paramètres d'Import" name="import_params">
+                        <group name="format_params">
+                            <field name="separator"/>
+                            <field name="decimal_separator"/>
+                        </group>
+                        <group name="creation_params">
+                            <field name="create_missing_products"/>
+                            <field name="create_missing_locations"/>
+                            <field name="update_product_prices"/>
+                        </group>
+                    </group>
+                    
+                    <notebook invisible="not preview_done">
+                        <page string="Résultats de Prévisualisation" name="preview_results">
+                            <group name="statistics">
+                                <group name="stats_left">
+                                    <field name="total_lines" readonly="1"/>
+                                    <field name="valid_lines" readonly="1"/>
+                                </group>
+                                <group name="stats_right">
+                                    <field name="error_lines" readonly="1"/>
+                                </group>
+                            </group>
+                            <separator string="Log d'Analyse"/>
+                            <field name="preview_log" readonly="1" nolabel="1" 
+                                   widget="text" options="{'mode': 'text'}"/>
+                        </page>
+                    </notebook>
+                    
+                    <field name="preview_done" invisible="1"/>
+                </sheet>
+                
+                <footer>
+                    <button name="action_preview" string="Prévisualiser" 
+                            type="object" class="btn-secondary" 
+                            icon="fa-search"/>
+                    <button name="action_import" string="Importer" 
+                            type="object" class="oe_highlight" 
+                            icon="fa-upload"
+                            invisible="not preview_done"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action pour ouvrir le wizard -->
+    <record id="action_import_inventory_wizard" model="ir.actions.act_window">
+        <field name="name">Importer un Inventaire CSV</field>
+        <field name="res_model">stockex.import.inventory.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_stockex_stock_inventory"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

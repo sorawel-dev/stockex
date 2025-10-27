@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Export Inventaire - Excel et PDF</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm;
+        }
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #875A7B;
+            font-size: 24pt;
+            text-align: center;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #875A7B;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #875A7B;
+            font-size: 18pt;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #E0E0E0;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #366092;
+            font-size: 14pt;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        h4 {
+            color: #555;
+            font-size: 12pt;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #875A7B;
+            font-size: 14pt;
+            margin-bottom: 30px;
+        }
+        p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table th {
+            background-color: #875A7B;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-weight: bold;
+        }
+        table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .code-block {
+            background-color: #f5f5f5;
+            border-left: 4px solid #875A7B;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 10pt;
+            white-space: pre-wrap;
+        }
+        .tip-box {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .error-box {
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .checklist {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .checklist li:before {
+            content: "☐ ";
+            font-size: 14pt;
+            margin-right: 10px;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        .footer {
+            text-align: center;
+            color: #888;
+            font-size: 9pt;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        .emoji {
+            font-size: 16pt;
+        }
+    </style>
+</head>
+<body>
+    
+    <h1><span class="emoji">📥</span> Export d'Inventaire - Excel et PDF</h1>
+    <p class="subtitle">Module Gestion d'Inventaire - Odoo 18</p>
+    
+    <h2><span class="emoji">🎯</span> Objectif</h2>
+    <p>Exporter vos inventaires validés au format <strong>Excel</strong> (.xlsx) et <strong>PDF</strong> pour archivage, partage et analyse hors-ligne.</p>
+    
+    <h2><span class="emoji">✨</span> Fonctionnalités d'Export</h2>
+    
+    <h3>1. Export Excel 📊</h3>
+    <ul>
+        <li>Fichier .xlsx formaté et professionnel</li>
+        <li>Toutes les données de l'inventaire</li>
+        <li>Calculs automatiques (totaux, écarts)</li>
+        <li>Mise en forme avec couleurs (écarts positifs/négatifs)</li>
+    </ul>
+    
+    <h3>2. Impression PDF 🖨️</h3>
+    <ul>
+        <li>Document professionnel prêt à imprimer</li>
+        <li>Format A4 avec en-tête société</li>
+        <li>Tableau détaillé des lignes</li>
+        <li>Résumé des écarts</li>
+        <li>Zone de signatures</li>
+    </ul>
+    
+    <div class="page-break"></div>
+    
+    <h2><span class="emoji">📥</span> Export Excel</h2>
+    
+    <h3>Accès</h3>
+    <ol>
+        <li>Ouvrir un inventaire</li>
+        <li>Cliquer sur le bouton "<strong>📥 Export Excel</strong>"</li>
+        <li>Le fichier se télécharge automatiquement</li>
+    </ol>
+    
+    <h3>Structure du Fichier Excel</h3>
+    
+    <h4>En-tête (Lignes 1-5)</h4>
+    <ul>
+        <li>Titre avec référence inventaire</li>
+        <li>Date et responsable</li>
+        <li>Société</li>
+        <li>État</li>
+    </ul>
+    
+    <h4>Tableau des données (Ligne 7+)</h4>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Colonne</th>
+                <th>Contenu</th>
+                <th>Largeur</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>A</td><td>Produit</td><td>30 caractères</td></tr>
+            <tr><td>B</td><td>Référence</td><td>15 caractères</td></tr>
+            <tr><td>C</td><td>Catégorie</td><td>20 caractères</td></tr>
+            <tr><td>D</td><td>Emplacement</td><td>35 caractères</td></tr>
+            <tr><td>E</td><td>Qté Théorique</td><td>15 caractères</td></tr>
+            <tr><td>F</td><td>Qté Réelle</td><td>15 caractères</td></tr>
+            <tr><td>G</td><td>Écart</td><td>12 caractères</td></tr>
+            <tr><td>H</td><td>Prix Standard (FCFA)</td><td>15 caractères</td></tr>
+            <tr><td>I</td><td>Valeur Écart (FCFA)</td><td>15 caractères</td></tr>
+            <tr><td>J</td><td>UdM</td><td>10 caractères</td></tr>
+        </tbody>
+    </table>
+    
+    <h3>Mise en Forme</h3>
+    
+    <h4>Couleurs</h4>
+    <ul>
+        <li><strong style="color: #366092;">En-têtes</strong> : Bleu Odoo (#366092) avec texte blanc</li>
+        <li><strong style="color: #008000;">Écarts positifs</strong> : Vert gras (#008000)</li>
+        <li><strong style="color: #ff0000;">Écarts négatifs</strong> : Rouge gras (#FF0000)</li>
+        <li><strong>Totaux</strong> : Fond gris (#E0E0E0)</li>
+    </ul>
+    
+    <h4>Bordures</h4>
+    <ul>
+        <li>Toutes les cellules du tableau</li>
+        <li>Style fin (thin)</li>
+    </ul>
+    
+    <h4>Alignement</h4>
+    <ul>
+        <li>Texte : Gauche</li>
+        <li>Nombres : Droite</li>
+        <li>En-têtes : Centré</li>
+    </ul>
+    
+    <div class="page-break"></div>
+    
+    <h2><span class="emoji">🖨️</span> Impression PDF</h2>
+    
+    <h3>Accès</h3>
+    <ol>
+        <li>Ouvrir un inventaire</li>
+        <li>Cliquer sur le bouton "<strong>🖨️ Imprimer PDF</strong>"</li>
+        <li>Le PDF s'ouvre dans un nouvel onglet</li>
+        <li>Imprimer (Ctrl+P) ou sauvegarder</li>
+    </ol>
+    
+    <h3>Sections du PDF</h3>
+    
+    <h4>1. En-tête</h4>
+    <ul>
+        <li>Logo et coordonnées société</li>
+        <li>Titre "INVENTAIRE DE STOCK"</li>
+        <li>Référence de l'inventaire</li>
+        <li>Badge d'état (couleur selon état)</li>
+    </ul>
+    
+    <h4>2. Informations Générales</h4>
+    <ul>
+        <li>Date</li>
+        <li>Responsable</li>
+        <li>Emplacement (si spécifié)</li>
+        <li>Société</li>
+        <li>Nombre de produits</li>
+    </ul>
+    
+    <h4>3. Tableau Détaillé</h4>
+    <ul>
+        <li>Toutes les lignes d'inventaire</li>
+        <li>Couleurs pour écarts (vert/rouge)</li>
+        <li>Ligne de totaux en bas</li>
+    </ul>
+    
+    <h4>4. Résumé des Écarts</h4>
+    <ul>
+        <li>Valeur totale des écarts</li>
+        <li>Nombre de lignes avec écarts</li>
+        <li>Nombre de lignes sans écart</li>
+    </ul>
+    
+    <h4>5. Notes</h4>
+    <ul>
+        <li>Observations de l'inventaire (si présentes)</li>
+    </ul>
+    
+    <h4>6. Signatures</h4>
+    <ul>
+        <li>Zone responsable inventaire</li>
+        <li>Zone validation</li>
+        <li>Espace pour signatures manuscrites</li>
+    </ul>
+    
+    <h3>Format d'Impression</h3>
+    <div class="info-box">
+        <ul>
+            <li><strong>Format</strong> : A4 (210 x 297 mm)</li>
+            <li><strong>Orientation</strong> : Portrait</li>
+            <li><strong>Marges</strong> : Standard Odoo</li>
+            <li><strong>En-tête/Pied</strong> : Inclus (société)</li>
+        </ul>
+    </div>
+    
+    <div class="page-break"></div>
+    
+    <h2><span class="emoji">📊</span> Cas d'Usage</h2>
+    
+    <h3>Cas 1 : Archivage Mensuel</h3>
+    <ol>
+        <li>Valider l'inventaire du mois</li>
+        <li>Export Excel</li>
+        <li>Sauvegarder dans dossier "Archives/2025/Octobre"</li>
+        <li>Nommer: "Inventaire_Octobre_2025.xlsx"</li>
+    </ol>
+    
+    <div class="code-block">Archives/
+└─ 2025/
+   ├─ Janvier/
+   │  └─ Inventaire_Janvier_2025.xlsx
+   ├─ Février/
+   │  └─ Inventaire_Fevrier_2025.xlsx
+   ...
+   └─ Octobre/
+      └─ Inventaire_Octobre_2025.xlsx</div>
+    
+    <h3>Cas 2 : Rapport Direction</h3>
+    <ol>
+        <li>Valider l'inventaire</li>
+        <li>Imprimer PDF</li>
+        <li>Ajouter notes manuscrites si besoin</li>
+        <li>Faire signer par responsable</li>
+        <li>Scanner et envoyer à la direction</li>
+    </ol>
+    
+    <h3>Cas 3 : Analyse Excel</h3>
+    <ol>
+        <li>Export Excel de plusieurs inventaires</li>
+        <li>Ouvrir dans Excel</li>
+        <li>Créer tableau croisé dynamique</li>
+        <li>Analyser évolution des écarts</li>
+        <li>Identifier produits problématiques</li>
+    </ol>
+    
+    <h3>Cas 4 : Partage avec Auditeurs</h3>
+    <ol>
+        <li>Valider tous les inventaires de l'année</li>
+        <li>Export PDF de chacun</li>
+        <li>Créer dossier zip</li>
+        <li>Partager avec auditeurs externes</li>
+    </ol>
+    
+    <div class="page-break"></div>
+    
+    <h2><span class="emoji">💡</span> Conseils et Bonnes Pratiques</h2>
+    
+    <h3>Export Excel</h3>
+    
+    <div class="tip-box">
+        <h4>Nommage des Fichiers</h4>
+        <p><strong>Format recommandé:</strong> Inventaire_[Référence]_[Date].xlsx</p>
+        <p><strong>Exemples:</strong></p>
+        <ul>
+            <li>Inventaire_INV_2025_006_20251020.xlsx</li>
+            <li>Inventaire_Octobre_2025.xlsx</li>
+            <li>INV_2025_006.xlsx</li>
+        </ul>
+    </div>
+    
+    <div class="tip-box">
+        <h4>Vérification Post-Export</h4>
+        <ul>
+            <li>Ouvrir le fichier</li>
+            <li>Vérifier les totaux</li>
+            <li>Contrôler les couleurs</li>
+            <li>Tester les formules (si ajoutées)</li>
+        </ul>
+    </div>
+    
+    <div class="tip-box">
+        <h4>Modifications Excel</h4>
+        <p><strong>Vous pouvez modifier :</strong></p>
+        <ul>
+            <li>Ajouter colonnes de commentaires</li>
+            <li>Créer graphiques</li>
+            <li>Filtrer les données</li>
+            <li>Ajouter formules personnalisées</li>
+        </ul>
+    </div>
+    
+    <div class="warning-box">
+        <h4>⚠️ Ne PAS modifier</h4>
+        <ul>
+            <li>Les quantités (pour cohérence avec Odoo)</li>
+            <li>La structure du tableau</li>
+            <li>Les références produits</li>
+        </ul>
+    </div>
+    
+    <h3>Impression PDF</h3>
+    
+    <div class="tip-box">
+        <h4>Avant Impression</h4>
+        <ol>
+            <li>Vérifier l'état (Validé de préférence)</li>
+            <li>Compléter les notes si nécessaire</li>
+            <li>S'assurer que toutes les lignes sont là</li>
+            <li>Prévisualiser le PDF</li>
+        </ol>
+    </div>
+    
+    <div class="info-box">
+        <h4>Options d'Impression</h4>
+        <ul>
+            <li><strong>Format:</strong> A4</li>
+            <li><strong>Orientation:</strong> Portrait</li>
+            <li><strong>Couleur:</strong> Oui (pour les écarts)</li>
+            <li><strong>Recto-verso:</strong> Non (sauf si beaucoup de pages)</li>
+        </ul>
+    </div>
+    
+    <div class="tip-box">
+        <h4>Archivage PDF</h4>
+        <ul>
+            <li>Sauvegarder le PDF généré</li>
+            <li>Ne pas re-générer plus tard (risque modifications)</li>
+            <li>Horodater le fichier</li>
+        </ul>
+    </div>
+    
+    <div class="page-break"></div>
+    
+    <h2><span class="emoji">🔧</span> Résolution de Problèmes</h2>
+    
+    <h3>Erreur "openpyxl requis"</h3>
+    <div class="error-box">
+        <p><strong>Problème:</strong> Export Excel ne fonctionne pas</p>
+        <p><strong>Solution:</strong></p>
+        <div class="code-block">pip install openpyxl</div>
+        <p>Puis redémarrer Odoo.</p>
+    </div>
+    
+    <h3>PDF vide ou incomplet</h3>
+    <div class="error-box">
+        <p><strong>Problème:</strong> Le PDF ne contient pas toutes les lignes</p>
+        <p><strong>Causes possibles:</strong></p>
+        <ul>
+            <li>Trop de lignes (>5000)</li>
+            <li>Timeout du serveur</li>
+            <li>Mémoire insuffisante</li>
+        </ul>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+            <li>Filtrer l'inventaire par emplacement</li>
+            <li>Exporter en Excel pour beaucoup de lignes</li>
+            <li>Augmenter timeout serveur</li>
+        </ul>
+    </div>
+    
+    <h3>Caractères spéciaux mal affichés</h3>
+    <div class="error-box">
+        <p><strong>Problème:</strong> Accents et caractères spéciaux incorrects</p>
+        <p><strong>Solution:</strong> Vérifier encodage UTF-8 (problème rare)</p>
+    </div>
+    
+    <h3>Boutons non visibles</h3>
+    <div class="error-box">
+        <p><strong>Problème:</strong> Boutons Export/Imprimer absents</p>
+        <p><strong>Solutions:</strong></p>
+        <ol>
+            <li>Rafraîchir la page (Ctrl+F5)</li>
+            <li>Vérifier droits utilisateur</li>
+            <li>Mettre à jour le module</li>
+        </ol>
+    </div>
+    
+    <div class="page-break"></div>
+    
+    <h2><span class="emoji">📋</span> Checklist Export</h2>
+    
+    <h3>Avant Export</h3>
+    <ul class="checklist">
+        <li>Inventaire validé</li>
+        <li>Toutes les lignes vérifiées</li>
+        <li>Notes complétées (si PDF)</li>
+        <li>Écarts justifiés</li>
+    </ul>
+    
+    <h3>Export Excel</h3>
+    <ul class="checklist">
+        <li>Cliquer "Export Excel"</li>
+        <li>Fichier téléchargé</li>
+        <li>Ouvrir et vérifier</li>
+        <li>Renommer si nécessaire</li>
+        <li>Archiver dans bon dossier</li>
+    </ul>
+    
+    <h3>Impression PDF</h3>
+    <ul class="checklist">
+        <li>Cliquer "Imprimer PDF"</li>
+        <li>PDF s'ouvre</li>
+        <li>Vérifier contenu</li>
+        <li>Imprimer ou sauvegarder</li>
+        <li>Faire signer si requis</li>
+        <li>Archiver</li>
+    </ul>
+    
+    <div class="page-break"></div>
+    
+    <h2><span class="emoji">🎯</span> Avantages des Exports</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Critère</th>
+                <th>Excel</th>
+                <th>PDF</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Analyse hors-ligne</td><td style="text-align: center;">✓</td><td style="text-align: center;">✓</td></tr>
+            <tr><td>Partage facile par email</td><td style="text-align: center;">✓</td><td style="text-align: center;">✓</td></tr>
+            <tr><td>Modification possible</td><td style="text-align: center;">✓</td><td style="text-align: center;">✗</td></tr>
+            <tr><td>Import dans autres outils</td><td style="text-align: center;">✓</td><td style="text-align: center;">✗</td></tr>
+            <tr><td>Création de graphiques</td><td style="text-align: center;">✓</td><td style="text-align: center;">✗</td></tr>
+            <tr><td>Archivage léger</td><td style="text-align: center;">✓</td><td style="text-align: center;">✓</td></tr>
+            <tr><td>Format professionnel</td><td style="text-align: center;">✓</td><td style="text-align: center;">✓</td></tr>
+            <tr><td>Non modifiable (traçabilité)</td><td style="text-align: center;">✗</td><td style="text-align: center;">✓</td></tr>
+            <tr><td>Prêt à imprimer</td><td style="text-align: center;">✓</td><td style="text-align: center;">✓</td></tr>
+            <tr><td>Signatures possibles</td><td style="text-align: center;">✗</td><td style="text-align: center;">✓</td></tr>
+            <tr><td>Conforme audits</td><td style="text-align: center;">✓</td><td style="text-align: center;">✓</td></tr>
+            <tr><td>Visualisation universelle</td><td style="text-align: center;">✓</td><td style="text-align: center;">✓</td></tr>
+        </tbody>
+    </table>
+    
+    <h2><span class="emoji">📊</span> Statistiques</h2>
+    
+    <h3>Temps moyen d'export</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre de lignes</th>
+                <th>Excel</th>
+                <th>PDF</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>100</td><td>&lt;1 seconde</td><td>1 seconde</td></tr>
+            <tr><td>500</td><td>1 seconde</td><td>2 secondes</td></tr>
+            <tr><td>1000</td><td>2 secondes</td><td>4 secondes</td></tr>
+            <tr><td>2000</td><td>3 secondes</td><td>8 secondes</td></tr>
+            <tr><td>5000</td><td>6 secondes</td><td>20 secondes</td></tr>
+        </tbody>
+    </table>
+    
+    <h3>Taille des fichiers</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre de lignes</th>
+                <th>Excel</th>
+                <th>PDF</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>100</td><td>~20 KB</td><td>~50 KB</td></tr>
+            <tr><td>500</td><td>~80 KB</td><td>~200 KB</td></tr>
+            <tr><td>1000</td><td>~150 KB</td><td>~400 KB</td></tr>
+            <tr><td>2000</td><td>~300 KB</td><td>~800 KB</td></tr>
+            <tr><td>5000</td><td>~750 KB</td><td>~2 MB</td></tr>
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        <p><strong>Guide créé pour le module Stockinv - Gestion d'Inventaire Odoo 18</strong></p>
+        <p>Sorawel - www.sorawel.com | Octobre 2025</p>
+        <p>Version 1.0</p>
+    </div>
+    
+</body>
+</html>

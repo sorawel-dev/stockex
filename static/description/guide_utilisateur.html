@@ -1,0 +1,946 @@
+<\!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Utilisateur - Gestion d'Inventaire</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.7;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #875A7B 0%, #6d4860 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 40px;
+        }
+        .toc {
+            background: #f8f9fa;
+            border-left: 5px solid #875A7B;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+        .toc h2 {
+            color: #875A7B;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .toc-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .toc-item:hover {
+            transform: translateX(5px);
+            border-color: #875A7B;
+            box-shadow: 0 4px 12px rgba(135, 90, 123, 0.2);
+        }
+        .toc-item a {
+            color: #366092;
+            text-decoration: none;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toc-item a:hover {
+            color: #875A7B;
+        }
+        .emoji {
+            font-size: 1.5em;
+        }
+        h2 {
+            color: #875A7B;
+            font-size: 2em;
+            margin: 50px 0 20px 0;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #875A7B;
+        }
+        h3 {
+            color: #366092;
+            font-size: 1.5em;
+            margin: 30px 0 15px 0;
+        }
+        h4 {
+            color: #555;
+            font-size: 1.2em;
+            margin: 20px 0 10px 0;
+        }
+        p {
+            margin: 15px 0;
+            text-align: justify;
+        }
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 40px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .menu-path {
+            background: #e9ecef;
+            padding: 15px 20px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            border-left: 4px solid #875A7B;
+            font-weight: bold;
+        }
+        .card {
+            background: #f8f9fa;
+            border-left: 5px solid #875A7B;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+        .card-success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .card-warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .card-info {
+            border-left-color: #17a2b8;
+            background: #d1ecf1;
+        }
+        .card-danger {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        table th {
+            background: #875A7B;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+        }
+        table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        table tr:hover {
+            background: #f0f0f0;
+        }
+        .step-number {
+            display: inline-block;
+            background: #875A7B;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 30px;
+            margin-top: 50px;
+        }
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #875A7B;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .back-to-top:hover {
+            background: #6d4860;
+            transform: translateY(-5px);
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            .content { padding: 20px; }
+            .header h1 { font-size: 1.8em; }
+            .toc-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Guide Utilisateur</h1>
+            <p>Module Gestion d'Inventaire - Odoo 18</p>
+            <p style="font-size: 0.9em; margin-top: 10px;">Version 1.0 | Sorawel</p>
+        </div>
+        
+        <div class="content">
+            <\!-- SOMMAIRE CLIQUABLE -->
+            <div class="toc" id="sommaire">
+                <h2>📑 Sommaire (Cliquable)</h2>
+                <div class="toc-grid">
+                    <div class="toc-item">
+                        <a href="#introduction">
+                            <span class="emoji">🎯</span>
+                            <span>1. Introduction</span>
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#acces">
+                            <span class="emoji">🚀</span>
+                            <span>2. Accès au Module</span>
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#dashboard">
+                            <span class="emoji">📊</span>
+                            <span>3. Tableau de Bord</span>
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#creer">
+                            <span class="emoji">📦</span>
+                            <span>4. Créer un Inventaire</span>
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#importer">
+                            <span class="emoji">📥</span>
+                            <span>5. Importer des Données</span>
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#gerer">
+                            <span class="emoji">📋</span>
+                            <span>6. Gérer les Inventaires</span>
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#rapports">
+                            <span class="emoji">📈</span>
+                            <span>7. Rapports et Analyses</span>
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#export">
+                            <span class="emoji">💾</span>
+                            <span>8. Export Excel et PDF</span>
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#configuration">
+                            <span class="emoji">⚙️</span>
+                            <span>9. Configuration</span>
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#faq">
+                            <span class="emoji">❓</span>
+                            <span>10. Questions Fréquentes</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <\!-- SECTION 1: INTRODUCTION -->
+            <section id="introduction">
+                <h2>�� 1. Introduction</h2>
+                
+                <h3>Qu'est-ce que ce module ?</h3>
+                <p>Le module <strong>Gestion d'Inventaire</strong> est une solution complète pour gérer vos inventaires de stock dans Odoo 18. Il vous permet de contrôler vos stocks, identifier les écarts et optimiser votre gestion.</p>
+                
+                <div class="card card-success">
+                    <h4>✨ Fonctionnalités Principales</h4>
+                    <ul>
+                        <li><strong>Dashboard interactif</strong> avec KPIs en temps réel</li>
+                        <li><strong>Import multi-format</strong> : Excel, CSV, Kobo Collect</li>
+                        <li><strong>Calcul automatique</strong> des écarts de stock</li>
+                        <li><strong>Valorisation en FCFA</strong> de vos inventaires</li>
+                        <li><strong>Rapports et analyses</strong> avancées</li>
+                        <li><strong>Export Excel et PDF</strong> professionnels</li>
+                        <li><strong>Géolocalisation</strong> des entrepôts</li>
+                        <li><strong>Workflow complet</strong> : Brouillon → En cours → Validé</li>
+                    </ul>
+                </div>
+            </section>
+
+            <\!-- SECTION 2: ACCÈS -->
+            <section id="acces">
+                <h2>🚀 2. Accès au Module</h2>
+                
+                <h3>Depuis le Menu Principal</h3>
+                <div class="menu-path">
+                    Menu Odoo → <span class="highlight">📊 Gestion d'Inventaire</span>
+                </div>
+                
+                <div class="card card-info">
+                    <p><strong>💡 Astuce :</strong> Le module s'ouvre automatiquement sur la <strong>Vue d'Ensemble</strong> (Dashboard) pour un accès rapide aux indicateurs clés.</p>
+                </div>
+                
+                <h3>Icône du Module</h3>
+                <p>Recherchez l'icône <strong>carton violet</strong> avec grille dans le menu principal.</p>
+            </section>
+
+            <\!-- SECTION 3: DASHBOARD -->
+            <section id="dashboard">
+                <h2>📊 3. Tableau de Bord</h2>
+                
+                <h3>Vue d'Ensemble</h3>
+                <p>Le dashboard affiche en temps réel les indicateurs clés de votre gestion d'inventaire.</p>
+                
+                <h4>Cartes KPIs</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Carte</th>
+                            <th>Indicateur</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>📋 Inventaires</td>
+                            <td>Nombre validés</td>
+                            <td>Total des inventaires terminés et approuvés</td>
+                        </tr>
+                        <tr>
+                            <td>📦 Produits</td>
+                            <td>Références uniques</td>
+                            <td>Nombre de produits différents inventoriés</td>
+                        </tr>
+                        <tr>
+                            <td>📊 Quantité</td>
+                            <td>Somme totale</td>
+                            <td>Quantité totale de tous les produits</td>
+                        </tr>
+                        <tr>
+                            <td>💰 Valeur Totale</td>
+                            <td>Montant FCFA</td>
+                            <td>Valeur globale des stocks en FCFA</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h4>Analyse des Écarts</h4>
+                <div class="card">
+                    <p>Visualisez les différences entre stock théorique (système) et réel (comptage physique) :</p>
+                    <ul>
+                        <li><strong>Écarts Totaux</strong> : Impact global des différences</li>
+                        <li><strong style="color: green;">Écarts Positifs (+)</strong> : Surplus trouvés</li>
+                        <li><strong style="color: red;">Écarts Négatifs (-)</strong> : Produits manquants</li>
+                    </ul>
+                </div>
+                
+                <h4>Top 5</h4>
+                <ul>
+                    <li><strong>Top 5 Catégories</strong> : Classement par valeur de stock</li>
+                    <li><strong>Top 5 Entrepôts</strong> : Classement par valeur d'inventaire</li>
+                </ul>
+                
+                <h4>Actions Rapides</h4>
+                <div class="card card-success">
+                    <p>Trois boutons pour accéder rapidement aux fonctions principales :</p>
+                    <ul>
+                        <li><strong>[📦 Nouvel Inventaire]</strong> - Créer un nouvel inventaire</li>
+                        <li><strong>[📋 Voir Inventaires]</strong> - Liste de tous les inventaires</li>
+                        <li><strong>[📈 Analyse]</strong> - Rapports et analyses détaillées</li>
+                    </ul>
+                </div>
+            </section>
+
+            <\!-- SECTION 4: CRÉER INVENTAIRE -->
+            <section id="creer">
+                <h2>📦 4. Créer un Inventaire</h2>
+                
+                <h3>Méthode 1 : Depuis le Dashboard</h3>
+                <div class="menu-path">
+                    Vue d'Ensemble → Bouton <span class="highlight">[📦 Nouvel Inventaire]</span>
+                </div>
+                
+                <h3>Méthode 2 : Depuis le Menu</h3>
+                <div class="menu-path">
+                    Gestion d'Inventaire → Import → <span class="highlight">Nouvel Inventaire</span>
+                </div>
+                
+                <h3>Assistant de Choix de Méthode</h3>
+                <div class="card">
+                    <p>Sélectionnez votre méthode d'import :</p>
+                    <table>
+                        <tr>
+                            <th>Méthode</th>
+                            <th>Description</th>
+                            <th>Recommandation</th>
+                        </tr>
+                        <tr>
+                            <td>📄 Import CSV</td>
+                            <td>Fichier texte avec colonnes séparées</td>
+                            <td>Données simples</td>
+                        </tr>
+                        <tr>
+                            <td>📊 Import Excel</td>
+                            <td>Fichier .xlsx avec mise en forme</td>
+                            <td>⭐ RECOMMANDÉ</td>
+                        </tr>
+                        <tr>
+                            <td>📱 Import Kobo</td>
+                            <td>Données collectées sur mobile/tablette</td>
+                            <td>Collecte terrain</td>
+                        </tr>
+                    </table>
+                </div>
+            </section>
+
+            <\!-- SECTION 5: IMPORTER -->
+            <section id="importer">
+                <h2>📥 5. Importer des Données</h2>
+                
+                <h3>Import Excel (Méthode Recommandée)</h3>
+                
+                <h4><span class="step-number">1</span> Préparer le Fichier Excel</h4>
+                <div class="card card-warning">
+                    <p><strong>⚠️ Colonnes Obligatoires :</strong></p>
+                    <table>
+                        <tr>
+                            <th>Colonne</th>
+                            <th>Autres noms acceptés</th>
+                            <th>Exemple</th>
+                        </tr>
+                        <tr>
+                            <td>CODE ENTREPOT</td>
+                            <td>ENTREPOT</td>
+                            <td>WH-ABJ-001</td>
+                        </tr>
+                        <tr>
+                            <td>CODE ART</td>
+                            <td>CODE ARTICLE</td>
+                            <td>FRG-001</td>
+                        </tr>
+                        <tr>
+                            <td>DESIGN</td>
+                            <td>DESIGNATION</td>
+                            <td>Frigo LG 500L</td>
+                        </tr>
+                        <tr>
+                            <td>QTE</td>
+                            <td>QUANTITE</td>
+                            <td>50</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <h4><span class="step-number">2</span> Charger le Fichier</h4>
+                <ol>
+                    <li>Cliquer sur <strong>[Parcourir...]</strong></li>
+                    <li>Sélectionner votre fichier Excel (.xlsx)</li>
+                    <li>Cocher les options si nécessaire :
+                        <ul>
+                            <li>☑️ <strong>Créer entrepôts manquants</strong></li>
+                            <li>☑️ <strong>Créer produits manquants</strong></li>
+                            <li>☑️ <strong>Ignorer lignes invalides</strong></li>
+                        </ul>
+                    </li>
+                    <li>Cliquer sur <strong>[Importer]</strong></li>
+                </ol>
+                
+                <h4><span class="step-number">3</span> Vérifier l'Import</h4>
+                <div class="card card-success">
+                    <h4>✅ Import Réussi \!</h4>
+                    <p>Vous verrez un résumé avec :</p>
+                    <ul>
+                        <li>📋 Référence inventaire créé (ex: INV/2025/006)</li>
+                        <li>📊 Nombre de lignes importées</li>
+                        <li>🏢 Nombre d'entrepôts</li>
+                        <li>📦 Nombre de produits</li>
+                        <li>💰 Valeur totale en FCFA</li>
+                    </ul>
+                </div>
+                
+                <h3>Import CSV</h3>
+                <p>Même procédure que Excel, mais avec fichier <code>.csv</code>. Assurez-vous que le séparateur est correct (virgule ou point-virgule).</p>
+                
+                <h3>Import Kobo Collect</h3>
+                <div class="card card-info">
+                    <p><strong>📱 Collecte Mobile</strong></p>
+                    <p>Pour la collecte terrain sur mobile/tablette :</p>
+                    <ol>
+                        <li>Configurer votre compte Kobo</li>
+                        <li>Obtenir l'API Token</li>
+                        <li>Configurer dans Odoo (Configuration → Kobo Collect)</li>
+                        <li>Synchroniser les données collectées</li>
+                    </ol>
+                </div>
+            </section>
+
+            <\!-- SECTION 6: GÉRER -->
+            <section id="gerer">
+                <h2>📋 6. Gérer les Inventaires</h2>
+                
+                <h3>Liste des Inventaires</h3>
+                <div class="menu-path">
+                    Gestion d'Inventaire → Opérations → <span class="highlight">Inventaires de Stock</span>
+                </div>
+                
+                <h3>États des Inventaires</h3>
+                <table>
+                    <tr>
+                        <th>État</th>
+                        <th>Icône</th>
+                        <th>Description</th>
+                        <th>Actions possibles</th>
+                    </tr>
+                    <tr>
+                        <td>Brouillon</td>
+                        <td>⚪</td>
+                        <td>Créé mais pas commencé</td>
+                        <td>Modifier, Démarrer</td>
+                    </tr>
+                    <tr>
+                        <td>En cours</td>
+                        <td>🟡</td>
+                        <td>Comptage en cours</td>
+                        <td>Saisir quantités, Valider</td>
+                    </tr>
+                    <tr>
+                        <td>Validé</td>
+                        <td>🟢</td>
+                        <td>Terminé et approuvé</td>
+                        <td>Consulter, Exporter</td>
+                    </tr>
+                    <tr>
+                        <td>Annulé</td>
+                        <td>🔴</td>
+                        <td>Inventaire annulé</td>
+                        <td>Remettre en brouillon</td>
+                    </tr>
+                </table>
+                
+                <h3>Workflow d'un Inventaire</h3>
+                <div class="card">
+                    <ol>
+                        <li><strong>Brouillon</strong> → Créer et préparer</li>
+                        <li>Cliquer <strong>[Démarrer l'Inventaire]</strong></li>
+                        <li><strong>En cours</strong> → Compter physiquement et saisir</li>
+                        <li>Vérifier les écarts calculés automatiquement</li>
+                        <li>Cliquer <strong>[Valider l'Inventaire]</strong></li>
+                        <li><strong>Validé</strong> → Stocks Odoo mis à jour automatiquement</li>
+                    </ol>
+                </div>
+                
+                <h3>Détail d'un Inventaire</h3>
+                <p>Cliquez sur un inventaire pour voir :</p>
+                <ul>
+                    <li><strong>En-tête</strong> : Référence, Date, Responsable, État</li>
+                    <li><strong>Lignes d'inventaire</strong> : Tableau produit par produit</li>
+                    <li><strong>Notes</strong> : Observations et commentaires</li>
+                    <li><strong>Chatter</strong> : Historique et discussions</li>
+                </ul>
+                
+                <h4>Colonnes Importantes</h4>
+                <table>
+                    <tr>
+                        <th>Colonne</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Théorique</strong></td>
+                        <td>Quantité dans le système Odoo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Réel</strong></td>
+                        <td>Quantité comptée physiquement</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Écart</strong></td>
+                        <td>Différence (Réel - Théo)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Valeur Écart</strong></td>
+                        <td>Écart × Prix standard (FCFA)</td>
+                    </tr>
+                </table>
+                
+                <div class="card card-info">
+                    <p><strong>💡 Codes Couleur :</strong></p>
+                    <ul>
+                        <li><strong style="color: green;">Vert</strong> : Écart positif (surplus)</li>
+                        <li><strong style="color: red;">Rouge</strong> : Écart négatif (manquant)</li>
+                        <li><strong>Blanc</strong> : Pas d'écart (parfait)</li>
+                    </ul>
+                </div>
+            </section>
+
+            <\!-- SECTION 7: RAPPORTS -->
+            <section id="rapports">
+                <h2>📈 7. Rapports et Analyses</h2>
+                
+                <h3>Analyse Détaillée</h3>
+                <div class="menu-path">
+                    Gestion d'Inventaire → Rapports → <span class="highlight">Analyse Détaillée</span>
+                </div>
+                
+                <h4>3 Vues Disponibles</h4>
+                <table>
+                    <tr>
+                        <th>Vue</th>
+                        <th>Usage</th>
+                        <th>Idéal pour</th>
+                    </tr>
+                    <tr>
+                        <td>📊 Graphique</td>
+                        <td>Évolution temporelle</td>
+                        <td>Tendances visuelles, présentation</td>
+                    </tr>
+                    <tr>
+                        <td>📋 Pivot</td>
+                        <td>Tableau croisé dynamique</td>
+                        <td>Analyses personnalisées, comparaisons</td>
+                    </tr>
+                    <tr>
+                        <td>📄 Liste</td>
+                        <td>Vue détaillée complète</td>
+                        <td>Export Excel, consultation détaillée</td>
+                    </tr>
+                </table>
+                
+                <h3>Rapports Stock Odoo</h3>
+                <div class="card">
+                    <p>Trois rapports supplémentaires intégrés :</p>
+                    <ul>
+                        <li><strong>Analyse Stock/Emplacement</strong> - Vue complète produits + emplacements</li>
+                        <li><strong>Stock par Emplacement</strong> - Quantités détaillées par emplacement</li>
+                        <li><strong>Mouvements de Stock</strong> - Historique complet des mouvements</li>
+                    </ul>
+                </div>
+                
+                <h3>Groupement et Filtres</h3>
+                <p>Personnalisez vos analyses avec :</p>
+                <ul>
+                    <li>📅 Grouper par Date (Jour, Mois, Année)</li>
+                    <li>🏢 Grouper par Entrepôt</li>
+                    <li>📦 Grouper par Catégorie de produit</li>
+                    <li>🎯 Filtrer par État (Validé, En cours, etc.)</li>
+                </ul>
+            </section>
+
+            <\!-- SECTION 8: EXPORT -->
+            <section id="export">
+                <h2>💾 8. Export Excel et PDF</h2>
+                
+                <h3>Export Excel</h3>
+                <div class="card card-success">
+                    <p><strong>✅ Fichier .xlsx formaté et professionnel</strong></p>
+                    <ol>
+                        <li>Ouvrir un inventaire</li>
+                        <li>Cliquer sur <strong>[📥 Export Excel]</strong> dans le header</li>
+                        <li>Le fichier se télécharge automatiquement</li>
+                    </ol>
+                </div>
+                
+                <h4>Contenu du Fichier Excel</h4>
+                <ul>
+                    <li>📋 En-tête avec informations inventaire (Référence, Date, Responsable, Société)</li>
+                    <li>📊 Tableau détaillé avec toutes les lignes</li>
+                    <li>🎨 Mise en forme professionnelle (couleurs, bordures)</li>
+                    <li>➕ Ligne de totaux automatique</li>
+                    <li>✅ Colonnes ajustées automatiquement</li>
+                </ul>
+                
+                <div class="card card-info">
+                    <p><strong>🎨 Mise en Forme :</strong></p>
+                    <ul>
+                        <li><strong style="color: #366092;">En-têtes bleus</strong> avec texte blanc</li>
+                        <li><strong style="color: green;">Écarts positifs en vert</strong></li>
+                        <li><strong style="color: red;">Écarts négatifs en rouge</strong></li>
+                        <li>Totaux avec fond gris</li>
+                    </ul>
+                </div>
+                
+                <h3>Impression PDF</h3>
+                <div class="card card-success">
+                    <p><strong>🖨️ Document professionnel prêt à imprimer</strong></p>
+                    <ol>
+                        <li>Ouvrir un inventaire</li>
+                        <li>Cliquer sur <strong>[🖨️ Imprimer PDF]</strong> dans le header</li>
+                        <li>Le PDF s'ouvre dans un nouvel onglet</li>
+                        <li>Imprimer (Ctrl+P) ou sauvegarder</li>
+                    </ol>
+                </div>
+                
+                <h4>Contenu du PDF</h4>
+                <ul>
+                    <li>🏢 En-tête avec logo société</li>
+                    <li>📋 Informations inventaire complètes</li>
+                    <li>📊 Tableau détaillé des lignes</li>
+                    <li>📈 Résumé des écarts</li>
+                    <li>📝 Notes et observations</li>
+                    <li>✍️ Zone de signatures (Responsable + Validation)</li>
+                </ul>
+                
+                <h3>Cas d'Usage</h3>
+                <div class="card">
+                    <ul>
+                        <li><strong>Archivage mensuel</strong> : Export Excel pour sauvegarde</li>
+                        <li><strong>Rapport direction</strong> : PDF signé</li>
+                        <li><strong>Analyse Excel</strong> : Tableau croisé dynamique</li>
+                        <li><strong>Audit externe</strong> : PDF pour auditeurs</li>
+                    </ul>
+                </div>
+            </section>
+
+            <\!-- SECTION 9: CONFIGURATION -->
+            <section id="configuration">
+                <h2>⚙️ 9. Configuration</h2>
+                
+                <h3>Entrepôts</h3>
+                <div class="menu-path">
+                    Configuration → <span class="highlight">Entrepôts</span>
+                </div>
+                
+                <div class="card">
+                    <h4>Créer un Entrepôt</h4>
+                    <ul>
+                        <li><strong>Nom</strong> : Ex. "Abidjan"</li>
+                        <li><strong>Code</strong> : Ex. "ABJ"</li>
+                        <li><strong>Géolocalisation</strong> : Latitude, Longitude</li>
+                        <li><strong>Adresse</strong> : Adresse complète</li>
+                        <li><strong>Contact</strong> : Téléphone, Email</li>
+                    </ul>
+                </div>
+                
+                <h3>Emplacements</h3>
+                <div class="menu-path">
+                    Configuration → <span class="highlight">Emplacements</span>
+                </div>
+                
+                <div class="card card-warning">
+                    <h4>Renommer les Emplacements</h4>
+                    <p>Pour afficher des noms lisibles au lieu des codes techniques :</p>
+                    <ol>
+                        <li>Ouvrir l'emplacement</li>
+                        <li>Modifier le champ "Nom"</li>
+                        <li>Le nom complet se calcule automatiquement</li>
+                    </ol>
+                    <p><strong>Exemple :</strong></p>
+                    <p>Avant : <code>WH-ABJ-001/Stock</code></p>
+                    <p>Après : <code>Abidjan/Warehouse/Stock</code></p>
+                </div>
+                
+                <h3>Produits</h3>
+                <div class="menu-path">
+                    Configuration → <span class="highlight">Produits</span>
+                </div>
+                <p>Gérez vos produits : références, catégories, prix standards.</p>
+                
+                <h3>Kobo Collect</h3>
+                <div class="menu-path">
+                    Configuration → <span class="highlight">📱 Kobo Collect</span>
+                </div>
+                
+                <div class="card card-info">
+                    <h4>Configuration Kobo</h4>
+                    <p>Pour connecter vos collectes terrain mobile :</p>
+                    <ul>
+                        <li>Nom de la configuration</li>
+                        <li>URL serveur Kobo</li>
+                        <li>API Token</li>
+                        <li>Mapping des champs</li>
+                    </ul>
+                </div>
+                
+                <h3>Paramètres</h3>
+                <div class="menu-path">
+                    Configuration → <span class="highlight">Paramètres</span>
+                </div>
+                <p>Options générales du module (réservé aux administrateurs).</p>
+            </section>
+
+            <\!-- SECTION 10: FAQ -->
+            <section id="faq">
+                <h2>❓ 10. Questions Fréquentes</h2>
+                
+                <h3>Comment importer un inventaire ?</h3>
+                <div class="card">
+                    <p><strong>Réponse :</strong></p>
+                    <div class="menu-path">
+                        Menu → Import → Nouvel Inventaire → Choisir Excel → Charger fichier → Importer
+                    </div>
+                </div>
+                
+                <h3>Les écarts sont-ils normaux ?</h3>
+                <div class="card">
+                    <p><strong>Réponse :</strong> Oui, de petits écarts sont normaux dus à :</p>
+                    <ul>
+                        <li>Erreurs de comptage humain</li>
+                        <li>Vols ou pertes mineurs</li>
+                        <li>Transactions non encore enregistrées</li>
+                        <li>Produits en transit</li>
+                    </ul>
+                    <div class="card card-warning">
+                        <p><strong>⚠️ Attention :</strong> Des écarts > 5% nécessitent une investigation \!</p>
+                    </div>
+                </div>
+                
+                <h3>Comment exporter un rapport ?</h3>
+                <div class="card">
+                    <ol>
+                        <li>Ouvrir le rapport désiré</li>
+                        <li>Cliquer sur ⚙️ (Actions)</li>
+                        <li>Choisir "Exporter"</li>
+                        <li>Sélectionner les colonnes</li>
+                        <li>Choisir format Excel ou CSV</li>
+                    </ol>
+                </div>
+                
+                <h3>Puis-je modifier un inventaire validé ?</h3>
+                <div class="card card-danger">
+                    <p><strong>Non</strong>, un inventaire validé est figé pour garantir la traçabilité et l'intégrité des données.</p>
+                    <p><strong>Solution :</strong> Créer un nouvel inventaire de correction si nécessaire.</p>
+                </div>
+                
+                <h3>Comment voir l'historique d'un produit ?</h3>
+                <div class="card">
+                    <div class="menu-path">
+                        Rapports → Mouvements de Stock → Filtrer par produit
+                    </div>
+                </div>
+                
+                <h3>Erreur "Emplacement non trouvé" ?</h3>
+                <div class="card">
+                    <p><strong>Cause :</strong> L'emplacement n'existe pas dans Odoo</p>
+                    <p><strong>Solutions :</strong></p>
+                    <ol>
+                        <li>☑️ Activer "Créer les emplacements manquants" lors de l'import</li>
+                        <li>Créer manuellement l'emplacement (Configuration → Emplacements)</li>
+                    </ol>
+                </div>
+                
+                <h3>Erreur "Produit non trouvé" ?</h3>
+                <div class="card">
+                    <p><strong>Cause :</strong> Le code produit n'existe pas</p>
+                    <p><strong>Solutions :</strong></p>
+                    <ol>
+                        <li>☑️ Activer "Créer les produits manquants" lors de l'import</li>
+                        <li>Créer les produits d'abord (Configuration → Produits)</li>
+                    </ol>
+                </div>
+                
+                <h3>Comment visualiser la géolocalisation ?</h3>
+                <div class="card card-info">
+                    <p>Ouvrir un entrepôt avec coordonnées GPS configurées :</p>
+                    <ul>
+                        <li>Onglet "Géolocalisation"</li>
+                        <li>Carte interactive s'affiche</li>
+                        <li>Affiche latitude, longitude, adresse</li>
+                    </ul>
+                </div>
+                
+                <h3>Quels sont les formats d'import supportés ?</h3>
+                <div class="card">
+                    <table>
+                        <tr>
+                            <th>Format</th>
+                            <th>Extension</th>
+                            <th>Recommandé</th>
+                        </tr>
+                        <tr>
+                            <td>Excel</td>
+                            <td>.xlsx</td>
+                            <td>⭐ Oui</td>
+                        </tr>
+                        <tr>
+                            <td>CSV</td>
+                            <td>.csv</td>
+                            <td>Si Excel non dispo</td>
+                        </tr>
+                        <tr>
+                            <td>Kobo JSON</td>
+                            <td>.json</td>
+                            <td>Collecte mobile</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <h3>Combien de lignes peut-on importer ?</h3>
+                <div class="card card-success">
+                    <p><strong>Pas de limite technique \!</strong></p>
+                    <p>Le module a été testé avec succès jusqu'à <strong>10 000+ lignes</strong>.</p>
+                    <p><strong>Recommandation :</strong> Pour plus de 5000 lignes, prévoir un délai de traitement de quelques minutes.</p>
+                </div>
+            </section>
+
+            <\!-- FOOTER -->
+            <div class="footer">
+                <h3 style="margin-bottom: 15px;">📞 Besoin d'Aide ?</h3>
+                <p><strong>Contact Support :</strong> contact@sorawel.com</p>
+                <p><strong>Site Web :</strong> <a href="https://www.sorawel.com">www.sorawel.com</a></p>
+                <p style="margin-top: 20px; opacity: 0.8;">
+                    Guide Utilisateur - Module Gestion d'Inventaire<br>
+                    Version 1.0 | Odoo 18 | Octobre 2025<br>
+                    © Sorawel - Tous droits réservés
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <\!-- BOUTON RETOUR EN HAUT -->
+    <a href="#sommaire" class="back-to-top" title="Retour au sommaire">
+        ↑
+    </a>
+
+</body>
+</html>

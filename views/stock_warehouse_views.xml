@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue formulaire héritée pour ajouter les champs personnalisés -->
+    <record id="view_warehouse_form_inherit" model="ir.ui.view">
+        <field name="name">stock.warehouse.form.inherit</field>
+        <field name="model">stock.warehouse</field>
+        <field name="inherit_id" ref="stock.view_warehouse"/>
+        <field name="arch" type="xml">
+            
+            <!-- Ajouter les champs après le nom -->
+            <field name="name" position="after">
+                <field name="code" 
+                       placeholder="Auto (diminutif du nom)"
+                       help="Diminutif du nom de l'entrepôt (généré automatiquement, modifiable)"/>
+                <field name="warehouse_code" 
+                       placeholder="Ex: WH-ABJ-001"
+                       help="Code unique de l'entrepôt (optionnel)"/>
+                <field name="parent_id" options="{'no_create': True}"/>
+            </field>
+            
+            <!-- Ajouter un onglet Géolocalisation -->
+            <xpath expr="//notebook" position="inside">
+                <page string="📍 Géolocalisation" name="geolocation">
+                    <group>
+                        <group string="Coordonnées GPS">
+                            <field name="latitude"/>
+                            <field name="longitude"/>
+                            <field name="coordinates" readonly="1"/>
+                            <button name="action_open_map" 
+                                    string="📍 Voir sur Google Maps" 
+                                    type="object" 
+                                    class="btn-primary"
+                                    invisible="not latitude or not longitude"/>
+                        </group>
+                        <group string="Informations de Contact">
+                            <field name="city" placeholder="Ville"/>
+                            <field name="address" placeholder="Adresse complète..."/>
+                            <field name="phone" widget="phone" placeholder="+225 XX XX XX XX XX"/>
+                            <field name="email" widget="email" placeholder="contact@entrepot.com"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+            
+            <!-- Ajouter un onglet Entrepôts Enfants -->
+            <xpath expr="//notebook" position="inside">
+                <page string="🏢 Entrepôts Enfants" name="children" invisible="child_count == 0">
+                    <field name="child_ids" readonly="1">
+                        <list>
+                            <field name="name"/>
+                            <field name="code" string="Diminutif"/>
+                            <field name="warehouse_code" optional="show"/>
+                            <field name="city" optional="show"/>
+                            <field name="coordinates" optional="show"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+            
+            <!-- Ajouter le compteur d'enfants (invisible) -->
+            <field name="name" position="before">
+                <field name="child_count" invisible="1"/>
+            </field>
+            
+        </field>
+    </record>
+    
+    <!-- Vue liste héritée pour afficher les nouveaux champs -->
+    <record id="view_warehouse_tree_inherit" model="ir.ui.view">
+        <field name="name">stock.warehouse.list.inherit</field>
+        <field name="model">stock.warehouse</field>
+        <field name="inherit_id" ref="stock.view_warehouse_tree"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="code" string="Diminutif" optional="show"/>
+                <field name="warehouse_code" optional="show" string="Code Entrepôt"/>
+                <field name="parent_id" optional="hide"/>
+                <field name="city" optional="show"/>
+                <field name="coordinates" optional="hide"/>
+                <field name="child_count" optional="hide"/>
+            </field>
+        </field>
+    </record>
+    
+    <!-- Action pour les entrepôts -->
+    <record id="action_warehouse_stockex" model="ir.actions.act_window">
+        <field name="name">Entrepôts</field>
+        <field name="res_model">stock.warehouse</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer un nouvel entrepôt
+            </p>
+            <p>
+                Les entrepôts peuvent être organisés de manière hiérarchique et géolocalisés.
+            </p>
+        </field>
+    </record>
+    
+</odoo>

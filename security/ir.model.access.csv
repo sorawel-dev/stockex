@@ -1,0 +1,19 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_stockex_stock_inventory_user,Access Stock Inventory - User,model_stockex_stock_inventory,stockex.group_stockex_user,1,1,1,0
+access_stockex_stock_inventory_manager,Access Stock Inventory - Manager,model_stockex_stock_inventory,stockex.group_stockex_manager,1,1,1,1
+access_stockex_stock_inventory_line_user,Access Stock Inventory Line - User,model_stockex_stock_inventory_line,stockex.group_stockex_user,1,1,1,0
+access_stockex_stock_inventory_line_manager,Access Stock Inventory Line - Manager,model_stockex_stock_inventory_line,stockex.group_stockex_manager,1,1,1,1
+access_stockex_import_inventory_wizard_user,Access Import Inventory Wizard - User,model_stockex_import_inventory_wizard,stockex.group_stockex_user,1,1,1,1
+access_stockex_import_excel_wizard_user,Access Import Excel Wizard - User,model_stockex_import_excel_wizard,stockex.group_stockex_user,1,1,1,1
+access_stockex_fix_locations_wizard_user,Access Fix Locations Wizard - User,model_stockex_fix_locations_wizard,stockex.group_stockex_user,1,1,1,1
+access_stockex_import_method_wizard_user,Access Import Method Wizard - User,model_stockex_import_method_wizard,stockex.group_stockex_user,1,1,1,1
+access_stockex_import_kobo_wizard_user,Access Import Kobo Wizard - User,model_stockex_import_kobo_wizard,stockex.group_stockex_user,1,1,1,1
+access_stockex_kobo_config_user,Access Kobo Config - User,model_stockex_kobo_config,stockex.group_stockex_user,1,1,1,0
+access_stockex_kobo_config_manager,Access Kobo Config - Manager,model_stockex_kobo_config,stockex.group_stockex_manager,1,1,1,1
+access_stockex_inventory_dashboard_user,Access Inventory Dashboard - User,model_stockex_inventory_dashboard,stockex.group_stockex_user,1,0,0,0
+access_stockex_inventory_summary_user,Access Inventory Summary - User,model_stockex_inventory_summary,stockex.group_stockex_user,1,1,0,0
+access_stockex_inventory_summary_manager,Access Inventory Summary - Manager,model_stockex_inventory_summary,stockex.group_stockex_manager,1,1,0,0
+access_stockex_inventory_summary_public,Access Inventory Summary - Public,model_stockex_inventory_summary,base.group_user,1,1,0,0
+
+access_stockex_kobo_submission_user,Access Kobo Submission - User,model_stockex_kobo_submission,stockex.group_stockex_user,1,0,0,0
+access_stockex_kobo_submission_manager,Access Kobo Submission - Manager,model_stockex_kobo_submission,stockex.group_stockex_manager,1,1,1,1

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire de la configuration Kobo -->
+    <record id="view_kobo_config_form" model="ir.ui.view">
+        <field name="name">stockex.kobo.config.form</field>
+        <field name="model">stockex.kobo.config</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_test_connection" 
+                            string="🔌 Tester la Connexion" 
+                            type="object" 
+                            class="btn-primary"/>
+                    <button name="action_view_submissions" 
+                            string="📋 Voir les Soumissions" 
+                            type="object" 
+                            class="btn-secondary"
+                            invisible="not submissions_count"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Configuration Kobo Collect"/>
+                        </h1>
+                    </div>
+                    
+                    <group>
+                        <group string="🌐 Connexion API">
+                            <field name="kobo_url" placeholder="https://kf.kobotoolbox.org"/>
+                            <field name="api_token" password="True"/>
+                            <field name="form_id" placeholder="aXYZ123456"/>
+                            <field name="form_name" readonly="1"/>
+                        </group>
+                        <group string="📊 Statut">
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="last_sync" readonly="1"/>
+                            <field name="last_submission_id" readonly="1"/>
+                            <field name="submissions_count" readonly="1"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="🔗 Mapping des Champs" name="mapping">
+                            <group>
+                                <group string="Champs Obligatoires">
+                                    <field name="mapping_product_code"/>
+                                    <field name="mapping_quantity"/>
+                                    <field name="mapping_location"/>
+                                </group>
+                                <group string="Champs Optionnels">
+                                    <field name="mapping_product_name"/>
+                                    <field name="mapping_category"/>
+                                    <field name="mapping_price"/>
+                                    <field name="mapping_gps"/>
+                                </group>
+                            </group>
+                            
+                            <div class="alert alert-info">
+                                <h5>💡 Comment définir le mapping ?</h5>
+                                <p>
+                                    Entrez le nom exact des champs tels qu'ils apparaissent dans votre formulaire Kobo.
+                                    Par exemple, si votre formulaire Kobo contient un champ nommé "code_article", 
+                                    saisissez "code_article" dans "Champ Code Produit".
+                                </p>
+                            </div>
+                        </page>
+                        
+                        <page string="⚙️ Options" name="options">
+                            <group>
+                                <group string="Import">
+                                    <field name="auto_import"/>
+                                    <field name="auto_validate"/>
+                                </group>
+                                <group string="Création Automatique">
+                                    <field name="create_missing_products"/>
+                                    <field name="create_missing_locations"/>
+                                </group>
+                            </group>
+                        </page>
+                        
+                        <page string="📖 Guide Configuration" name="help">
+                            <div class="alert alert-info">
+                                <h4>Comment configurer Kobo Collect ?</h4>
+                                
+                                <h5>1. Obtenir le Token API</h5>
+                                <ol>
+                                    <li>Connectez-vous à votre compte Kobo</li>
+                                    <li>Allez dans <strong>Paramètres → Sécurité</strong></li>
+                                    <li>Créez ou copiez votre <strong>Token API</strong></li>
+                                    <li>Collez-le dans le champ "Token API" ci-dessus</li>
+                                </ol>
+                                
+                                <h5>2. Obtenir l'ID du Formulaire</h5>
+                                <ol>
+                                    <li>Dans Kobo, ouvrez votre formulaire</li>
+                                    <li>L'URL contient l'ID: <code>https://kf.kobotoolbox.org/#/forms/<strong>aXYZ123456</strong></code></li>
+                                    <li>Copiez cet ID dans le champ "ID du Formulaire"</li>
+                                </ol>
+                                
+                                <h5>3. Tester la Connexion</h5>
+                                <p>Cliquez sur le bouton "🔌 Tester la Connexion" pour vérifier que tout fonctionne.</p>
+                                
+                                <h5>4. Configurer le Mapping</h5>
+                                <p>
+                                    Définissez la correspondance entre les champs de votre formulaire Kobo 
+                                    et les champs attendus dans Odoo (onglet "Mapping des Champs").
+                                </p>
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Vue liste -->
+    <record id="view_kobo_config_list" model="ir.ui.view">
+        <field name="name">stockex.kobo.config.list</field>
+        <field name="model">stockex.kobo.config</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="form_name"/>
+                <field name="kobo_url"/>
+                <field name="last_sync"/>
+                <field name="submissions_count"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_kobo_config" model="ir.actions.act_window">
+        <field name="name">Configuration Kobo Collect</field>
+        <field name="res_model">stockex.kobo.config</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    
+</odoo>

@@ -1,0 +1,60 @@
+<odoo>
+  <data>
+    <!-- explicit list view definition -->
+<!--
+    <record model="ir.ui.view" id="stockex.list">
+      <field name="name">stockex list</field>
+      <field name="model">stockex.stockex</field>
+      <field name="arch" type="xml">
+        <list>
+          <field name="name"/>
+          <field name="value"/>
+          <field name="value2"/>
+        </list>
+      </field>
+    </record>
+-->
+
+    <!-- actions opening views on models -->
+<!--
+    <record model="ir.actions.act_window" id="stockex.action_window">
+      <field name="name">stockex window</field>
+      <field name="res_model">stockex.stockex</field>
+      <field name="view_mode">list,form</field>
+    </record>
+-->
+
+    <!-- server action to the one above -->
+<!--
+    <record model="ir.actions.server" id="stockex.action_server">
+      <field name="name">stockex server</field>
+      <field name="model_id" ref="model_stockex_stockex"/>
+      <field name="state">code</field>
+      <field name="code">
+        action = {
+          "type": "ir.actions.act_window",
+          "view_mode": "list,form",
+          "res_model": model._name,
+        }
+      </field>
+    </record>
+-->
+
+    <!-- Top menu item -->
+<!--
+    <menuitem name="stockex" id="stockex.menu_root"/>
+-->
+    <!-- menu categories -->
+<!--
+    <menuitem name="Menu 1" id="stockex.menu_1" parent="stockex.menu_root"/>
+    <menuitem name="Menu 2" id="stockex.menu_2" parent="stockex.menu_root"/>
+-->
+    <!-- actions -->
+<!--
+    <menuitem name="List" id="stockex.menu_1_list" parent="stockex.menu_1"
+              action="stockex.action_window"/>
+    <menuitem name="Server to list" id="stockex" parent="stockex.menu_2"
+              action="stockex.action_server"/>
+-->
+  </data>
+</odoo>

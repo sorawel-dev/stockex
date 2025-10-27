@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire du wizard d'import Kobo -->
+    <record id="view_import_kobo_wizard_form" model="ir.ui.view">
+        <field name="name">stockex.import.kobo.wizard.form</field>
+        <field name="model">stockex.import.kobo.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="alert alert-info" role="status">
+                        <h4>📱 Import depuis Kobo Collect</h4>
+                        <p>Importez vos données d'inventaire collectées sur le terrain via Kobo Collect.</p>
+                    </div>
+                    
+                    <group>
+                        <group>
+                            <field name="name" placeholder="Ex: Inventaire Terrain Mars 2025"/>
+                            <field name="date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="config_id" options="{'no_create': True}"/>
+                            <field name="import_mode" widget="radio"/>
+                        </group>
+                    </group>
+                    
+                    <group string="🗓️ Plage de Dates" invisible="import_mode != 'date_range'">
+                        <group>
+                            <field name="date_from"/>
+                        </group>
+                        <group>
+                            <field name="date_to"/>
+                        </group>
+                    </group>
+                    
+                    <group string="⚙️ Options d'Import">
+                        <group>
+                            <field name="create_missing_products"/>
+                            <field name="create_missing_locations"/>
+                        </group>
+                        <group>
+                            <field name="update_product_prices"/>
+                            <field name="import_geolocation"/>
+                            <field name="auto_validate"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="📋 Aperçu" name="preview">
+                            <group>
+                                <field name="submissions_count" readonly="1"/>
+                            </group>
+                            <field name="preview_html" nolabel="1" readonly="1"/>
+                        </page>
+                        
+                        <page string="💡 Aide" name="help">
+                            <div class="alert alert-info">
+                                <h5>Comment utiliser l'import Kobo ?</h5>
+                                <ol>
+                                    <li><strong>Configurez Kobo Collect</strong>: Assurez-vous d'avoir configuré votre connexion Kobo dans la configuration</li>
+                                    <li><strong>Collectez les données</strong>: Utilisez l'application Kobo Collect sur mobile/tablette pour collecter vos données terrain</li>
+                                    <li><strong>Synchronisez</strong>: Cliquez sur "Synchroniser" pour récupérer les dernières soumissions</li>
+                                    <li><strong>Importez</strong>: Cliquez sur "Importer" pour créer l'inventaire dans Odoo</li>
+                                </ol>
+                                
+                                <h5>Modes d'Import</h5>
+                                <ul>
+                                    <li><strong>Nouvelles Soumissions</strong>: Importe uniquement les soumissions non encore importées</li>
+                                    <li><strong>Toutes les Soumissions</strong>: Importe toutes les soumissions du formulaire</li>
+                                    <li><strong>Plage de Dates</strong>: Importe les soumissions dans une période donnée</li>
+                                </ul>
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+                
+                <footer>
+                    <button string="🔄 Synchroniser" 
+                            name="action_sync_kobo" 
+                            type="object" 
+                            class="btn-secondary"/>
+                    <button string="✅ Importer" 
+                            name="action_import" 
+                            type="object" 
+                            class="btn-primary"/>
+                    <button string="Annuler" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+</odoo>

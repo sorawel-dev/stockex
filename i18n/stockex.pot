@@ -1,0 +1,214 @@
+# Translation template for stockex
+# Copyright (C) 2025 Sorawel
+# This file is distributed under the same license as the stockex package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: stockex 18.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-24 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. module: stockex
+#: model:ir.model,name:stockex.model_stockex_stock_inventory
+msgid "Inventaire de Stock"
+msgstr "Stock Inventory"
+
+#. module: stockex
+#: model:ir.model,name:stockex.model_stockex_stock_inventory_line
+msgid "Ligne d'inventaire"
+msgstr "Inventory Line"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory__name
+msgid "Référence"
+msgstr "Reference"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory__date
+msgid "Date"
+msgstr "Date"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory__state
+msgid "État"
+msgstr "Status"
+
+#. module: stockex
+#: selection:stockex.stock.inventory,state:0
+msgid "Brouillon"
+msgstr "Draft"
+
+#. module: stockex
+#: selection:stockex.stock.inventory,state:0
+msgid "En cours"
+msgstr "In Progress"
+
+#. module: stockex
+#: selection:stockex.stock.inventory,state:0
+msgid "En attente d'approbation"
+msgstr "Pending Approval"
+
+#. module: stockex
+#: selection:stockex.stock.inventory,state:0
+msgid "Approuvé"
+msgstr "Approved"
+
+#. module: stockex
+#: selection:stockex.stock.inventory,state:0
+msgid "Validé"
+msgstr "Validated"
+
+#. module: stockex
+#: selection:stockex.stock.inventory,state:0
+msgid "Annulé"
+msgstr "Cancelled"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory__user_id
+msgid "Responsable"
+msgstr "Responsible"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory__location_id
+msgid "Emplacement"
+msgstr "Location"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory_line__product_id
+msgid "Produit"
+msgstr "Product"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory_line__theoretical_qty
+msgid "Quantité théorique"
+msgstr "Theoretical Quantity"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory_line__product_qty
+msgid "Quantité réelle"
+msgstr "Real Quantity"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory_line__difference
+msgid "Différence"
+msgstr "Difference"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory_line__scanned_barcode
+msgid "Code-barres scanné"
+msgstr "Scanned Barcode"
+
+#. module: stockex
+#: model:ir.model.fields,help:stockex.field_stockex_stock_inventory_line__scanned_barcode
+msgid "Code-barres scanné pour recherche rapide de produit"
+msgstr "Scanned barcode for quick product lookup"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory_line__image_1
+msgid "Photo 1"
+msgstr "Photo 1"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_stock_inventory_line__note
+msgid "Remarques"
+msgstr "Notes"
+
+#. module: stockex
+#: model:ir.model,name:stockex.model_stockex_cycle_count_config
+msgid "Configuration Comptage Cyclique"
+msgstr "Cycle Count Configuration"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_cycle_count_config__frequency
+msgid "Fréquence"
+msgstr "Frequency"
+
+#. module: stockex
+#: selection:stockex.cycle.count.config,frequency:0
+msgid "Quotidien"
+msgstr "Daily"
+
+#. module: stockex
+#: selection:stockex.cycle.count.config,frequency:0
+msgid "Hebdomadaire"
+msgstr "Weekly"
+
+#. module: stockex
+#: selection:stockex.cycle.count.config,frequency:0
+msgid "Mensuel"
+msgstr "Monthly"
+
+#. module: stockex
+#: selection:stockex.cycle.count.config,frequency:0
+msgid "Trimestriel"
+msgstr "Quarterly"
+
+#. module: stockex
+#: model:ir.actions.act_window,name:stockex.action_stockex_inventory
+#: model:ir.ui.menu,name:stockex.menu_stockex_inventory
+msgid "Inventaires de Stock"
+msgstr "Stock Inventories"
+
+#. module: stockex
+#: model:ir.ui.menu,name:stockex.menu_stockex_dashboard
+msgid "Vue d'Ensemble"
+msgstr "Overview"
+
+#. module: stockex
+#: code:addons/stockex/models/models.py:0
+#, python-format
+msgid "Vous devez ajouter au moins une ligne avant de démarrer l'inventaire."
+msgstr "You must add at least one line before starting the inventory."
+
+#. module: stockex
+#: code:addons/stockex/models/models.py:0
+#, python-format
+msgid "Impossible de valider un inventaire sans lignes."
+msgstr "Cannot validate an inventory without lines."
+
+#. module: stockex
+#: code:addons/stockex/models/stock_location.py:0
+#, python-format
+msgid "Cet emplacement a déjà un code-barres."
+msgstr "This location already has a barcode."
+
+#. module: stockex
+#: model:ir.model,name:stockex.model_stockex_inventory_comparison
+msgid "Comparaison d'Inventaires"
+msgstr "Inventory Comparison"
+
+#. module: stockex
+#: model:ir.model.fields,field_description:stockex.field_stockex_inventory_comparison__comparison_type
+msgid "Type de Comparaison"
+msgstr "Comparison Type"
+
+#. module: stockex
+#: selection:stockex.inventory.comparison,comparison_type:0
+msgid "Écarts de Quantité"
+msgstr "Quantity Differences"
+
+#. module: stockex
+#: selection:stockex.inventory.comparison,comparison_type:0
+msgid "Écarts de Valeur"
+msgstr "Value Differences"
+
+#. module: stockex
+#: model:ir.cron,name:stockex.ir_cron_kobo_auto_sync
+msgid "Stockex: Synchronisation Auto Kobo Collect"
+msgstr "Stockex: Auto Kobo Collect Sync"
+
+#. module: stockex
+#: model:ir.cron,name:stockex.ir_cron_cycle_count_scheduler
+msgid "Stockex: Planificateur Comptage Cyclique"
+msgstr "Stockex: Cycle Count Scheduler"
+
+#. module: stockex
+#: model:ir.cron,name:stockex.ir_cron_inventory_reminders
+msgid "Stockex: Rappels Inventaires En Cours"
+msgstr "Stockex: Pending Inventory Reminders"

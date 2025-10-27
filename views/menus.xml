@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Menu racine principal -->
+    <menuitem id="menu_stockex_root"
+              name="Gestion d'Inventaire"
+              web_icon="stockex,static/description/icon.png"
+              action="action_stockex_dashboard_home"
+              sequence="45"
+              groups="base.group_user"/>
+    
+    <!-- Sous-menu : Vue d'ensemble (page d'accueil) -->
+    <menuitem id="menu_stockex_home"
+              name="Vue d'Ensemble"
+              parent="menu_stockex_root"
+              action="action_stockex_dashboard_home"
+              sequence="1"
+              groups="base.group_user"/>
+    
+    <!-- Sous-menu : Opérations -->
+    <menuitem id="menu_stockex_operations"
+              name="Opérations"
+              parent="menu_stockex_root"
+              sequence="10"/>
+    
+    <menuitem id="menu_stockex_inventory"
+              name="Inventaires de Stock"
+              parent="menu_stockex_operations"
+              action="action_stockex_inventory"
+              sequence="10"
+              groups="base.group_user"/>
+    
+    <!-- Sous-menu : Import -->
+    <menuitem id="menu_stockex_import"
+              name="Import"
+              parent="menu_stockex_root"
+              sequence="20"/>
+    
+    <menuitem id="menu_stockex_new_inventory"
+              name="📦 Nouvel Inventaire"
+              parent="menu_stockex_import"
+              action="action_import_method_wizard"
+              sequence="5"
+              groups="base.group_user"/>
+    
+    <menuitem id="menu_stockex_import_csv"
+              name="Import CSV (Direct)"
+              parent="menu_stockex_import"
+              action="action_import_inventory_wizard"
+              sequence="10"
+              groups="base.group_user"/>
+    
+    <menuitem id="menu_stockex_import_excel"
+              name="Import Excel (Direct)"
+              parent="menu_stockex_import"
+              action="action_import_excel_wizard"
+              sequence="20"
+              groups="base.group_user"/>
+    
+    <!-- Sous-menu : Configuration -->
+    <menuitem id="menu_stockex_config"
+              name="Configuration"
+              parent="menu_stockex_root"
+              sequence="90"/>
+    
+    <!-- Menu Paramètres -->
+    <menuitem id="menu_stockex_settings"
+              name="Paramètres"
+              parent="menu_stockex_config"
+              action="action_stockex_config_settings"
+              sequence="5"
+              groups="stockex.group_stockex_manager"/>
+    
+    <!-- Menu vers les Entrepôts Odoo -->
+    <menuitem id="menu_stockex_warehouses"
+              name="Entrepôts"
+              parent="menu_stockex_config"
+              action="action_warehouse_stockex"
+              sequence="10"
+              groups="base.group_user"/>
+    
+    <!-- Menu vers les Emplacements Odoo -->
+    <menuitem id="menu_stockex_locations"
+              name="Emplacements"
+              parent="menu_stockex_config"
+              action="stock.action_location_form"
+              sequence="20"
+              groups="base.group_user"/>
+    
+    <!-- Action pour les produits -->
+    <menuitem id="menu_stockex_products"
+              name="Produits"
+              parent="menu_stockex_config"
+              action="product.product_normal_action_sell"
+              sequence="30"
+              groups="base.group_user"/>
+    
+    <!-- Configuration Kobo Collect -->
+    <menuitem id="menu_stockex_kobo_config"
+              name="📱 Kobo Collect"
+              parent="menu_stockex_config"
+              action="action_kobo_config"
+              sequence="40"
+              groups="base.group_user"/>
+    
+    <!-- Séparateur -->
+    <menuitem id="menu_stockex_config_separator"
+              name="──────────────"
+              parent="menu_stockex_config"
+              sequence="45"/>
+    
+    <!-- Action Guide Utilisateur -->
+    <record id="action_user_guide" model="ir.actions.act_url">
+        <field name="name">Guide Utilisateur</field>
+        <field name="url">/stockex/static/description/guide_utilisateur.html</field>
+        <field name="target">new</field>
+    </record>
+    
+    <!-- Menu Guide Utilisateur -->
+    <menuitem id="menu_stockex_user_guide"
+              name="📖 Guide Utilisateur"
+              parent="menu_stockex_config"
+              action="action_user_guide"
+              sequence="50"
+              groups="base.group_user"/>
+    
+    <!-- Sous-menu : Dashboard -->
+    <menuitem id="menu_stockex_dashboard"
+              name="Dashboard"
+              parent="menu_stockex_root"
+              sequence="5"/>
+    
+    <menuitem id="menu_stockex_dashboard_overview"
+              name="📊 Vue d'Ensemble (Kanban)"
+              parent="menu_stockex_dashboard"
+              action="action_stockex_dashboard_home"
+              sequence="1"
+              groups="base.group_user"/>
+    
+    <menuitem id="menu_stockex_dashboard_filters"
+              name="🔍 Dashboard avec Filtres"
+              parent="menu_stockex_dashboard"
+              action="stockex.action_inventory_summary_form"
+              sequence="2"
+              groups="base.group_user"/>
+    
+    <!-- Sous-menu : Rapports -->
+    <menuitem id="menu_stockex_reports"
+              name="Rapports"
+              parent="menu_stockex_root"
+              sequence="80"/>
+    
+    <menuitem id="menu_stockex_analysis"
+              name="Analyse Détaillée"
+              parent="menu_stockex_reports"
+              action="action_inventory_analysis"
+              sequence="5"
+              groups="base.group_user"/>
+    
+    <menuitem id="menu_stockex_inventory_report"
+              name="Liste des Inventaires"
+              parent="menu_stockex_reports"
+              action="action_stockex_inventory"
+              sequence="10"
+              groups="base.group_user"/>
+    
+    <!-- Séparateur -->
+    <menuitem id="menu_stockex_reports_separator"
+              name="──────────────"
+              parent="menu_stockex_reports"
+              sequence="50"/>
+    
+    <!-- Rapports Stock Odoo -->
+    <menuitem id="menu_stockex_stock_products"
+              name="Analyse Stock/Emplacement"
+              parent="menu_stockex_reports"
+              action="stock.action_product_stock_view"
+              sequence="60"
+              groups="stock.group_stock_user"/>
+    
+    <menuitem id="menu_stockex_stock_quant"
+              name="Stock par Emplacement"
+              parent="menu_stockex_reports"
+              action="action_stock_quant_report"
+              sequence="65"
+              groups="stock.group_stock_user"/>
+    
+    <menuitem id="menu_stockex_stock_move"
+              name="Mouvements de Stock"
+              parent="menu_stockex_reports"
+              action="action_stock_move_report"
+              sequence="70"
+              groups="stock.group_stock_user"/>
+    
+</odoo>

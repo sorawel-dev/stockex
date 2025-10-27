@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire pour la page d'accueil Dashboard -->
+    <record id="view_inventory_summary_dashboard_form" model="ir.ui.view">
+        <field name="name">stockex.inventory.summary.dashboard.form</field>
+        <field name="model">stockex.inventory.summary</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <form string="Vue d'Ensemble" create="false" edit="false" delete="false">
+                <sheet class="o_stockex_dashboard_main">
+                    <!-- Header -->
+                    <div class="oe_title mb-4">
+                        <h1>📊 Vue d'Ensemble - Gestion d'Inventaire</h1>
+                        <p class="text-muted">Tableau de bord de vos stocks et inventaires</p>
+                    </div>
+                    
+                    <!-- Cartes KPIs -->
+                    <div class="row mb-4">
+                        <!-- Card 1: Inventaires -->
+                        <div class="col-12 col-md-6 col-lg-3 mb-3">
+                            <div class="card bg-primary text-white h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="card-subtitle mb-2 text-white-50">📋 Inventaires</h6>
+                                            <h2 class="card-title mb-0">
+                                                <field name="total_inventories_done" readonly="1"/>
+                                            </h2>
+                                            <small class="text-white-50">Validés</small>
+                                        </div>
+                                        <div style="font-size: 3rem; opacity: 0.25;">📋</div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <button class="btn btn-light btn-sm" 
+                                                name="action_view_inventories" 
+                                                type="object">
+                                            Voir tout
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 2: Produits -->
+                        <div class="col-12 col-md-6 col-lg-3 mb-3">
+                            <div class="card bg-success text-white h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="card-subtitle mb-2 text-white-50">📦 Produits</h6>
+                                            <h2 class="card-title mb-0">
+                                                <field name="total_products_all" readonly="1"/>
+                                            </h2>
+                                            <small class="text-white-50">Références</small>
+                                        </div>
+                                        <div style="font-size: 3rem; opacity: 0.25;">📦</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 3: Quantité -->
+                        <div class="col-12 col-md-6 col-lg-3 mb-3">
+                            <div class="card bg-info text-white h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="card-subtitle mb-2 text-white-50">📊 Quantité</h6>
+                                            <h2 class="card-title mb-0">
+                                                <field name="total_quantity_all" widget="integer" readonly="1"/>
+                                            </h2>
+                                            <small class="text-white-50">Unités</small>
+                                        </div>
+                                        <div style="font-size: 3rem; opacity: 0.25;">📊</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 4: Valeur -->
+                        <div class="col-12 col-md-6 col-lg-3 mb-3">
+                            <div class="card bg-warning text-dark h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="card-subtitle mb-2 text-muted">💰 Valeur Totale</h6>
+                                            <h2 class="card-title mb-0">
+                                                <field name="total_value_all_fcfa" readonly="1"/>
+                                            </h2>
+                                            <small class="text-muted">Tous stocks</small>
+                                        </div>
+                                        <div style="font-size: 3rem; opacity: 0.25;">💰</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions Rapides -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">🚀 Actions Rapides</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-2">
+                                            <button class="btn btn-primary w-100" 
+                                                    name="%(action_import_method_wizard)d" 
+                                                    type="action">
+                                                📦 Nouvel Inventaire
+                                            </button>
+                                        </div>
+                                        <div class="col-md-4 mb-2">
+                                            <button class="btn btn-secondary w-100" 
+                                                    name="%(action_stockex_inventory)d" 
+                                                    type="action">
+                                                📋 Voir les Inventaires
+                                            </button>
+                                        </div>
+                                        <div class="col-md-4 mb-2">
+                                            <button class="btn btn-info w-100" 
+                                                    name="%(action_inventory_analysis)d" 
+                                                    type="action">
+                                                📈 Analyse Détaillée
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section Écarts -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">📊 Valeur des Écarts d'Inventaire</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="p-3 border rounded bg-light">
+                                                <h6 class="text-muted">Écarts Totaux</h6>
+                                                <h3 class="mb-0">
+                                                    <field name="total_differences_value_fcfa" readonly="1"/>
+                                                </h3>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="p-3 border rounded bg-success bg-opacity-10">
+                                                <h6 class="text-success">➕ Écarts Positifs (Surplus)</h6>
+                                                <h3 class="mb-0 text-success">
+                                                    <field name="positive_differences_value_fcfa" readonly="1"/>
+                                                </h3>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="p-3 border rounded bg-danger bg-opacity-10">
+                                                <h6 class="text-danger">➖ Écarts Négatifs (Manquants)</h6>
+                                                <h3 class="mb-0 text-danger">
+                                                    <field name="negative_differences_value_fcfa" readonly="1"/>
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info mt-3" role="status">
+                                        <strong>💡 Info :</strong> Les écarts représentent la différence entre les quantités réelles comptées et les quantités théoriques attendues, valorisée au prix standard.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Analyses -->
+                    <div class="row">
+                        <!-- Dernier Inventaire -->
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">🔄 Dernier Inventaire</h6>
+                                </div>
+                                <div class="card-body">
+                                    <field name="last_inventory_id" invisible="1"/>
+                                    <div invisible="not last_inventory_id">
+                                        <dl class="row mb-0">
+                                            <dt class="col-5">Inventaire:</dt>
+                                            <dd class="col-7"><field name="last_inventory_id" readonly="1"/></dd>
+                                            
+                                            <dt class="col-5">Date:</dt>
+                                            <dd class="col-7"><field name="last_inventory_date" readonly="1"/></dd>
+                                            
+                                            <dt class="col-5">Produits:</dt>
+                                            <dd class="col-7"><field name="last_inventory_products" readonly="1"/></dd>
+                                            
+                                            <dt class="col-5">Valeur:</dt>
+                                            <dd class="col-7"><field name="last_inventory_value_fcfa" readonly="1"/></dd>
+                                        </dl>
+                                    </div>
+                                    <div class="text-muted text-center" invisible="last_inventory_id">
+                                        Aucun inventaire validé
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Top Catégories -->
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">📊 Top 5 Catégories</h6>
+                                </div>
+                                <div class="card-body p-2" style="max-height: 300px; overflow-y: auto;">
+                                    <field name="top_categories_html" nolabel="1" readonly="1"/>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Top Entrepôts -->
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">🏭 Top 5 Entrepôts</h6>
+                                </div>
+                                <div class="card-body p-2" style="max-height: 300px; overflow-y: auto;">
+                                    <field name="top_warehouses_html" nolabel="1" readonly="1"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <field name="company_id" invisible="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+</odoo>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Action pour voir les produits avec leur stock -->
+    <record id="action_product_stock_report" model="ir.actions.act_window">
+        <field name="name">Produits (Stock)</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">list,form,kanban</field>
+        <field name="domain">[]</field>
+        <field name="context">{
+            'search_default_categ_id': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer un nouveau produit
+            </p>
+            <p>
+                Consultez les produits avec leurs quantités en stock.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Action pour voir les quants (stock par emplacement) -->
+    <record id="action_stock_quant_report" model="ir.actions.act_window">
+        <field name="name">Stock par Emplacement</field>
+        <field name="res_model">stock.quant</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('location_id.usage', '=', 'internal')]</field>
+        <field name="context">{
+            'search_default_internal_loc': 1,
+            'search_default_productgroup': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucun stock disponible
+            </p>
+            <p>
+                Consultez les quantités en stock par produit et emplacement.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Action pour voir l'historique des mouvements -->
+    <record id="action_stock_move_report" model="ir.actions.act_window">
+        <field name="name">Historique des Mouvements</field>
+        <field name="res_model">stock.move.line</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="domain">[('state', '=', 'done')]</field>
+        <field name="context">{
+            'search_default_done': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucun mouvement de stock
+            </p>
+            <p>
+                Consultez l'historique de tous les mouvements de stock.
+            </p>
+        </field>
+    </record>
+    
+</odoo>

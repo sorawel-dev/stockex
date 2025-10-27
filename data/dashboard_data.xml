@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Enregistrement par défaut pour le dashboard -->
+    <record id="inventory_summary_default" model="stockex.inventory.summary">
+        <field name="name">Dashboard Inventaire</field>
+    </record>
+</odoo>
