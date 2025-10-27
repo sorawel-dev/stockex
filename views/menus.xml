@@ -95,6 +95,14 @@
               sequence="30"
               groups="base.group_user"/>
     
+    <!-- Menu Catégories de produits -->
+    <menuitem id="menu_stockex_product_categories"
+              name="Catégories de Produits"
+              parent="menu_stockex_config"
+              action="product.product_category_action_form"
+              sequence="35"
+              groups="base.group_user"/>
+    
     <!-- Configuration Kobo Collect -->
     <menuitem id="menu_stockex_kobo_config"
               name="📱 Kobo Collect"
