@@ -8,16 +8,19 @@
         <field name="inherit_id" ref="stock.view_warehouse"/>
         <field name="arch" type="xml">
             
-            <!-- Ajouter les champs après le nom -->
-            <field name="name" position="after">
-                <field name="code" 
-                       placeholder="Auto (diminutif du nom)"
-                       help="Diminutif du nom de l'entrepôt (généré automatiquement, modifiable)"/>
+            <!-- Ajouter les champs après le code existant -->
+            <xpath expr="//field[@name='code']" position="after">
                 <field name="warehouse_code" 
                        placeholder="Ex: WH-ABJ-001"
                        help="Code unique de l'entrepôt (optionnel)"/>
+                <field name="warehouse_type"/>
                 <field name="parent_id" options="{'no_create': True}"/>
-            </field>
+                <field name="parent_name_upper" 
+                       readonly="1"
+                       invisible="not parent_id"
+                       class="text-uppercase fw-bold"
+                       style="font-weight: bold; font-size: 14px;"/>
+            </xpath>
             
             <!-- Ajouter un onglet Géolocalisation -->
             <xpath expr="//notebook" position="inside">
@@ -51,6 +54,7 @@
                             <field name="name"/>
                             <field name="code" string="Diminutif"/>
                             <field name="warehouse_code" optional="show"/>
+                            <field name="warehouse_type" optional="show" widget="badge"/>
                             <field name="city" optional="show"/>
                             <field name="coordinates" optional="show"/>
                         </list>
@@ -59,9 +63,9 @@
             </xpath>
             
             <!-- Ajouter le compteur d'enfants (invisible) -->
-            <field name="name" position="before">
+            <xpath expr="//field[@name='code']" position="before">
                 <field name="child_count" invisible="1"/>
-            </field>
+            </xpath>
             
         </field>
     </record>
@@ -75,6 +79,8 @@
             <field name="name" position="after">
                 <field name="code" string="Diminutif" optional="show"/>
                 <field name="warehouse_code" optional="show" string="Code Entrepôt"/>
+                <field name="warehouse_type" optional="show" widget="badge"/>
+                <field name="parent_name_upper" optional="show" string="Magasin Parent" class="fw-bold"/>
                 <field name="parent_id" optional="hide"/>
                 <field name="city" optional="show"/>
                 <field name="coordinates" optional="hide"/>

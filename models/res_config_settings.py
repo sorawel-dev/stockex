@@ -79,6 +79,92 @@ class ResConfigSettings(models.TransientModel):
         help='Valider automatiquement les inventaires créés depuis Kobo'
     )
     
+    # Notifications Email
+    stockex_notify_by_email = fields.Boolean(
+        string='📧 Activer Notifications Email',
+        default=False,
+        config_parameter='stockex.notify_by_email',
+        help='Envoyer des notifications par email lors des imports réussis'
+    )
+    
+    stockex_notification_emails = fields.Char(
+        string='Emails de Notification',
+        config_parameter='stockex.notification_emails',
+        help='Liste d\'emails séparés par des virgules (ex: user1@example.com, user2@example.com)'
+    )
+    
+    # Notifications WhatsApp
+    stockex_notify_by_whatsapp = fields.Boolean(
+        string='💬 Activer Notifications WhatsApp',
+        default=False,
+        config_parameter='stockex.notify_by_whatsapp',
+        help='Envoyer des notifications WhatsApp lors des imports réussis'
+    )
+    
+    stockex_whatsapp_provider = fields.Selection(
+        selection=[
+            ('twilio', 'Twilio'),
+            ('meta', 'Meta WhatsApp Business API'),
+            ('vonage', 'Vonage (Nexmo)'),
+            ('360dialog', '360dialog'),
+            ('custom', 'URL Personnalisée'),
+        ],
+        string='Fournisseur WhatsApp',
+        default='twilio',
+        config_parameter='stockex.whatsapp_provider',
+        help='Sélectionnez votre fournisseur d\'API WhatsApp'
+    )
+    
+    stockex_whatsapp_numbers = fields.Char(
+        string='Numéros WhatsApp',
+        config_parameter='stockex.whatsapp_numbers',
+        help='Liste de numéros au format international séparés par des virgules (ex: +237690000001, +237690000002)'
+    )
+    
+    stockex_whatsapp_api_url = fields.Char(
+        string='URL API WhatsApp',
+        config_parameter='stockex.whatsapp_api_url',
+        help='URL de votre API WhatsApp (remplie automatiquement selon le fournisseur)'
+    )
+    
+    stockex_whatsapp_api_token = fields.Char(
+        string='Token/Clé API WhatsApp',
+        config_parameter='stockex.whatsapp_api_token',
+        help='Token d\'authentification pour l\'API WhatsApp'
+    )
+    
+    stockex_whatsapp_account_sid = fields.Char(
+        string='Account SID (Twilio)',
+        config_parameter='stockex.whatsapp_account_sid',
+        help='Account SID Twilio (requis pour Twilio)'
+    )
+    
+    stockex_whatsapp_phone_number_id = fields.Char(
+        string='Phone Number ID (Meta)',
+        config_parameter='stockex.whatsapp_phone_number_id',
+        help='ID du numéro de téléphone WhatsApp Business (requis pour Meta)'
+    )
+    
+    # Notifications Telegram
+    stockex_notify_by_telegram = fields.Boolean(
+        string='📱 Activer Notifications Telegram',
+        default=False,
+        config_parameter='stockex.notify_by_telegram',
+        help='Envoyer des notifications Telegram lors des imports réussis'
+    )
+    
+    stockex_telegram_bot_token = fields.Char(
+        string='Bot Token Telegram',
+        config_parameter='stockex.telegram_bot_token',
+        help='Token du bot Telegram (obtenu via @BotFather)'
+    )
+    
+    stockex_telegram_chat_ids = fields.Char(
+        string='Chat IDs Telegram',
+        config_parameter='stockex.telegram_chat_ids',
+        help='Liste des Chat IDs séparés par des virgules (ex: 123456789, 987654321)'
+    )
+    
     # Statistiques
     stockex_inventory_count = fields.Integer(
         string='Nombre d\'Inventaires',
@@ -102,6 +188,20 @@ class ResConfigSettings(models.TransientModel):
             
             config.stockex_inventory_count = len(inventories)
             config.stockex_last_import_date = inventories[0].create_date if inventories else False
+    
+    @api.onchange('stockex_whatsapp_provider', 'stockex_whatsapp_account_sid', 'stockex_whatsapp_phone_number_id')
+    def _onchange_whatsapp_provider(self):
+        """Génère automatiquement l'URL API selon le fournisseur."""
+        if self.stockex_whatsapp_provider == 'twilio' and self.stockex_whatsapp_account_sid:
+            self.stockex_whatsapp_api_url = f'https://api.twilio.com/2010-04-01/Accounts/{self.stockex_whatsapp_account_sid}/Messages.json'
+        elif self.stockex_whatsapp_provider == 'meta' and self.stockex_whatsapp_phone_number_id:
+            self.stockex_whatsapp_api_url = f'https://graph.facebook.com/v18.0/{self.stockex_whatsapp_phone_number_id}/messages'
+        elif self.stockex_whatsapp_provider == 'vonage':
+            self.stockex_whatsapp_api_url = 'https://messages-sandbox.nexmo.com/v0.1/messages'
+        elif self.stockex_whatsapp_provider == '360dialog':
+            self.stockex_whatsapp_api_url = 'https://waba.360dialog.io/v1/messages'
+        elif self.stockex_whatsapp_provider != 'custom':
+            self.stockex_whatsapp_api_url = ''
     
     def action_open_kobo_config(self):
         """Ouvre la configuration Kobo Collect."""

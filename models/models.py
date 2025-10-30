@@ -27,6 +27,14 @@ class StockWarehouse(models.Model):
         index=True,
         help='Entrepôt parent pour créer une hiérarchie d\'entrepôts'
     )
+    
+    parent_name_upper = fields.Char(
+        string='Magasin Parent',
+        compute='_compute_parent_name_upper',
+        store=False,
+        help='Nom de l\'entrepôt parent en MAJUSCULES'
+    )
+    
     child_ids = fields.One2many(
         comodel_name='stock.warehouse',
         inverse_name='parent_id',
@@ -37,6 +45,19 @@ class StockWarehouse(models.Model):
         string='Nombre d\'enfants',
         compute='_compute_child_count',
         store=True
+    )
+    
+    warehouse_type = fields.Selection(
+        selection=[
+            ('production', 'Production'),
+            ('distribution', 'Distribution'),
+            ('commercialisation', 'Commercialisation'),
+        ],
+        string='Type de Magasin',
+        required=True,
+        default='distribution',
+        index=True,
+        help='Type de magasin : Production, Distribution ou Commercialisation'
     )
     
     # Champs de géolocalisation
@@ -123,6 +144,15 @@ class StockWarehouse(models.Model):
                 new_code = self._generate_warehouse_code(vals['name'])
                 vals['code'] = new_code
         return super().write(vals)
+    
+    @api.depends('parent_id', 'parent_id.name')
+    def _compute_parent_name_upper(self):
+        """Calcule le nom du parent en MAJUSCULES."""
+        for warehouse in self:
+            if warehouse.parent_id:
+                warehouse.parent_name_upper = warehouse.parent_id.name.upper()
+            else:
+                warehouse.parent_name_upper = False
     
     @api.depends('child_ids')
     def _compute_child_count(self):
@@ -323,21 +353,62 @@ class StockInventory(models.Model):
     
     def action_validate(self):
         """Valide l'inventaire et met à jour les stocks Odoo."""
+        import threading
+        
         for inventory in self:
             if not inventory.line_ids:
                 raise UserError("Impossible de valider un inventaire sans lignes.")
             
-            # Mettre à jour les stocks Odoo
-            inventory._update_odoo_stock()
-        
-        return self.write({
-            'state': 'done',
-            'validator_id': self.env.user.id,
-            'validation_date': fields.Datetime.now()
-        })
+            total_lines = len(inventory.line_ids)
+            
+            # Pour les gros inventaires (> 500 lignes), utiliser traitement asynchrone
+            if total_lines > 500:
+                _logger.info(f"🚀 Gros inventaire ({total_lines} lignes) → Traitement en thread séparé")
+                
+                # Marquer comme validé immédiatement
+                inventory.write({
+                    'state': 'done',
+                    'validator_id': self.env.user.id,
+                    'validation_date': fields.Datetime.now()
+                })
+                self.env.cr.commit()
+                
+                # Lancer le traitement dans un thread séparé
+                thread = threading.Thread(
+                    target=inventory._update_odoo_stock_async,
+                    args=(inventory.id, self.env.cr.dbname)
+                )
+                thread.daemon = True
+                thread.start()
+                
+                # Message utilisateur
+                inventory.message_post(
+                    body=f"⏳ Mise à jour de {total_lines} lignes de stock en cours en arrière-plan...",
+                    message_type='notification'
+                )
+                
+                return {
+                    'type': 'ir.actions.client',
+                    'tag': 'display_notification',
+                    'params': {
+                        'title': '✅ Inventaire validé',
+                        'message': f'La mise à jour de {total_lines} lignes se fait en arrière-plan. Vous pouvez continuer à travailler.',
+                        'type': 'success',
+                        'sticky': True,
+                    }
+                }
+            else:
+                # Pour petits inventaires (≤ 500 lignes), traitement immédiat
+                inventory._update_odoo_stock()
+                
+                return inventory.write({
+                    'state': 'done',
+                    'validator_id': self.env.user.id,
+                    'validation_date': fields.Datetime.now()
+                })
     
     def _update_odoo_stock(self):
-        """Met à jour les stocks Odoo avec les quantités de l'inventaire."""
+        """Met à jour les stocks Odoo avec les quantités de l'inventaire (optimisé avec commits par lots)."""
         self.ensure_one()
         
         StockQuant = self.env['stock.quant']
@@ -347,56 +418,67 @@ class StockInventory(models.Model):
         skipped_bad_location = 0
         skipped_qty_zero = 0
         
-        _logger.info(f"Début mise à jour stocks pour inventaire {self.name} - {len(self.line_ids)} lignes")
+        total_lines = len(self.line_ids)
+        batch_size = 50  # Traiter 50 lignes à la fois
         
-        for line in self.line_ids:
-            try:
-                if not line.product_id or not line.location_id:
-                    skipped_no_data += 1
-                    _logger.warning(f"Ligne sans produit ou emplacement ignorée")
-                    continue
-                
-                # Vérifier que l'emplacement est de type interne
-                if line.location_id.usage != 'internal':
-                    skipped_bad_location += 1
-                    _logger.warning(f"Ligne {line.id}: Emplacement '{line.location_id.complete_name}' (usage={line.location_id.usage}) ignoré - pas de type 'internal'")
-                    errors.append(f"Emplacement '{line.location_id.name}' n'est pas de type 'internal' (type: {line.location_id.usage})")
-                    continue
-                
-                # Trouver ou créer le quant avec company_id
-                quant = StockQuant.search([
-                    ('product_id', '=', line.product_id.id),
-                    ('location_id', '=', line.location_id.id),
-                    ('company_id', '=', self.company_id.id),
-                ], limit=1)
-                
-                if quant:
-                    # Mettre à jour la quantité existante
-                    _logger.info(f"MAJ quant {line.product_id.default_code} @ {line.location_id.name}: {quant.quantity} → {line.product_qty}")
-                    quant.inventory_quantity = line.product_qty
-                    quant.inventory_quantity_set = True
-                    quant.action_apply_inventory()
-                    adjusted_count += 1
-                else:
-                    # Créer un nouveau quant si nécessaire
-                    if line.product_qty != 0:  # Créer même pour quantités négatives
-                        _logger.info(f"Création quant {line.product_id.default_code} @ {line.location_id.name}: 0 → {line.product_qty}")
-                        new_quant = StockQuant.create({
-                            'product_id': line.product_id.id,
-                            'location_id': line.location_id.id,
-                            'company_id': self.company_id.id,
-                            'inventory_quantity': line.product_qty,
-                            'inventory_quantity_set': True,
-                        })
-                        new_quant.action_apply_inventory()
+        _logger.info(f"🚀 Début mise à jour stocks pour inventaire {self.name} - {total_lines} lignes (par lots de {batch_size})")
+        
+        for batch_num, i in enumerate(range(0, total_lines, batch_size), 1):
+            batch_lines = self.line_ids[i:i + batch_size]
+            batch_start = i + 1
+            batch_end = min(i + batch_size, total_lines)
+            
+            _logger.info(f"📦 Traitement lot {batch_num}: lignes {batch_start}-{batch_end} / {total_lines}")
+            
+            for line in batch_lines:
+                try:
+                    if not line.product_id or not line.location_id:
+                        skipped_no_data += 1
+                        continue
+                    
+                    # Vérifier que l'emplacement est de type interne
+                    if line.location_id.usage != 'internal':
+                        skipped_bad_location += 1
+                        errors.append(f"Emplacement '{line.location_id.name}' n'est pas de type 'internal' (type: {line.location_id.usage})")
+                        continue
+                    
+                    # Trouver ou créer le quant avec company_id
+                    quant = StockQuant.search([
+                        ('product_id', '=', line.product_id.id),
+                        ('location_id', '=', line.location_id.id),
+                        ('company_id', '=', self.company_id.id),
+                    ], limit=1)
+                    
+                    if quant:
+                        # Mettre à jour la quantité existante
+                        quant.inventory_quantity = line.product_qty
+                        quant.inventory_quantity_set = True
+                        quant.action_apply_inventory()
                         adjusted_count += 1
                     else:
-                        skipped_qty_zero += 1
-                        
-            except Exception as e:
-                error_msg = f"Produit {line.product_id.default_code} @ {line.location_id.name}: {str(e)}"
-                errors.append(error_msg)
-                _logger.error(f"Erreur mise à jour stock {line.product_id.display_name} @ {line.location_id.name}: {e}", exc_info=True)
+                        # Créer un nouveau quant si nécessaire
+                        if line.product_qty != 0:
+                            new_quant = StockQuant.create({
+                                'product_id': line.product_id.id,
+                                'location_id': line.location_id.id,
+                                'company_id': self.company_id.id,
+                                'inventory_quantity': line.product_qty,
+                                'inventory_quantity_set': True,
+                            })
+                            new_quant.action_apply_inventory()
+                            adjusted_count += 1
+                        else:
+                            skipped_qty_zero += 1
+                            
+                except Exception as e:
+                    error_msg = f"Produit {line.product_id.default_code} @ {line.location_id.name}: {str(e)}"
+                    errors.append(error_msg)
+                    _logger.error(f"❌ Erreur ligne: {error_msg}")
+            
+            # Commit après chaque lot pour éviter timeout
+            self.env.cr.commit()
+            progress_pct = (batch_end / total_lines) * 100
+            _logger.info(f"✅ Lot {batch_num} terminé: {adjusted_count} ajustements ({progress_pct:.1f}%)")
         
         # Statistiques détaillées
         stats = f"""
@@ -416,18 +498,73 @@ class StockInventory(models.Model):
         if errors:
             message += f"\n\n⚠️ Détails des erreurs ({len(errors)}):\n" + "\n".join(errors[:20])
         
-        self.message_post(body=message)
-        _logger.info(f"Fin mise à jour stocks: {adjusted_count} ajustements, {skipped_bad_location} emplacements non-internal, {len(errors)} erreurs")
+        _logger.info(message)
         
-        return adjusted_count
+        # Poster un message dans le chatter
+        try:
+            self.message_post(
+                body=message,
+                message_type='notification',
+                subtype_xmlid='mail.mt_note'
+            )
+        except Exception as msg_error:
+            _logger.warning(f"⚠️ Impossible de poster le message dans le chatter: {msg_error}")
     
-    def action_cancel(self):
-        """Annule l'inventaire."""
-        return self.write({'state': 'cancel'})
+    @staticmethod
+    def _update_odoo_stock_async(inventory_id, dbname):
+        """Version asynchrone de _update_odoo_stock pour gros inventaires (utilise un nouveau curseur)."""
+        import odoo
+        from odoo import api, SUPERUSER_ID
+        
+        try:
+            # Créer un nouveau curseur et registry
+            registry = odoo.registry(dbname)
+            with registry.cursor() as new_cr:
+                env = api.Environment(new_cr, SUPERUSER_ID, {})
+                inventory = env['stockex.stock.inventory'].browse(inventory_id)
+                
+                _logger.info(f"🚀 Début traitement asynchrone pour inventaire {inventory.name}")
+                inventory._update_odoo_stock()
+                new_cr.commit()
+                _logger.info(f"✅ Traitement asynchrone terminé pour inventaire {inventory.name}")
+                
+        except Exception as e:
+            _logger.error(f"❌ Erreur traitement asynchrone: {e}", exc_info=True)
+            # Essayer de poster l'erreur dans le chatter
+            try:
+                with registry.cursor() as err_cr:
+                    err_env = api.Environment(err_cr, SUPERUSER_ID, {})
+                    inventory = err_env['stockex.stock.inventory'].browse(inventory_id)
+                    inventory.message_post(
+                        body=f"❌ Erreur lors de la mise à jour des stocks: {str(e)}",
+                        message_type='notification',
+                        subtype_xmlid='mail.mt_note'
+                    )
+                    err_cr.commit()
+            except Exception as msg_err:
+                _logger.error(f"❌ Impossible de poster l'erreur: {msg_err}")
     
     def action_draft(self):
         """Remet l'inventaire en brouillon."""
         return self.write({'state': 'draft'})
+    
+    def action_cancel(self):
+        """Annule l'inventaire validé (pour admin uniquement)."""
+        for inventory in self:
+            if inventory.state != 'done':
+                raise UserError("Seuls les inventaires validés peuvent être annulés.")
+            
+            # Annuler l'inventaire
+            inventory.write({'state': 'cancel'})
+            
+            # Message dans le chatter
+            inventory.message_post(
+                body=f"❌ Inventaire annulé par {self.env.user.name}",
+                message_type='notification',
+                subtype_xmlid='mail.mt_note'
+            )
+        
+        return True
     
     def name_get(self):
         """Affichage personnalisé du nom."""
@@ -635,6 +772,13 @@ class StockInventoryLine(models.Model):
         readonly=True,
         help='Code-barres du produit pour scan mobile'
     )
+    product_categ_id = fields.Many2one(
+        comodel_name='product.category',
+        string='Catégorie',
+        related='product_id.categ_id',
+        readonly=True,
+        store=True
+    )
     scanned_barcode = fields.Char(
         string='Code-barres scanné',
         help='Code-barres scanné pour recherche rapide de produit'
@@ -644,7 +788,9 @@ class StockInventoryLine(models.Model):
         digits='Product Unit of Measure',
         readonly=True,
         compute='_compute_theoretical_qty',
-        store=True
+        store=True,
+        compute_sudo=True,
+        inverse='_inverse_theoretical_qty',  # Permettre de forcer la valeur
     )
     product_qty = fields.Float(
         string='Quantité réelle',
@@ -730,14 +876,22 @@ class StockInventoryLine(models.Model):
         # Construire un mapping (product_id, location_id) -> quantity - reserved
         qty_map = {}
         for g in groups:
-            prod_id = g['product_id'][0]
-            loc_id = g['location_id'][0]
-            qty = g.get('quantity_sum', 0.0) or 0.0
-            reserved = g.get('reserved_quantity_sum', 0.0) or 0.0
-            qty_map[(prod_id, loc_id)] = qty - reserved
+            # Vérifier que les clés existent pour éviter KeyError
+            if 'product_id' in g and 'location_id' in g:
+                prod_id = g['product_id'][0] if g['product_id'] else None
+                loc_id = g['location_id'][0] if g['location_id'] else None
+                if prod_id and loc_id:
+                    qty = g.get('quantity_sum', 0.0) or 0.0
+                    reserved = g.get('reserved_quantity_sum', 0.0) or 0.0
+                    qty_map[(prod_id, loc_id)] = qty - reserved
 
         for line in lines:
             line.theoretical_qty = qty_map.get((line.product_id.id, line.location_id.id), 0.0)
+    
+    def _inverse_theoretical_qty(self):
+        """Méthode inverse pour permettre de forcer la valeur theoretical_qty (pour stock initial)."""
+        # Ne rien faire - la valeur est déjà écrite par le create/write
+        pass
     
     @api.depends('theoretical_qty', 'product_qty')
     def _compute_difference(self):

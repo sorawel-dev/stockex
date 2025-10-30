@@ -11,6 +11,12 @@
                 <field name="code" placeholder="ex: ALIM, ELEC, FOUR..." 
                        help="Code court pour identifier la catégorie"/>
             </field>
+            <field name="parent_id" position="after">
+                <field name="accounts_configured" 
+                       widget="boolean" 
+                       readonly="1"
+                       string="✓ Comptes Comptables Configurés"/>
+            </field>
         </field>
     </record>
     
@@ -20,8 +26,12 @@
         <field name="model">product.category</field>
         <field name="inherit_id" ref="product.product_category_list_view"/>
         <field name="arch" type="xml">
-            <field name="complete_name" position="before">
+            <field name="display_name" position="after">
                 <field name="code" optional="show"/>
+                <field name="accounts_configured" string="✓ Comptes Config." 
+                       widget="boolean_toggle" 
+                       optional="show"
+                       readonly="1"/>
             </field>
         </field>
     </record>

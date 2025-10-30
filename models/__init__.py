@@ -14,3 +14,4 @@ from . import cycle_count
 from . import inventory_comparison
 from . import variance_report
 from . import stock_accounting
+from . import analytics_dashboard

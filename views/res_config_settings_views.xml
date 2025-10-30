@@ -140,6 +140,202 @@
                         </setting>
                     </block>
                     
+                    <!-- Notifications Email -->
+                    <block title="📧 Notifications Email" name="stockex_email_notifications">
+                        <setting string="Activer les Notifications Email">
+                            <div class="text-muted">
+                                Envoyer automatiquement des emails après les imports réussis
+                            </div>
+                            <div class="content-group mt-2">
+                                <field name="stockex_notify_by_email"/>
+                                <label for="stockex_notify_by_email"/>
+                            </div>
+                        </setting>
+                        
+                        <setting string="Destinataires" invisible="not stockex_notify_by_email">
+                            <div class="text-muted">
+                                Liste des emails qui recevront les notifications
+                            </div>
+                            <div class="content-group mt-2">
+                                <field name="stockex_notification_emails" 
+                                       placeholder="user1@example.com, user2@example.com"
+                                       class="w-100"/>
+                            </div>
+                        </setting>
+                    </block>
+                    
+                    <!-- Notifications WhatsApp -->
+                    <block title="💬 Notifications WhatsApp" name="stockex_whatsapp_notifications">
+                        <setting string="Activer les Notifications WhatsApp">
+                            <div class="text-muted">
+                                Envoyer automatiquement des messages WhatsApp après les imports réussis
+                            </div>
+                            <div class="content-group mt-2">
+                                <field name="stockex_notify_by_whatsapp"/>
+                                <label for="stockex_notify_by_whatsapp"/>
+                            </div>
+                        </setting>
+                        
+                        <setting string="Fournisseur API" invisible="not stockex_notify_by_whatsapp">
+                            <div class="text-muted">
+                                Sélectionnez votre fournisseur d'API WhatsApp
+                            </div>
+                            <div class="content-group mt-2">
+                                <field name="stockex_whatsapp_provider" widget="radio"/>
+                                
+                                <div class="alert alert-info mt-3" role="status">
+                                    <strong>💡 Fournisseurs disponibles :</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li><strong>Twilio</strong> : Facile, pay-as-you-go - <a href="https://www.twilio.com" target="_blank">twilio.com</a></li>
+                                        <li><strong>Meta WhatsApp Business</strong> : Officiel, 1000 conversations/mois gratuites</li>
+                                        <li><strong>Vonage</strong> : Alternative Twilio</li>
+                                        <li><strong>360dialog</strong> : Partenaire officiel WhatsApp</li>
+                                        <li><strong>URL Personnalisée</strong> : Votre propre API</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </setting>
+                        
+                        <setting string="Destinataires" invisible="not stockex_notify_by_whatsapp">
+                            <div class="text-muted">
+                                Numéros WhatsApp au format international
+                            </div>
+                            <div class="content-group mt-2">
+                                <field name="stockex_whatsapp_numbers" 
+                                       placeholder="+237690000001, +237690000002"
+                                       class="w-100"/>
+                            </div>
+                        </setting>
+                        
+                        <setting string="Configuration Twilio" invisible="not stockex_notify_by_whatsapp or stockex_whatsapp_provider != 'twilio'">
+                            <div class="text-muted">
+                                Identifiants de votre compte Twilio
+                            </div>
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="stockex_whatsapp_account_sid" class="col-lg-3 o_light_label"/>
+                                    <field name="stockex_whatsapp_account_sid" 
+                                           placeholder="Account SID (commence par AC...)"
+                                           class="col-lg-9"/>
+                                </div>
+                                <div class="row mt-2">
+                                    <label for="stockex_whatsapp_api_token" class="col-lg-3 o_light_label"/>
+                                    <field name="stockex_whatsapp_api_token" 
+                                           password="True"
+                                           placeholder="Auth Token"
+                                           class="col-lg-9"/>
+                                </div>
+                            </div>
+                        </setting>
+                        
+                        <setting string="Configuration Meta WhatsApp" invisible="not stockex_notify_by_whatsapp or stockex_whatsapp_provider != 'meta'">
+                            <div class="text-muted">
+                                Identifiants de votre compte Meta WhatsApp Business
+                            </div>
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="stockex_whatsapp_phone_number_id" class="col-lg-3 o_light_label"/>
+                                    <field name="stockex_whatsapp_phone_number_id" 
+                                           placeholder="Phone Number ID"
+                                           class="col-lg-9"/>
+                                </div>
+                                <div class="row mt-2">
+                                    <label for="stockex_whatsapp_api_token" class="col-lg-3 o_light_label"/>
+                                    <field name="stockex_whatsapp_api_token" 
+                                           password="True"
+                                           placeholder="Access Token"
+                                           class="col-lg-9"/>
+                                </div>
+                            </div>
+                        </setting>
+                        
+                        <setting string="Configuration API" invisible="not stockex_notify_by_whatsapp or stockex_whatsapp_provider == 'twilio' or stockex_whatsapp_provider == 'meta'">
+                            <div class="text-muted">
+                                Paramètres de connexion à votre API WhatsApp
+                            </div>
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="stockex_whatsapp_api_url" class="col-lg-3 o_light_label"/>
+                                    <field name="stockex_whatsapp_api_url" 
+                                           placeholder="URL API"
+                                           readonly="stockex_whatsapp_provider != 'custom'"
+                                           class="col-lg-9"/>
+                                </div>
+                                <div class="row mt-2">
+                                    <label for="stockex_whatsapp_api_token" class="col-lg-3 o_light_label"/>
+                                    <field name="stockex_whatsapp_api_token" 
+                                           password="True"
+                                           placeholder="API Token/Key"
+                                           class="col-lg-9"/>
+                                </div>
+                            </div>
+                        </setting>
+                        
+                        <setting string="URL API Générée" invisible="not stockex_notify_by_whatsapp or not stockex_whatsapp_api_url">
+                            <div class="content-group mt-2">
+                                <div class="alert alert-success" role="status">
+                                    <strong>✅ URL API :</strong><br/>
+                                    <code><field name="stockex_whatsapp_api_url" readonly="1" nolabel="1"/></code>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    
+                    <!-- Notifications Telegram -->
+                    <block title="📱 Notifications Telegram" name="stockex_telegram_notifications">
+                        <setting string="Activer les Notifications Telegram">
+                            <div class="text-muted">
+                                Envoyer automatiquement des messages Telegram après les imports réussis
+                            </div>
+                            <div class="content-group mt-2">
+                                <field name="stockex_notify_by_telegram"/>
+                                <label for="stockex_notify_by_telegram"/>
+                            </div>
+                        </setting>
+                        
+                        <setting string="Configuration Bot Telegram" invisible="not stockex_notify_by_telegram">
+                            <div class="text-muted">
+                                Créez un bot via @BotFather sur Telegram pour obtenir le token
+                            </div>
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="stockex_telegram_bot_token" class="col-lg-3 o_light_label"/>
+                                    <field name="stockex_telegram_bot_token" 
+                                           password="True"
+                                           placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+                                           class="col-lg-9"/>
+                                </div>
+                                
+                                <div class="alert alert-info mt-3" role="status">
+                                    <strong>💡 Comment créer un bot Telegram :</strong>
+                                    <ol class="mb-0 mt-2">
+                                        <li>Ouvrez Telegram et cherchez <strong>@BotFather</strong></li>
+                                        <li>Envoyez la commande <code>/newbot</code></li>
+                                        <li>Suivez les instructions pour nommer votre bot</li>
+                                        <li>Copiez le <strong>Bot Token</strong> fourni</li>
+                                        <li>Pour obtenir votre Chat ID : envoyez un message à votre bot, puis visitez<br/>
+                                            <code>https://api.telegram.org/bot[VOTRE_TOKEN]/getUpdates</code></li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </setting>
+                        
+                        <setting string="Destinataires (Chat IDs)" invisible="not stockex_notify_by_telegram">
+                            <div class="text-muted">
+                                IDs des utilisateurs ou groupes Telegram qui recevront les notifications
+                            </div>
+                            <div class="content-group mt-2">
+                                <field name="stockex_telegram_chat_ids" 
+                                       placeholder="123456789, 987654321"
+                                       class="w-100"/>
+                                <small class="text-muted">
+                                    💡 Pour obtenir votre Chat ID : envoyez un message à votre bot et visitez 
+                                    <code>https://api.telegram.org/bot[TOKEN]/getUpdates</code>
+                                </small>
+                            </div>
+                        </setting>
+                    </block>
+                    
                 </app>
             </xpath>
         </field>

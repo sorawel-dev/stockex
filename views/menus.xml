@@ -36,6 +36,21 @@
               parent="menu_stockex_root"
               sequence="20"/>
     
+    <!-- Action Stock Initial (définie ici pour éviter les problèmes de référence) -->
+    <record id="action_initial_stock_wizard_menu" model="ir.actions.act_window">
+        <field name="name">Stock Initial</field>
+        <field name="res_model">stockex.initial.stock.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+    
+    <menuitem id="menu_initial_stock_wizard"
+              name="📦 Stock Initial"
+              parent="menu_stockex_import"
+              action="action_initial_stock_wizard_menu"
+              sequence="1"
+              groups="base.group_user"/>
+    
     <menuitem id="menu_stockex_new_inventory"
               name="📦 Nouvel Inventaire"
               parent="menu_stockex_import"
@@ -43,18 +58,11 @@
               sequence="5"
               groups="base.group_user"/>
     
-    <menuitem id="menu_stockex_import_csv"
-              name="Import CSV (Direct)"
+    <menuitem id="menu_import_flexible_inventory"
+              name="📥 Import Inventaire (Excel/CSV)"
               parent="menu_stockex_import"
-              action="action_import_inventory_wizard"
+              action="action_import_flexible_inventory_wizard"
               sequence="10"
-              groups="base.group_user"/>
-    
-    <menuitem id="menu_stockex_import_excel"
-              name="Import Excel (Direct)"
-              parent="menu_stockex_import"
-              action="action_import_excel_wizard"
-              sequence="20"
               groups="base.group_user"/>
     
     <!-- Sous-menu : Configuration -->
@@ -152,17 +160,24 @@
               sequence="2"
               groups="base.group_user"/>
     
+    <menuitem id="menu_analytics_dashboard"
+              name="📊 Analytics"
+              parent="menu_stockex_dashboard"
+              action="action_analytics_dashboard"
+              sequence="3"
+              groups="base.group_user"/>
+    
     <!-- Sous-menu : Rapports -->
     <menuitem id="menu_stockex_reports"
               name="Rapports"
               parent="menu_stockex_root"
               sequence="80"/>
     
-    <menuitem id="menu_stockex_analysis"
-              name="Analyse Détaillée"
+    <menuitem id="menu_stockex_graphs"
+              name="📈 Graphiques et Analyses"
               parent="menu_stockex_reports"
-              action="action_inventory_analysis"
-              sequence="5"
+              action="action_inventory_analysis_graphs"
+              sequence="6"
               groups="base.group_user"/>
     
     <menuitem id="menu_stockex_inventory_report"

@@ -16,10 +16,30 @@ class ProductCategory(models.Model):
         tracking=True
     )
     
+    accounts_configured = fields.Boolean(
+        string='Comptes Configurés',
+        compute='_compute_accounts_configured',
+        store=False,
+        help='Indique si les comptes comptables de stock sont configurés pour cette catégorie'
+    )
+    
     _sql_constraints = [
         ('code_unique', 'UNIQUE(code)', 
          'Le code de la catégorie doit être unique !')
     ]
+    
+    @api.depends('property_stock_account_input_categ_id', 
+                 'property_stock_account_output_categ_id',
+                 'property_stock_valuation_account_id')
+    def _compute_accounts_configured(self):
+        """Vérifie si les comptes comptables de stock sont configurés."""
+        for record in self:
+            # Vérifier si les 3 comptes principaux sont définis
+            record.accounts_configured = bool(
+                record.property_stock_account_input_categ_id and
+                record.property_stock_account_output_categ_id and
+                record.property_stock_valuation_account_id
+            )
     
     @api.constrains('code')
     def _check_code_format(self):

@@ -1,0 +1,110 @@
+{
+  "name": "Stockex - Inventaire Mobile",
+  "short_name": "Stockex",
+  "description": "Application mobile d'inventaire de stock pour Odoo",
+  "start_url": "/stockex/mobile",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#00A09D",
+  "icons": [
+    {
+      "src": "/stockex/static/img/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stockex/static/img/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stockex/static/img/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stockex/static/img/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stockex/static/img/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stockex/static/img/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/stockex/static/img/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stockex/static/img/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/stockex/static/img/screenshot-mobile.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "scope": "/stockex/",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Nouvel Inventaire",
+      "short_name": "Inventaire",
+      "description": "Créer un nouvel inventaire",
+      "url": "/stockex/mobile/new",
+      "icons": [
+        {
+          "src": "/stockex/static/img/shortcut-new.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Scanner",
+      "short_name": "Scan",
+      "description": "Scanner un code-barres",
+      "url": "/stockex/mobile/scan",
+      "icons": [
+        {
+          "src": "/stockex/static/img/shortcut-scan.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/stockex/mobile/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "photo",
+          "accept": ["image/*"]
+        }
+      ]
+    }
+  }
+}

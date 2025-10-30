@@ -1,0 +1,549 @@
+/* Wizard de Nettoyage des Données - Styles Modernes */
+
+/* Container principal */
+.o_cleanup_wizard {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+/* Header du wizard avec effet de danger */
+.o_cleanup_wizard .o_form_sheet_bg {
+    background: linear-gradient(to bottom, #fff 0%, #f8f9fa 100%);
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+/* Bandeau d'alerte principal */
+.o_cleanup_wizard .alert-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    padding: 25px;
+    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+    animation: pulse-alert 2s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+}
+
+.o_cleanup_wizard .alert-danger::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 15s linear infinite;
+}
+
+@keyframes pulse-alert {
+    0%, 100% { box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3); }
+    50% { box-shadow: 0 8px 35px rgba(220, 53, 69, 0.5); }
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.o_cleanup_wizard .alert-danger h4 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 1;
+}
+
+.o_cleanup_wizard .alert-danger p {
+    position: relative;
+    z-index: 1;
+    font-size: 1.05rem;
+}
+
+.o_cleanup_wizard .alert-danger hr {
+    border-color: rgba(255,255,255,0.3);
+    position: relative;
+    z-index: 1;
+}
+
+/* Titre principal */
+.o_cleanup_wizard .oe_title h1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin-bottom: 10px;
+}
+
+/* Statistiques cards */
+.o_cleanup_wizard .border.p-3.rounded.bg-light {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border: 2px solid #dee2e6 !important;
+    border-radius: 15px !important;
+    padding: 20px !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.o_cleanup_wizard .border.p-3.rounded.bg-light:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.o_cleanup_wizard .border.p-3.rounded.bg-light label {
+    color: #667eea;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.o_cleanup_wizard .border.p-3.rounded.bg-light .o_field_widget {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #dc3545;
+}
+
+/* Onglets */
+.o_cleanup_wizard .nav-tabs {
+    border-bottom: 3px solid #dee2e6;
+}
+
+.o_cleanup_wizard .nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6c757d;
+    font-weight: 600;
+    padding: 12px 24px;
+    transition: all 0.3s ease;
+}
+
+.o_cleanup_wizard .nav-tabs .nav-link:hover {
+    color: #667eea;
+    border-bottom-color: #667eea;
+}
+
+.o_cleanup_wizard .nav-tabs .nav-link.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    background: transparent;
+}
+
+/* Toggles de suppression */
+.o_cleanup_wizard .o_field_boolean_toggle {
+    transform: scale(1.2);
+    margin-left: 15px;
+}
+
+.o_cleanup_wizard .o_field_boolean_toggle input:checked + span {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+/* Container des options avec toggle */
+.o_cleanup_wizard .d-flex.justify-content-between {
+    padding: 10px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+.o_cleanup_wizard .d-flex.justify-content-between:hover {
+    background: rgba(102, 126, 234, 0.05);
+}
+
+/* Groupe de champs */
+.o_cleanup_wizard .o_group {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.o_cleanup_wizard .o_group .o_horizontal_separator {
+    color: #667eea;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 10px 0;
+    border-bottom: 2px solid #667eea;
+}
+
+/* Alertes informatives */
+.o_cleanup_wizard .alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    border: 2px solid #0dcaf0;
+    border-radius: 12px;
+    color: #055160;
+    box-shadow: 0 4px 15px rgba(13, 202, 240, 0.2);
+}
+
+.o_cleanup_wizard .alert-info h5 {
+    color: #0dcaf0;
+    font-weight: 800;
+}
+
+.o_cleanup_wizard .alert-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+    border: 2px solid #ffc107;
+    border-radius: 12px;
+    color: #664d03;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+}
+
+.o_cleanup_wizard .alert-secondary {
+    background: linear-gradient(135deg, #e2e3e5 0%, #d3d3d4 100%);
+    border: 2px solid #6c757d;
+    border-radius: 12px;
+    color: #383d41;
+}
+
+/* Champ de confirmation */
+.o_cleanup_wizard input[name="confirmation_text"] {
+    font-size: 1.5rem !important;
+    font-weight: 800;
+    text-align: center;
+    padding: 15px;
+    border: 3px solid #dc3545;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2);
+    transition: all 0.3s ease;
+}
+
+.o_cleanup_wizard input[name="confirmation_text"]:focus {
+    border-color: #c82333;
+    box-shadow: 0 4px 25px rgba(220, 53, 69, 0.4);
+    transform: scale(1.02);
+}
+
+/* Badge SUPPRIMER */
+.o_cleanup_wizard .badge.bg-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+    font-size: 1.5rem;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+    animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Boutons */
+.o_cleanup_wizard button.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 15px 35px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.o_cleanup_wizard button.btn-danger::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.o_cleanup_wizard button.btn-danger:hover::before {
+    width: 400px;
+    height: 400px;
+}
+
+.o_cleanup_wizard button.btn-danger:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(220, 53, 69, 0.5);
+}
+
+.o_cleanup_wizard button.btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 15px 35px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+    transition: all 0.3s ease;
+}
+
+.o_cleanup_wizard button.btn-secondary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+}
+
+/* Checklist */
+.o_cleanup_wizard .alert-secondary ul li {
+    padding: 8px 0;
+    font-size: 1rem;
+    position: relative;
+    padding-left: 30px;
+}
+
+.o_cleanup_wizard .alert-secondary ul li::before {
+    content: '☑️';
+    position: absolute;
+    left: 0;
+    font-size: 1.2rem;
+}
+
+/* Animation d'entrée */
+.o_cleanup_wizard .o_form_sheet_bg {
+    animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design Amélioré */
+@media (max-width: 1200px) {
+    .o_cleanup_wizard .oe_title h1 {
+        font-size: 2rem;
+    }
+    
+    .o_cleanup_wizard .alert-danger h4 {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .o_cleanup_wizard .oe_title h1 {
+        font-size: 1.8rem;
+    }
+    
+    .o_cleanup_wizard .alert-danger {
+        padding: 20px;
+    }
+    
+    .o_cleanup_wizard .alert-danger h4 {
+        font-size: 1.2rem;
+    }
+    
+    .o_cleanup_wizard .badge.bg-danger {
+        font-size: 1.3rem;
+        padding: 10px 25px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Réduction des polices */
+    .o_cleanup_wizard .oe_title h1 {
+        font-size: 1.5rem;
+    }
+    
+    .o_cleanup_wizard .oe_title p {
+        font-size: 0.95rem !important;
+    }
+    
+    .o_cleanup_wizard .alert-danger h4 {
+        font-size: 1.1rem;
+    }
+    
+    .o_cleanup_wizard .alert-danger p {
+        font-size: 0.9rem;
+    }
+    
+    /* Statistiques plus compactes */
+    .o_cleanup_wizard .border.p-3.rounded.bg-light label {
+        font-size: 0.75rem;
+    }
+    
+    .o_cleanup_wizard .border.p-3.rounded.bg-light .o_field_widget {
+        font-size: 1.5rem;
+    }
+    
+    /* Options de suppression */
+    .o_cleanup_wizard label strong {
+        font-size: 0.9rem;
+    }
+    
+    .o_cleanup_wizard label .me-2 {
+        font-size: 1.2rem !important;
+    }
+    
+    /* Champ de confirmation */
+    .o_cleanup_wizard input[name="confirmation_text"] {
+        font-size: 1.2rem !important;
+        padding: 12px;
+    }
+    
+    .o_cleanup_wizard .badge.bg-danger {
+        font-size: 1.2rem;
+        padding: 8px 20px;
+    }
+    
+    /* Boutons */
+    .o_cleanup_wizard button {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+    }
+    
+    .o_cleanup_wizard button.btn-danger {
+        font-size: 1rem;
+    }
+    
+    /* Alertes */
+    .o_cleanup_wizard .alert h5 {
+        font-size: 1rem;
+    }
+    
+    .o_cleanup_wizard .alert li {
+        font-size: 0.85rem;
+    }
+    
+    /* Centrage des sections */
+    .o_cleanup_wizard .o_group {
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* Stack vertical des colonnes */
+    .o_cleanup_wizard .col-md-6 {
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 576px) {
+    /* Mobile - Polices encore plus petites */
+    .o_cleanup_wizard .oe_title h1 {
+        font-size: 1.3rem;
+        text-align: center;
+    }
+    
+    .o_cleanup_wizard .oe_title p {
+        font-size: 0.9rem !important;
+        text-align: center;
+    }
+    
+    .o_cleanup_wizard .alert-danger {
+        padding: 15px;
+    }
+    
+    .o_cleanup_wizard .alert-danger h4 {
+        font-size: 1rem;
+    }
+    
+    .o_cleanup_wizard .alert-danger p {
+        font-size: 0.85rem;
+    }
+    
+    /* Statistiques en colonne unique */
+    .o_cleanup_wizard .row .col-6 {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    /* Options avec toggles alignés */
+    .o_cleanup_wizard .d-flex.justify-content-between {
+        flex-wrap: nowrap;
+        gap: 10px;
+    }
+    
+    .o_cleanup_wizard label {
+        display: flex;
+        align-items: center;
+        text-align: left;
+        flex-wrap: wrap;
+    }
+    
+    .o_cleanup_wizard label strong {
+        font-size: 0.85rem;
+    }
+    
+    /* Toggle reste à droite même sur mobile */
+    .o_cleanup_wizard .o_field_boolean_toggle {
+        flex-shrink: 0;
+    }
+    
+    /* Champ confirmation plus petit */
+    .o_cleanup_wizard input[name="confirmation_text"] {
+        font-size: 1rem !important;
+        padding: 10px;
+    }
+    
+    .o_cleanup_wizard .badge.bg-danger {
+        font-size: 1rem;
+        padding: 6px 15px;
+    }
+    
+    /* Boutons full width */
+    .o_cleanup_wizard footer button {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .o_cleanup_wizard button.btn-danger,
+    .o_cleanup_wizard button.btn-secondary {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+    }
+    
+    /* Onglets plus petits */
+    .o_cleanup_wizard .nav-tabs .nav-link {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+    }
+    
+    /* Alertes info/warning */
+    .o_cleanup_wizard .alert {
+        padding: 12px;
+    }
+    
+    .o_cleanup_wizard .alert h5 {
+        font-size: 0.95rem;
+    }
+    
+    .o_cleanup_wizard .alert li {
+        font-size: 0.8rem;
+        padding: 4px 0;
+    }
+    
+    /* Centrage du contenu */
+    .o_cleanup_wizard .text-center {
+        text-align: center !important;
+    }
+    
+    .o_cleanup_wizard .card-body {
+        padding: 15px !important;
+    }
+}
+
+/* Effet de lueur sur le texte DANGER */
+.o_cleanup_wizard .fw-bold.text-danger {
+    color: #dc3545 !important;
+    text-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% { text-shadow: 0 0 10px rgba(220, 53, 69, 0.5); }
+    50% { text-shadow: 0 0 20px rgba(220, 53, 69, 0.8); }
+}

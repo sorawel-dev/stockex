@@ -7,36 +7,97 @@
         <field name="model">stockex.initial.stock.wizard</field>
         <field name="arch" type="xml">
             <form string="Assistant Stock Initial">
-                <group>
+                <field name="state" invisible="1"/>
+                <field name="progress" invisible="1"/>
+                
+                <!-- Barre de progression -->
+                <div class="alert alert-info" role="status" invisible="progress == 0.0">
+                    <div style="margin-bottom: 10px;">
+                        <strong>🔄 <field name="progress_message" readonly="1" nolabel="1"/></strong>
+                    </div>
+                    <div style="background: #e9ecef; border-radius: 5px; height: 30px; overflow: hidden; position: relative;">
+                        <div style="background: linear-gradient(90deg, #28a745 0%, #20c997 100%); height: 100%; display: flex; align-items: center; justify-content: center; transition: width 0.3s ease;">
+                            <span style="color: white; font-weight: bold; font-size: 14px; position: absolute; left: 50%; transform: translateX(-50%); z-index: 1;">
+                                <field name="progress" widget="percentage" nolabel="1"/>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Étape 1 : Import -->
+                <group invisible="state != 'step1'">
                     <group>
                         <field name="name"/>
                         <field name="date"/>
                         <field name="location_id" options="{'no_create': True}"/>
+                        <label for="location_id" string="" invisible="1"/>
+                        <div class="text-muted" style="font-size: 11px; margin-top: -8px;">
+                            <i>⚠️ Optionnel : Utilisé uniquement si la colonne ENTREPOT est absente du fichier Excel</i>
+                        </div>
                     </group>
                     <group>
                         <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                         <field name="create_products"/>
+                        <field name="create_categories"/>
+                        <field name="create_warehouses"/>
                     </group>
                 </group>
                 
-                <group string="Import Excel (Optionnel)">
+                <group string="⚠️ Options Avancées (DANGER)" invisible="state != 'step1'">
+                    <field name="force_reset" 
+                           widget="boolean_toggle"
+                           class="text-danger"/>
+                    <div class="alert alert-danger" role="alert" invisible="not force_reset" style="margin: 10px 0;">
+                        <strong>🔥 ATTENTION - ACTION IRRÉVERSIBLE !</strong><br/>
+                        Cette option va :<br/>
+                        • ❌ Supprimer TOUS les mouvements de stock<br/>
+                        • ❌ Remettre TOUTES les quantités à 0<br/>
+                        • ❌ Effacer tout l'historique de stock<br/><br/>
+                        <strong style="color: #dc3545;">⚠️ NE PAS UTILISER EN PRODUCTION</strong> sauf réinitialisation complète volontaire.
+                    </div>
+                </group>
+                
+                <group string="Import Excel (Optionnel)" invisible="state != 'step1'">
                     <p class="text-muted">
                         <strong>Format du fichier Excel :</strong><br/>
-                        Colonnes requises : CODE PRODUIT, PRODUIT, QUANTITE, PRIX UNITAIRE<br/>
-                        <i>Si aucun fichier n'est fourni, vous pourrez ajouter les lignes manuellement après création.</i>
+                        Colonnes requises : CODE PRODUIT, NOM PRODUIT, QUANTITE, PRIX UNITAIRE<br/>
+                        Colonnes optionnelles : CATEGORIE, CODE CATEGORIE, <strong style="color: #00A09D;">ENTREPOT</strong><br/>
+                        <i>Si aucun fichier n'est fourni, vous pourrez ajouter les lignes manuellement après création.</i><br/>
+                        <strong style="color: #00A09D;">✅ Multi-entrepôts supporté :</strong> Une ligne par produit/entrepôt
                     </p>
                     <field name="filename" invisible="1"/>
                     <field name="import_file" filename="filename"/>
                 </group>
                 
-                <div class="alert alert-warning" role="alert">
+                <div class="alert alert-warning" role="alert" invisible="state != 'step1'">
                     <strong>⚠️ ATTENTION :</strong> Cet assistant est destiné aux <strong>bases de données VIDES</strong> (sans stock existant).<br/>
                     Il créera un inventaire initial avec quantités théoriques = 0 et quantités réelles = vos données.<br/>
                     Pour une base avec stock existant, utilisez un inventaire normal.
                 </div>
                 
+                <div class="alert alert-info" role="alert" invisible="state != 'step1'">
+                    <strong>📧 💬 📱 Notifications :</strong> Les notifications par Email, WhatsApp et Telegram sont configurées dans 
+                    <strong>Configuration → Paramètres → Gestion d'Inventaire</strong>.
+                </div>
+                
+                <!-- Étape 2 : Prévisualisation -->
+                <group invisible="state != 'step2'">
+                    <field name="preview_summary" nolabel="1" widget="html"/>
+                </group>
+                
                 <footer>
-                    <button name="action_create_initial_stock" type="object" string="Créer Stock Initial" class="btn-primary"/>
+                    <!-- Boutons étape 1 -->
+                    <button name="action_preview" type="object" string="🔍 Prévisualiser" class="btn-primary" 
+                            invisible="state != 'step1' or not import_file"/>
+                    <button name="action_create_initial_stock" type="object" string="Créer Stock Initial" class="btn-primary" 
+                            invisible="state != 'step1' or import_file"/>
+                    
+                    <!-- Boutons étape 2 -->
+                    <button name="action_back" type="object" string="← Retour" class="btn-secondary" 
+                            invisible="state != 'step2'"/>
+                    <button name="action_create_initial_stock" type="object" string="✅ Confirmer l'import" class="btn-primary" 
+                            invisible="state != 'step2'"/>
+                    
                     <button string="Annuler" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
@@ -82,13 +143,6 @@
         </field>
     </record>
     
-    <!-- Menu pour Stock Initial -->
-    <menuitem 
-        id="menu_initial_stock_wizard"
-        name="Stock Initial"
-        parent="stock.menu_stock_config_settings"
-        action="action_initial_stock_wizard"
-        sequence="100"
-        groups="stock.group_stock_manager"/>
+    <!-- Menu pour Stock Initial déplacé dans views/menus.xml -->
         
 </odoo>

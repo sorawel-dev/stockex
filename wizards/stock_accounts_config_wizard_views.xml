@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Wizard: Configuration des Comptes de Stock OHADA -->
+    <record id="view_stock_accounts_config_wizard_form" model="ir.ui.view">
+        <field name="name">stockex.stock.accounts.config.wizard.form</field>
+        <field name="model">stockex.stock.accounts.config.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Configuration des Comptes de Stock OHADA">
+                <field name="state" invisible="1"/>
+                
+                <!-- Étape 1: Recherche -->
+                <group invisible="state != 'search'">
+                    <div class="alert alert-info" style="margin: 10px 0;">
+                        <h4>📊 Configuration des Comptes Comptables OHADA</h4>
+                        <p>Cet assistant va rechercher automatiquement les comptes OHADA dans votre plan comptable et les affecter aux catégories de produits.</p>
+                        <p><strong>Comptes recherchés :</strong></p>
+                        <ul>
+                            <li>311 - Marchandises A</li>
+                            <li>603 - Variation des stocks de marchandises</li>
+                            <li>321 - Matières A</li>
+                            <li>6031 - Variation des stocks de matières premières</li>
+                            <li>33 - Autres approvisionnements</li>
+                            <li>6032 - Variation des autres approvisionnements</li>
+                            <li>351 - Produits finis</li>
+                            <li>7131 - Variation des stocks de produits finis</li>
+                        </ul>
+                        <p>Cliquez sur <strong>"Rechercher les Comptes"</strong> pour démarrer.</p>
+                    </div>
+                </group>
+                
+                <!-- Étape 2: Configuration -->
+                <group invisible="state != 'config'">
+                    <field name="message" nolabel="1" colspan="2"/>
+                    
+                    <separator string="Comptes pour Marchandises" colspan="2"/>
+                    <field name="account_311_id" domain="[('account_type', '=', 'asset_current')]"/>
+                    <field name="account_603_id" domain="[('account_type', '=', 'expense')]"/>
+                    
+                    <separator string="Comptes pour Matières Premières" colspan="2"/>
+                    <field name="account_321_id" domain="[('account_type', '=', 'asset_current')]"/>
+                    <field name="account_6031_id" domain="[('account_type', '=', 'expense')]"/>
+                    
+                    <separator string="Comptes pour Fournitures" colspan="2"/>
+                    <field name="account_33_id" domain="[('account_type', '=', 'asset_current')]"/>
+                    <field name="account_6032_id" domain="[('account_type', '=', 'expense')]"/>
+                    
+                    <separator string="Comptes pour Produits Finis" colspan="2"/>
+                    <field name="account_351_id" domain="[('account_type', '=', 'asset_current')]"/>
+                    <field name="account_7131_id" domain="[('account_type', '=', 'income')]"/>
+                </group>
+                
+                <!-- Étape 3: Terminé -->
+                <group invisible="state != 'done'">
+                    <field name="message" nolabel="1" colspan="2"/>
+                </group>
+                
+                <footer>
+                    <button string="Rechercher les Comptes" 
+                            name="action_search_accounts" 
+                            type="object" 
+                            class="btn-primary"
+                            invisible="state != 'search'"/>
+                    
+                    <button string="Configurer les Catégories" 
+                            name="action_configure_categories" 
+                            type="object" 
+                            class="btn-primary"
+                            invisible="state != 'config'"/>
+                    
+                    <button string="Fermer" 
+                            name="action_close" 
+                            type="object" 
+                            class="btn-secondary"
+                            invisible="state == 'search'"/>
+                    
+                    <button string="Annuler" 
+                            special="cancel" 
+                            invisible="state != 'search'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action pour ouvrir le wizard -->
+    <record id="action_stock_accounts_config_wizard" model="ir.actions.act_window">
+        <field name="name">Configuration Comptes Stock OHADA</field>
+        <field name="res_model">stockex.stock.accounts.config.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+    
+    <!-- Menu dans Configuration StockEx -->
+    <menuitem 
+        id="menu_stock_accounts_config_wizard"
+        name="⚙️ Configurer Comptes OHADA"
+        parent="menu_stockex_config"
+        action="action_stock_accounts_config_wizard"
+        sequence="25"
+        groups="stockex.group_stockex_manager"/>
+    
+</odoo>

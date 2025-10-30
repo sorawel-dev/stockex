@@ -2,37 +2,63 @@
 <odoo>
     <data noupdate="1">
         
-        <!-- Exemple de configuration de catégories de produits -->
+        <!-- Configuration des catégories de produits avec comptes comptables OHADA -->
         
-        <!-- Catégorie: Matières Premières -->
-        <record id="product_category_raw_materials" model="product.category">
-            <field name="name">Matières Premières</field>
-            <field name="property_cost_method">standard</field>
-            <field name="property_valuation">manual_periodic</field>
-            <!-- Les comptes seront configurés manuellement selon le plan comptable -->
-        </record>
+        <!-- Comptes OHADA Standards (à adapter selon votre plan comptable) -->
+        <!-- 31 - Marchandises -->
+        <!-- 32 - Matières premières et fournitures -->
+        <!-- 33 - Autres approvisionnements -->
+        <!-- 35 - Stocks de produits -->
+        <!-- 603 - Variation des stocks de marchandises -->
+        <!-- 6031 - Variation des stocks de matières premières -->
+        <!-- 713 - Variation des stocks de produits -->
         
-        <!-- Catégorie: Produits Finis -->
-        <record id="product_category_finished_goods" model="product.category">
-            <field name="name">Produits Finis</field>
-            <field name="property_cost_method">fifo</field>
-            <field name="property_valuation">manual_periodic</field>
-            <!-- Pour utiliser real_time, configurez les comptes de stock dans Configuration -->
-        </record>
-        
-        <!-- Catégorie: Fournitures -->
-        <record id="product_category_supplies" model="product.category">
-            <field name="name">Fournitures</field>
-            <field name="property_cost_method">average</field>
-            <field name="property_valuation">manual_periodic</field>
-        </record>
-        
-        <!-- Catégorie: Marchandises -->
+        <!-- Catégorie: Marchandises (31) -->
         <record id="product_category_merchandise" model="product.category">
             <field name="name">Marchandises</field>
             <field name="property_cost_method">fifo</field>
+            <field name="property_valuation">real_time</field>
+            <!-- Comptes OHADA pour Marchandises - À configurer manuellement -->
+            <!-- Compte valorisation stock : 311 - Marchandises A -->
+            <!-- Compte entrée/sortie : 603 - Variation des stocks de marchandises -->
+        </record>
+        
+        <!-- Catégorie: Matières Premières (32) -->
+        <record id="product_category_raw_materials" model="product.category">
+            <field name="name">Matières Premières</field>
+            <field name="property_cost_method">fifo</field>
+            <field name="property_valuation">real_time</field>
+            <!-- Comptes OHADA pour Matières Premières - À configurer manuellement -->
+            <!-- Compte valorisation stock : 321 - Matières A -->
+            <!-- Compte entrée/sortie : 6031 - Variation des stocks de matières premières -->
+        </record>
+        
+        <!-- Catégorie: Fournitures (33) -->
+        <record id="product_category_supplies" model="product.category">
+            <field name="name">Fournitures</field>
+            <field name="property_cost_method">average</field>
+            <field name="property_valuation">real_time</field>
+            <!-- Comptes OHADA pour Fournitures - À configurer manuellement -->
+            <!-- Compte valorisation stock : 33 - Autres approvisionnements -->
+            <!-- Compte entrée/sortie : 6032 - Variation des autres approvisionnements -->
+        </record>
+        
+        <!-- Catégorie: Produits Finis (35) -->
+        <record id="product_category_finished_goods" model="product.category">
+            <field name="name">Produits Finis</field>
+            <field name="property_cost_method">fifo</field>
+            <field name="property_valuation">real_time</field>
+            <!-- Comptes OHADA pour Produits Finis - À configurer manuellement -->
+            <!-- Compte valorisation stock : 351 - Produits finis -->
+            <!-- Compte entrée/sortie : 7131 - Variation des stocks de produits finis -->
+        </record>
+        
+        <!-- Catégorie: Consommables -->
+        <record id="product_category_consumables" model="product.category">
+            <field name="name">Consommables</field>
+            <field name="property_cost_method">standard</field>
             <field name="property_valuation">manual_periodic</field>
-            <!-- Pour utiliser real_time, configurez les comptes de stock dans Configuration -->
+            <!-- Pas de comptes automatiques pour consommables -->
         </record>
         
     </data>

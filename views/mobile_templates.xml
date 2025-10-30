@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ========== TEMPLATE BASE MOBILE ========== -->
+    
+    <template id="mobile_base" name="Stockex Mobile Base">
+        <html lang="fr">
+            <head>
+                <meta charset="UTF-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+                <meta name="apple-mobile-web-app-capable" content="yes"/>
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+                <meta name="theme-color" content="#00A09D"/>
+                
+                <title><t t-esc="page_title"/> - Stockex Mobile</title>
+                
+                <!-- PWA Manifest -->
+                <link rel="manifest" href="/stockex/manifest.json"/>
+                
+                <!-- Icons -->
+                <link rel="icon" type="image/png" sizes="192x192" href="/stockex/static/img/icon-192x192.png"/>
+                <link rel="apple-touch-icon" href="/stockex/static/img/icon-192x192.png"/>
+                
+                <!-- Styles -->
+                <link rel="stylesheet" href="/stockex/static/src/css/mobile.css"/>
+                
+                <!-- QuaggaJS (scanner codes-barres) -->
+                <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.7.3/dist/quagga.min.js"></script>
+                
+                <!-- Scripts -->
+                <script src="/stockex/static/src/js/barcode-scanner.js" defer="defer"></script>
+                <script src="/stockex/static/src/js/mobile-app.js" defer="defer"></script>
+            </head>
+            <body class="mobile-view">
+                <!-- Header -->
+                <header class="mobile-header">
+                    <t t-if="show_back_button">
+                        <a href="/stockex/mobile" class="mobile-header__icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </a>
+                    </t>
+                    <h1 class="mobile-header__title">
+                        <t t-esc="page_title"/>
+                    </h1>
+                </header>
+                
+                <!-- Status Online/Offline -->
+                <div class="status-indicator status-indicator--online" id="status-indicator" style="display: none;">
+                    <span class="status-indicator__dot"></span>
+                    <span id="status-text">En ligne</span>
+                </div>
+                
+                <!-- Contenu Principal -->
+                <main id="mobile-content">
+                    <t t-out="0"/>
+                </main>
+                
+                <!-- Navigation Bas -->
+                <nav class="mobile-nav">
+                    <a href="/stockex/mobile" class="mobile-nav__item">
+                        <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                        <span>Accueil</span>
+                    </a>
+                    
+                    <a href="/stockex/mobile/scan" class="mobile-nav__item">
+                        <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                        </svg>
+                        <span>Scanner</span>
+                    </a>
+                    
+                    <a href="/stockex/mobile/new" class="mobile-nav__item">
+                        <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        <span>Nouveau</span>
+                    </a>
+                </nav>
+                
+                <!-- Script Inline -->
+                <script>
+                    // Affiche status online/offline
+                    const statusIndicator = document.getElementById('status-indicator');
+                    const statusText = document.getElementById('status-text');
+                    
+                    function updateStatus() {
+                        const isOnline = navigator.onLine;
+                        statusIndicator.style.display = 'flex';
+                        statusIndicator.className = `status-indicator ${isOnline ? 'status-indicator--online' : 'status-indicator--offline'}`;
+                        statusText.textContent = isOnline ? 'En ligne' : 'Hors ligne';
+                    }
+                    
+                    updateStatus();
+                    window.addEventListener('online', updateStatus);
+                    window.addEventListener('offline', updateStatus);
+                    
+                    // Active nav item selon URL
+                    const navItems = document.querySelectorAll('.mobile-nav__item');
+                    navItems.forEach(item => {
+                        if (item.href === window.location.href) {
+                            item.classList.add('active');
+                        }
+                    });
+                </script>
+            </body>
+        </html>
+    </template>
+    
+    <!-- ========== PAGE ACCUEIL MOBILE ========== -->
+    
+    <template id="mobile_home" name="Accueil Mobile">
+        <t t-call="stockex.mobile_base">
+            <t t-set="page_title">Accueil</t>
+            
+            <div style="padding: 20px;">
+                <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                    <h2 style="margin: 0 0 16px 0; font-size: 24px;">
+                        📦 Stockex Mobile
+                    </h2>
+                    <p style="margin: 0; color: #757575;">
+                        Application mobile d'inventaire de stock
+                    </p>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <a href="/stockex/mobile/new" class="btn-mobile btn-mobile--primary btn-mobile--large">
+                        <svg style="width: 24px; height: 24px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Nouvel Inventaire
+                    </a>
+                    
+                    <a href="/stockex/mobile/scan" class="btn-mobile btn-mobile--outline btn-mobile--large">
+                        <svg style="width: 24px; height: 24px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                        </svg>
+                        Scanner Code-Barres
+                    </a>
+                    
+                    <button id="btn-sync" class="btn-mobile btn-mobile--success btn-mobile--large" style="display: none;">
+                        <svg style="width: 24px; height: 24px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Synchroniser <span id="pending-count">(0)</span>
+                    </button>
+                </div>
+                
+                <div id="recent-inventories" style="margin-top: 32px;">
+                    <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">
+                        Inventaires récents
+                    </h3>
+                    <div id="inventory-list">
+                        <!-- Sera rempli dynamiquement -->
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                // Affiche inventaires en attente de sync
+                async function loadPendingInventories() {
+                    if (window.stockexApp &amp;&amp; window.stockexApp.offlineStorage) {
+                        const pending = await window.stockexApp.offlineStorage.getPendingInventories();
+                        
+                        if (pending.length > 0) {
+                            document.getElementById('btn-sync').style.display = 'flex';
+                            document.getElementById('pending-count').textContent = `(${pending.length})`;
+                        }
+                    }
+                }
+                
+                // Bouton sync
+                document.getElementById('btn-sync').addEventListener('click', async () => {
+                    if (window.stockexApp) {
+                        await window.stockexApp.syncPendingInventories();
+                        setTimeout(loadPendingInventories, 1000);
+                    }
+                });
+                
+                // Charge au démarrage
+                setTimeout(loadPendingInventories, 1000);
+            </script>
+        </t>
+    </template>
+    
+    <!-- ========== PAGE OFFLINE ========== -->
+    
+    <template id="mobile_offline" name="Page Hors Ligne">
+        <html lang="fr">
+            <head>
+                <meta charset="UTF-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+                <title>Hors ligne - Stockex Mobile</title>
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        min-height: 100vh;
+                        background: #f8f9fa;
+                    }
+                    .offline-container {
+                        text-align: center;
+                        padding: 40px 20px;
+                    }
+                    .offline-icon {
+                        font-size: 72px;
+                        margin-bottom: 20px;
+                    }
+                    h1 {
+                        color: #212529;
+                        margin: 0 0 12px 0;
+                    }
+                    p {
+                        color: #757575;
+                        margin: 0;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="offline-container">
+                    <div class="offline-icon">📡</div>
+                    <h1>Vous êtes hors ligne</h1>
+                    <p>Cette page n'est pas disponible sans connexion internet.</p>
+                </div>
+            </body>
+        </html>
+    </template>
+    
+    <!-- ========== PAGE NOUVEAU INVENTAIRE ========== -->
+    
+    <template id="mobile_new_inventory" name="Nouvel Inventaire Mobile">
+        <t t-call="stockex.mobile_base">
+            <t t-set="page_title">Nouvel Inventaire</t>
+            <t t-set="show_back_button" t-value="True"/>
+            
+            <div style="padding: 20px;">
+                <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <form action="/api/mobile/inventory/create" method="post" id="form-new-inventory">
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+                                Emplacement
+                            </label>
+                            <select name="location_id" required="required" 
+                                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                                <option value="">Sélectionnez un emplacement...</option>
+                                <t t-foreach="locations" t-as="location">
+                                    <option t-att-value="location.id">
+                                        <t t-esc="location.complete_name"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+                                Date
+                            </label>
+                            <input type="date" name="date" required="required"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;"/>
+                        </div>
+                        
+                        <button type="submit" class="btn-mobile btn-mobile--primary btn-mobile--large">
+                            Créer l'inventaire
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </t>
+    </template>
+    
+    <!-- ========== PAGE SCAN CODE-BARRES ========== -->
+    
+    <template id="mobile_scan" name="Scanner Code-Barres">
+        <t t-call="stockex.mobile_base">
+            <t t-set="page_title">Scanner</t>
+            <t t-set="show_back_button" t-value="True"/>
+            
+            <div style="padding: 0;">
+                <div id="scanner-container" style="width: 100%; height: 300px; background: #000; position: relative;">
+                    <video id="scanner-video" style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    <div id="scanner-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 60%; border: 2px solid #00ff00;"></div>
+                </div>
+                
+                <div style="padding: 20px;">
+                    <div id="scanner-result" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;">
+                        <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600;">
+                            Produit trouvé
+                        </h3>
+                        <div id="product-info"></div>
+                        
+                        <div style="margin-top: 16px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+                                Quantité
+                            </label>
+                            <input type="number" id="input-quantity" min="0" value="1" 
+                                   style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;"/>
+                        </div>
+                        
+                        <button id="btn-add-line" class="btn-mobile btn-mobile--primary btn-mobile--large" style="margin-top: 16px;">
+                            Ajouter à l'inventaire
+                        </button>
+                    </div>
+                    
+                    <button id="btn-start-scan" class="btn-mobile btn-mobile--primary btn-mobile--large">
+                        <svg style="width: 24px; height: 24px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Démarrer le scan
+                    </button>
+                </div>
+            </div>
+            
+            <script>
+                // Script de scan initialisé par barcode-scanner.js
+            </script>
+        </t>
+    </template>
+    
+    <!-- ========== PAGE DETAIL INVENTAIRE ========== -->
+    
+    <template id="mobile_inventory_detail" name="Détail Inventaire Mobile">
+        <t t-call="stockex.mobile_base">
+            <t t-set="page_title" t-value="inventory.name"/>
+            <t t-set="show_back_button" t-value="True"/>
+            
+            <div style="padding: 20px;">
+                <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <strong>Inventaire:</strong>
+                        <span t-esc="inventory.name"/>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <strong>Date:</strong>
+                        <span t-esc="inventory.date"/>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong>Lignes:</strong>
+                        <span t-esc="len(inventory.line_ids)"/>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">
+                    Lignes d'inventaire
+                </h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <t t-foreach="inventory.line_ids" t-as="line">
+                        <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                            <div style="font-weight: 600; margin-bottom: 8px;">
+                                <t t-esc="line.product_id.name"/>
+                            </div>
+                            <div style="font-size: 14px; color: #757575; margin-bottom: 4px;">
+                                Réf: <t t-esc="line.product_id.default_code or 'N/A'"/>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                                <span style="color: #757575;">Théorique:</span>
+                                <strong><t t-esc="line.theoretical_qty"/></strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #757575;">Réel:</span>
+                                <strong><t t-esc="line.product_qty"/></strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #757575;">Écart:</span>
+                                <strong t-att-style="'color: ' + ('#4caf50' if line.difference > 0 else ('#f44336' if line.difference &lt; 0 else '#757575'))">
+                                    <t t-esc="line.difference"/>
+                                </strong>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+    
+    <!-- ========== PAGE ERREUR ========== -->
+    
+    <template id="mobile_error" name="Erreur Mobile">
+        <t t-call="stockex.mobile_base">
+            <t t-set="page_title">Erreur</t>
+            <t t-set="show_back_button" t-value="True"/>
+            
+            <div style="padding: 40px 20px; text-align: center;">
+                <div style="font-size: 64px; margin-bottom: 20px;">⚠️</div>
+                <h2 style="margin: 0 0 12px 0; font-size: 24px; color: #f44336;">
+                    Une erreur est survenue
+                </h2>
+                <p style="margin: 0; color: #757575;">
+                    <t t-esc="error_message or 'Erreur inconnue'"/>
+                </p>
+            </div>
+        </t>
+    </template>
+
+</odoo>

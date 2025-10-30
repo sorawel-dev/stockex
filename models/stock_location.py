@@ -139,12 +139,53 @@ class StockLocation(models.Model):
         # Cette action peut être liée à un rapport QWeb
         return self.env.ref('stockex.action_report_location_barcode').report_action(self)
     
+    @api.depends('name', 'location_id', 'location_id.complete_name', 'location_id.warehouse_id', 'warehouse_id')
+    def _compute_complete_name(self):
+        """Surcharge pour formater le nom au format {DIMINUTIF}/{CODE ENTREPOT}/{Stock}."""
+        for location in self:
+            # Rechercher l'entrepôt associé
+            warehouse = location.warehouse_id
+            if not warehouse and location.location_id:
+                warehouse = location.location_id.warehouse_id
+            
+            if warehouse and location.usage == 'internal':
+                # Format: {DIMINUTIF}/{CODE ENTREPOT}/{Nom Emplacement}
+                diminutif = warehouse.code or 'WH'
+                code_entrepot = warehouse.warehouse_code or ''
+                
+                if code_entrepot:
+                    # Construire le chemin avec le format personnalisé
+                    if location.location_id and location.location_id.usage == 'view':
+                        # Emplacement principal sous l'entrepôt
+                        location.complete_name = f"{diminutif}/{code_entrepot}/{location.name}"
+                    elif location.location_id and location.location_id != warehouse.view_location_id:
+                        # Sous-emplacement : ajouter au chemin parent
+                        parent_path = location.location_id.complete_name or location.location_id.name
+                        if parent_path.startswith(f"{diminutif}/"):
+                            location.complete_name = f"{parent_path}/{location.name}"
+                        else:
+                            location.complete_name = f"{diminutif}/{code_entrepot}/{location.name}"
+                    else:
+                        location.complete_name = f"{diminutif}/{code_entrepot}/{location.name}"
+                else:
+                    # Pas de code entrepôt, utiliser seulement le diminutif
+                    if location.location_id:
+                        parent_name = location.location_id.complete_name or location.location_id.name
+                        location.complete_name = f"{parent_name}/{location.name}"
+                    else:
+                        location.complete_name = location.name
+            else:
+                # Pour les autres types d'emplacements, utiliser le comportement standard
+                if location.location_id:
+                    parent_name = location.location_id.complete_name or location.location_id.name
+                    location.complete_name = f"{parent_name}/{location.name}"
+                else:
+                    location.complete_name = location.name
+    
     @api.depends('name', 'complete_name')
     def _compute_display_name(self):
-        """Calcule le nom d'affichage avec le chemin complet hiérarchique."""
+        """Calcule le nom d'affichage avec le complete_name formaté."""
         for record in self:
-            # Afficher le nom complet hiérarchique (ex: Kits Comp Wse/Stock)
-            # Au lieu du code (ex: 001/Stock)
             record.display_name = record.complete_name or record.name
     
     @api.depends('latitude', 'longitude')
