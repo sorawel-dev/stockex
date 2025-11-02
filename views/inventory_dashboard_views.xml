@@ -13,6 +13,42 @@
                         <h3 class="text-muted">Filtrez et analysez vos inventaires en temps réel</h3>
                     </div>
                     
+                    <!-- Statistiques Globales -->
+                    <group>
+                        <group string="📈 Vue d'Ensemble">
+                            <field name="company_id" invisible="1"/>
+                            <field name="total_inventories" readonly="1"/>
+                            <field name="total_inventories_done" readonly="1"/>
+                            <field name="total_products_all" readonly="1"/>
+                        </group>
+                        <group string="💰 Valeurs">
+                            <field name="total_quantity_all" readonly="1"/>
+                            <field name="total_value_all" readonly="1" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                        </group>
+                    </group>
+                    
+                    <!-- Écarts d'Inventaire -->
+                    <group string="📊 Écarts d'Inventaire" name="differences_section">
+                        <group>
+                            <label for="total_differences_value_fcfa" string="Écart Total"/>
+                            <div>
+                                <field name="total_differences_value_fcfa" readonly="1" nolabel="1" class="oe_inline"/>
+                            </div>
+                            <label for="positive_differences_value_fcfa" string="Surplus (Écarts +)"/>
+                            <div>
+                                <field name="positive_differences_value_fcfa" readonly="1" nolabel="1" class="oe_inline text-success" style="font-weight: bold;"/>
+                            </div>
+                        </group>
+                        <group>
+                            <label for="negative_differences_value_fcfa" string="Manquants (Écarts -)"/>
+                            <div>
+                                <field name="negative_differences_value_fcfa" readonly="1" nolabel="1" class="oe_inline text-danger" style="font-weight: bold;"/>
+                            </div>
+                        </group>
+                    </group>
+                    
+                    <separator/>
+                    
                     <!-- Barre de Filtres -->
                     <group name="filters_section" string="🔍 Filtres" col="4">
                         <field name="period_filter" required="0"/>
@@ -75,22 +111,6 @@
                         </div>
                     </div>
                     
-                    <separator/>
-                    
-                    <!-- Statistiques Globales -->
-                    <group>
-                        <group string="📈 Vue d'Ensemble">
-                            <field name="company_id" invisible="1"/>
-                            <field name="total_inventories" readonly="1"/>
-                            <field name="total_inventories_done" readonly="1"/>
-                            <field name="total_products_all" readonly="1"/>
-                        </group>
-                        <group string="💰 Valeurs">
-                            <field name="total_quantity_all" readonly="1"/>
-                            <field name="total_value_all" readonly="1" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
-                        </group>
-                    </group>
-                    
                     <!-- Dernier Inventaire -->
                     <group string="🔄 Dernier Inventaire" name="last_inventory">
                         <group>
@@ -105,6 +125,56 @@
                     
                     <!-- Analyses -->
                     <notebook>
+                        <page string="📊 Écarts" name="differences_tab">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-light mb-3">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Écart Total</h5>
+                                            <h2 class="text-primary">
+                                                <field name="total_differences_value_fcfa" nolabel="1" readonly="1"/>
+                                            </h2>
+                                            <p class="text-muted">Valeur nette des écarts</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-success text-white mb-3">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">✅ Surplus</h5>
+                                            <h2>
+                                                <field name="positive_differences_value_fcfa" nolabel="1" readonly="1"/>
+                                            </h2>
+                                            <p>Produits en excédent</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-danger text-white mb-3">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">⚠️ Manquants</h5>
+                                            <h2>
+                                                <field name="negative_differences_value_fcfa" nolabel="1" readonly="1"/>
+                                            </h2>
+                                            <p>Produits manquants</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <h5>📌 Interprétation des Écarts</h5>
+                                <ul>
+                                    <li><strong>Écart Total</strong> : Somme algébrique de tous les écarts (positifs + négatifs)</li>
+                                    <li><strong>Surplus (Écarts +)</strong> : Valeur des produits comptés en plus que le stock théorique</li>
+                                    <li><strong>Manquants (Écarts -)</strong> : Valeur des produits manquants par rapport au stock théorique</li>
+                                </ul>
+                                <p class="mb-0">
+                                    <strong>Formule :</strong> Écart = Quantité Réelle - Quantité Théorique
+                                </p>
+                            </div>
+                        </page>
+                        
                         <page string="📊 Top 10 Catégories" name="top_categories">
                             <field name="top_categories_html" nolabel="1" readonly="1"/>
                         </page>

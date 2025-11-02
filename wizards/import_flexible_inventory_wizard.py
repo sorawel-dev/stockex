@@ -49,6 +49,11 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
         default=True,
         help='Crée les sous-magasins, rayons, casiers sous l\'entrepôt parent',
     )
+    update_prices = fields.Boolean(
+        string='Mettre à jour les prix',
+        default=False,
+        help='Si coché, met à jour le prix de vente des produits avec les valeurs du fichier',
+    )
     default_price = fields.Float(
         string='Prix par défaut',
         default=0.0,
@@ -452,9 +457,24 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
     
     def _create_inventory_from_data(self, name, data, mapping, warehouse_filter=None):
         """Crée un inventaire à partir des données parsées."""
+        # Générer un nom unique
+        base_name = name
+        counter = 1
+        unique_name = base_name
+        
+        while self.env['stockex.stock.inventory'].search([
+            ('name', '=', unique_name),
+            ('company_id', '=', self.env.company.id)
+        ], limit=1):
+            counter += 1
+            unique_name = f"{base_name} ({counter})"
+            if counter > 100:  # Sécurité
+                unique_name = f"{base_name} - {fields.Datetime.now().strftime('%H:%M:%S')}"
+                break
+        
         # Créer l'inventaire
         inventory = self.env['stockex.stock.inventory'].create({
-            'name': name,
+            'name': unique_name,
             'date': self.date,
             'state': 'draft',
         })
@@ -493,24 +513,45 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                         })
                 
                 if not product and self.create_products:
+                    # Type = consu (Biens/Goods) pour suivi par quantité
                     product_vals = {
                         'name': str(name_product),
                         'default_code': code,
-                        'type': 'product',
+                        'type': 'consu',  # Type = Biens/Goods
+                        'is_storable': True,  # ✅ Cocher "Suivre l'inventaire"
                         'standard_price': price,
                     }
+                    
                     if category:
                         product_vals['categ_id'] = category.id
                     
                     product = self.env['product.product'].create(product_vals)
-                elif product and category:
-                    # Mettre à jour la catégorie
-                    if product.categ_id.id != category.id:
-                        product.write({'categ_id': category.id})
+                    _logger.info(f"✅ Produit créé: {code} - {name_product} (type: consu - Biens/Goods)")
+                elif product:
+                    # Mettre à jour la catégorie et le prix si demandé
+                    update_vals = {}
+                    if category and product.categ_id.id != category.id:
+                        update_vals['categ_id'] = category.id
+                    if self.update_prices and price > 0:
+                        update_vals['standard_price'] = price
+                    if update_vals:
+                        product.write(update_vals)
+                        if 'standard_price' in update_vals:
+                            _logger.info(f"✅ Prix mis à jour pour {code}: {price}")
                 
                 if not product:
                     errors.append(f"Ligne {i+2}: Produit '{code}' non trouvé")
                     continue
+                
+                # Vérifier et convertir en type 'consu' (Biens/Goods) si nécessaire
+                # Type = consu (Biens/Goods) → Suivi d'inventaire par quantité
+                if product.type != 'consu' or not product.is_storable:
+                    _logger.warning(f"⚠️ Produit {code} n'est pas correctement configuré. Type: {product.type}, Suivre inventaire: {product.is_storable}. Correction...")
+                    product.write({
+                        'type': 'consu',  # Convertir en Biens/Goods
+                        'is_storable': True,  # ✅ Cocher "Suivre l'inventaire"
+                    })
+                    _logger.info(f"✅ Produit {code}: Converti en type Biens/Goods (consu) avec suivi d'inventaire activé")
                 
                 # Gérer l'entrepôt
                 warehouse = self.env['stock.warehouse'].search([

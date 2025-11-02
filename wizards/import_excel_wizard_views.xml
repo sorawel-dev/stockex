@@ -16,7 +16,8 @@
                         <group>
                             <field name="file" filename="filename"/>
                             <field name="filename" invisible="1"/>
-                            <field name="sheet_name" widget="radio"/>
+                            <field name="auto_detect_sheet"/>
+                            <field name="sheet_name" invisible="auto_detect_sheet" required="not auto_detect_sheet" placeholder="Ex: Données Inventaire, articles, Sheet1"/>
                         </group>
                     </group>
                     
@@ -38,10 +39,10 @@
                                     <h4>Comment importer votre fichier Excel :</h4>
                                     <ol>
                                         <li><strong>Sélectionnez votre fichier Excel</strong> (.xlsx) contenant les données d'inventaire</li>
-                                        <li><strong>Choisissez la feuille</strong> à importer :
+                                        <li><strong>Détection automatique de la feuille</strong> :
                                             <ul>
-                                                <li><strong>Données Inventaire</strong> : Import complet avec tous les détails</li>
-                                                <li><strong>Liste des Produits</strong> : Import uniquement des produits</li>
+                                                <li>✅ <strong>Recommandé</strong> : Laissez "Détecter automatiquement" coché pour utiliser la première feuille</li>
+                                                <li>Ou décochez et spécifiez le nom exact de la feuille (ex: "articles", "Données Inventaire")</li>
                                             </ul>
                                         </li>
                                         <li><strong>Configurez les options</strong> selon vos besoins</li>

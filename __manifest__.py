@@ -42,7 +42,7 @@ Ce module permet de gérer les inventaires de stock avec :
         'python': ['openpyxl'],
     },
     'category': 'Inventory/Inventory',
-    'version': '18.0.7.9.1',
+    'version': '18.0.7.38.0',
     # Compatible avec Odoo 18.0 et 19.0
     'data': [
         'security/stockex_security.xml',
@@ -50,7 +50,8 @@ Ce module permet de gérer les inventaires de stock avec :
         'data/sequence.xml',
         'data/dashboard_data.xml',
         'data/stock_accounts_ohada.xml',
-        'data/product_categories_config.xml',
+        # 'data/product_categories_config.xml',  # Désactivé : auto-configuration gère les catégories
+        'data/auto_configure_categories.xml',
         'data/cron_jobs.xml',
         'views/res_config_settings_views.xml',
         'views/stock_warehouse_views.xml',
@@ -59,31 +60,36 @@ Ce module permet de gérer les inventaires de stock avec :
         'views/product_category_views.xml',
         'views/kobo_config_views.xml',
         'views/inventory_dashboard_views.xml',
-        # Wizards d'import (définissent les actions)
-        'wizards/import_method_wizard_views.xml',
+        # Wizards (DOIVENT être chargés EN PREMIER - définissent les actions)
+        'wizards/import_method_wizard_views.xml',  # Définit action_import_method_wizard
         'wizards/import_inventory_wizard_views.xml',  # Définit action_import_inventory_wizard
         'wizards/import_excel_wizard_views.xml',
         'wizards/import_kobo_wizard_views.xml',
         'wizards/fix_locations_wizard_views.xml',
-        'wizards/initial_stock_wizard_views.xml',  # Définit action_initial_stock_wizard - DOIT ÊTRE AVANT menus.xml
-        'wizards/import_flexible_inventory_wizard_views.xml',  # Import flexible Excel/CSV
+        'wizards/fix_product_types_wizard_views.xml',
+        'wizards/cancel_inventory_wizard_views.xml',
+        'wizards/import_flexible_inventory_wizard_views.xml',
         'wizards/stock_accounts_config_wizard_views.xml',
         # Vues de base (utilisent les actions wizards)
         'views/stock_inventory_views.xml',  # Utilise action_import_inventory_wizard
-        # Actions dashboard et reports (définissent les actions)
-        'views/dashboard_home_views.xml',  # Définit action_stockex_dashboard_home
+        # Wizards qui héritent des vues de base
+        'wizards/initial_stock_wizard_views.xml',  # Hérite de stock_inventory_views
+        # Actions dashboard et reports (utilisent les actions wizards)
+        'views/dashboard_home_views.xml',  # Utilise action_import_method_wizard
         'views/dashboard_home_form_view.xml',
-        'views/stock_reports_views.xml',  # Définit action_stock_quant_report, etc.
+        'views/stock_reports_views.xml',
         'views/analytics_dashboard_views.xml',  # Définit action_inventory_analysis
-        'reports/inventory_report.xml',  # Définit action_report_inventory
-        # Menus (utilisent toutes les actions)
-        'views/menus.xml',  # Utilise toutes les actions
+        'reports/inventory_report.xml',
+        # Menus (utilisent toutes les actions - DOIVENT être EN DERNIER)
+        'views/menus.xml',
         # Vues complémentaires
         'views/mobile_templates.xml',
     ],
     'assets': {
         'web.assets_backend': [
             'stockex/static/src/css/dashboard.css',
+            'stockex/static/src/css/dashboard_home.css',
+            'stockex/static/src/css/analytics_dashboard.css',
             'stockex/static/src/css/cleanup_wizard.css',
             'stockex/static/src/js/analytics_dashboard.js',
         ],

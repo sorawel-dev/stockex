@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     
-    <!-- Vue formulaire des catégories avec code -->
+    <!-- Vue formulaire des catégories avec code et comptes comptables -->
     <record id="product_category_form_view_inherit" model="ir.ui.view">
         <field name="name">product.category.form.inherit.stockex</field>
         <field name="model">product.category</field>
@@ -16,6 +16,47 @@
                        widget="boolean" 
                        readonly="1"
                        string="✓ Comptes Comptables Configurés"/>
+            </field>
+            
+            <!-- Ajouter section Comptes Comptables après le champ parent_id -->
+            <field name="parent_id" position="after">
+                <group name="stockex_account_stock" string="📊 Comptes Comptables de Stock (OHADA)" colspan="4">
+                    <group>
+                        <field name="property_cost_method" 
+                               string="Méthode de Coût"
+                               help="Méthode de valorisation des stocks"/>
+                        <field name="property_valuation" 
+                               string="Valorisation des Stocks"
+                               help="Manuelle ou Automatique (temps réel)"/>
+                    </group>
+                    <group>
+                        <field name="property_stock_valuation_account_id" 
+                               string="Compte de Valorisation (31)"
+                               help="Compte OHADA pour la valorisation des stocks (ex: 31 - Marchandises)"
+                               options="{'no_create': True}"
+                               domain="[('deprecated', '=', False)]"/>
+                        <field name="property_stock_account_input_categ_id" 
+                               string="Compte Variation Entrée (603)"
+                               help="Compte OHADA pour les variations de stocks - Entrées (ex: 603 - Variation de stocks)"
+                               options="{'no_create': True}"
+                               domain="[('deprecated', '=', False)]"/>
+                        <field name="property_stock_account_output_categ_id" 
+                               string="Compte Variation Sortie (603)"
+                               help="Compte OHADA pour les variations de stocks - Sorties (ex: 603 - Variation de stocks)"
+                               options="{'no_create': True}"
+                               domain="[('deprecated', '=', False)]"/>
+                    </group>
+                    <group colspan="2">
+                        <div class="alert alert-info" role="status" style="margin-bottom: 0;">
+                            <strong>💡 Plan Comptable OHADA :</strong>
+                            <ul class="mb-0">
+                                <li><strong>Classe 3</strong> : Comptes de stocks (31 - Marchandises, 32 - Matières premières, etc.)</li>
+                                <li><strong>Compte 603</strong> : Variation des stocks de biens achetés</li>
+                                <li>Les comptes sont hérités de la catégorie parente si non définis</li>
+                            </ul>
+                        </div>
+                    </group>
+                </group>
             </field>
         </field>
     </record>

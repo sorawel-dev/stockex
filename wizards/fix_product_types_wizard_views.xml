@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire du wizard -->
+    <record id="view_fix_product_types_wizard_form" model="ir.ui.view">
+        <field name="name">stockex.fix.product.types.wizard.form</field>
+        <field name="model">stockex.fix.product.types.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Corriger les Types de Produits">
+                <header>
+                    <button name="action_fix_products" 
+                            string="🔧 Corriger les Produits" 
+                            type="object" 
+                            class="oe_highlight"
+                            invisible="state == 'done'"/>
+                    <button name="action_close" 
+                            string="Fermer" 
+                            type="object" 
+                            class="btn-secondary"
+                            invisible="state != 'done'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,done"/>
+                </header>
+                
+                <sheet>
+                    <div class="oe_title">
+                        <h1>🔧 Corriger les Types de Produits</h1>
+                        <p>Convertir tous les produits en type <strong>Stockable</strong> pour activer le suivi d'inventaire</p>
+                    </div>
+                    
+                    <group invisible="state == 'done'">
+                        <group>
+                            <field name="product_count" readonly="1"/>
+                        </group>
+                    </group>
+                    
+                    <div invisible="state == 'done'">
+                        <div class="alert alert-info" role="alert" style="margin: 20px 0;">
+                            <h4 class="alert-heading">ℹ️ Information</h4>
+                            <p>
+                                Dans Odoo, seuls les produits de type <strong>Stockable</strong> peuvent suivre l'inventaire.
+                            </p>
+                            <hr/>
+                            <p class="mb-0">
+                                <strong>Types de produits :</strong><br/>
+                                • <strong>Stockable (product)</strong> : ✅ Suivi d'inventaire activé<br/>
+                                • <strong>Consommable (consu)</strong> : ❌ Pas de suivi d'inventaire<br/>
+                                • <strong>Service (service)</strong> : ❌ Pas de suivi d'inventaire
+                            </p>
+                        </div>
+                        
+                        <div class="alert alert-warning" role="alert" style="margin: 20px 0;">
+                            <h4 class="alert-heading">⚠️ Action</h4>
+                            <p>
+                                Ce wizard va convertir <strong><field name="product_count"/></strong> produit(s) 
+                                en type <strong>Stockable</strong>.
+                            </p>
+                            <p class="mb-0">
+                                Après cette opération, tous vos produits pourront suivre l'inventaire.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <field name="message" invisible="state != 'done'" nolabel="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action pour ouvrir le wizard -->
+    <record id="action_fix_product_types_wizard" model="ir.actions.act_window">
+        <field name="name">Corriger Types de Produits</field>
+        <field name="res_model">stockex.fix.product.types.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+    
+    <!-- Menu déplacé dans views/menus.xml pour éviter les problèmes d'ordre de chargement -->
+    
+</odoo>

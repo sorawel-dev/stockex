@@ -11,7 +11,7 @@
     
     <!-- Sous-menu : Vue d'ensemble (page d'accueil) -->
     <menuitem id="menu_stockex_home"
-              name="Vue d'Ensemble"
+              name="🏠 Vue d'Ensemble"
               parent="menu_stockex_root"
               action="action_stockex_dashboard_home"
               sequence="1"
@@ -19,22 +19,16 @@
     
     <!-- Sous-menu : Opérations -->
     <menuitem id="menu_stockex_operations"
-              name="Opérations"
+              name="⚙️ Opérations"
               parent="menu_stockex_root"
               sequence="10"/>
     
     <menuitem id="menu_stockex_inventory"
-              name="Inventaires de Stock"
+              name="📦 Inventaires de Stock"
               parent="menu_stockex_operations"
               action="action_stockex_inventory"
               sequence="10"
               groups="base.group_user"/>
-    
-    <!-- Sous-menu : Import -->
-    <menuitem id="menu_stockex_import"
-              name="Import"
-              parent="menu_stockex_root"
-              sequence="20"/>
     
     <!-- Action Stock Initial (définie ici pour éviter les problèmes de référence) -->
     <record id="action_initial_stock_wizard_menu" model="ir.actions.act_window">
@@ -46,34 +40,27 @@
     
     <menuitem id="menu_initial_stock_wizard"
               name="📦 Stock Initial"
-              parent="menu_stockex_import"
+              parent="menu_stockex_operations"
               action="action_initial_stock_wizard_menu"
-              sequence="1"
-              groups="base.group_user"/>
-    
-    <menuitem id="menu_stockex_new_inventory"
-              name="📦 Nouvel Inventaire"
-              parent="menu_stockex_import"
-              action="action_import_method_wizard"
-              sequence="5"
+              sequence="20"
               groups="base.group_user"/>
     
     <menuitem id="menu_import_flexible_inventory"
               name="📥 Import Inventaire (Excel/CSV)"
-              parent="menu_stockex_import"
+              parent="menu_stockex_operations"
               action="action_import_flexible_inventory_wizard"
-              sequence="10"
+              sequence="30"
               groups="base.group_user"/>
     
     <!-- Sous-menu : Configuration -->
     <menuitem id="menu_stockex_config"
-              name="Configuration"
+              name="⚙️ Configuration"
               parent="menu_stockex_root"
               sequence="90"/>
     
     <!-- Menu Paramètres -->
     <menuitem id="menu_stockex_settings"
-              name="Paramètres"
+              name="⚙️ Paramètres"
               parent="menu_stockex_config"
               action="action_stockex_config_settings"
               sequence="5"
@@ -81,7 +68,7 @@
     
     <!-- Menu vers les Entrepôts Odoo -->
     <menuitem id="menu_stockex_warehouses"
-              name="Entrepôts"
+              name="🏢 Entrepôts"
               parent="menu_stockex_config"
               action="action_warehouse_stockex"
               sequence="10"
@@ -89,7 +76,7 @@
     
     <!-- Menu vers les Emplacements Odoo -->
     <menuitem id="menu_stockex_locations"
-              name="Emplacements"
+              name="📍 Emplacements"
               parent="menu_stockex_config"
               action="stock.action_location_form"
               sequence="20"
@@ -97,7 +84,7 @@
     
     <!-- Action pour les produits -->
     <menuitem id="menu_stockex_products"
-              name="Produits"
+              name="📦 Produits"
               parent="menu_stockex_config"
               action="product.product_normal_action_sell"
               sequence="30"
@@ -105,7 +92,7 @@
     
     <!-- Menu Catégories de produits -->
     <menuitem id="menu_stockex_product_categories"
-              name="Catégories de Produits"
+              name="📂 Catégories de Produits"
               parent="menu_stockex_config"
               action="product.product_category_action_form"
               sequence="35"
@@ -118,6 +105,21 @@
               action="action_kobo_config"
               sequence="40"
               groups="base.group_user"/>
+    
+    <!-- Menu Corriger Types Produits (wizard) -->
+    <menuitem id="menu_fix_product_types"
+              name="🔧 Corriger Types Produits"
+              parent="menu_stockex_config"
+              action="action_fix_product_types_wizard"
+              sequence="25"/>
+    
+    <!-- Menu Configurer Comptes OHADA (wizard) -->
+    <menuitem id="menu_stock_accounts_config_wizard"
+              name="⚙️ Configurer Comptes OHADA"
+              parent="menu_stockex_config"
+              action="action_stock_accounts_config_wizard"
+              sequence="26"
+              groups="stockex.group_stockex_manager"/>
     
     <!-- Séparateur -->
     <menuitem id="menu_stockex_config_separator"
@@ -142,7 +144,7 @@
     
     <!-- Sous-menu : Dashboard -->
     <menuitem id="menu_stockex_dashboard"
-              name="Dashboard"
+              name="📊 Dashboard"
               parent="menu_stockex_root"
               sequence="5"/>
     
@@ -167,22 +169,30 @@
               sequence="3"
               groups="base.group_user"/>
     
-    <!-- Sous-menu : Rapports -->
-    <menuitem id="menu_stockex_reports"
-              name="Rapports"
+    <!-- Sous-menu : Analyse (utilise les menus natifs d'Odoo) -->
+    <menuitem id="menu_stockex_reporting"
+              name="📈 Analyse"
               parent="menu_stockex_root"
               sequence="80"/>
     
-    <menuitem id="menu_stockex_graphs"
-              name="📈 Graphiques et Analyses"
-              parent="menu_stockex_reports"
-              action="action_inventory_analysis_graphs"
-              sequence="6"
-              groups="base.group_user"/>
+    <!-- Menus Analyse -->
+    <menuitem id="menu_stockex_stock_analysis"
+              name="📦 Stock"
+              parent="menu_stockex_reporting"
+              action="stock.dashboard_open_quants"
+              sequence="5"
+              groups="stock.group_stock_user"/>
+    
+    <menuitem id="menu_stockex_moves_analysis"
+              name="📊 Analyse des mouvements"
+              parent="menu_stockex_reporting"
+              action="stock.stock_move_action"
+              sequence="7"
+              groups="stock.group_stock_user"/>
     
     <menuitem id="menu_stockex_inventory_report"
-              name="Liste des Inventaires"
-              parent="menu_stockex_reports"
+              name="📋 Liste des Inventaires"
+              parent="menu_stockex_reporting"
               action="action_stockex_inventory"
               sequence="10"
               groups="base.group_user"/>
@@ -190,29 +200,32 @@
     <!-- Séparateur -->
     <menuitem id="menu_stockex_reports_separator"
               name="──────────────"
-              parent="menu_stockex_reports"
+              parent="menu_stockex_reporting"
               sequence="50"/>
     
-    <!-- Rapports Stock Odoo -->
+    <!-- Action héritée pour Valorisation avec filtre quantité > 0 -->
+    <record id="action_product_stock_view_filtered" model="ir.actions.act_window">
+        <field name="name">Valorisation du stock</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('qty_available', '!=', 0)]</field>
+        <field name="context">{
+            'search_default_consumable': 1,
+            'search_default_real_stock_available': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucun produit en stock
+            </p>
+        </field>
+    </record>
+    
+    <!-- Menus natifs Odoo Stock -->
     <menuitem id="menu_stockex_stock_products"
-              name="Analyse Stock/Emplacement"
-              parent="menu_stockex_reports"
-              action="stock.action_product_stock_view"
-              sequence="60"
-              groups="stock.group_stock_user"/>
-    
-    <menuitem id="menu_stockex_stock_quant"
-              name="Stock par Emplacement"
-              parent="menu_stockex_reports"
-              action="action_stock_quant_report"
+              name="💰 Valorisation du stock"
+              parent="menu_stockex_reporting"
+              action="action_product_stock_view_filtered"
               sequence="65"
-              groups="stock.group_stock_user"/>
-    
-    <menuitem id="menu_stockex_stock_move"
-              name="Mouvements de Stock"
-              parent="menu_stockex_reports"
-              action="action_stock_move_report"
-              sequence="70"
               groups="stock.group_stock_user"/>
     
 </odoo>

@@ -90,13 +90,6 @@
         <field name="target">new</field>
     </record>
     
-    <!-- Menu dans Configuration StockEx -->
-    <menuitem 
-        id="menu_stock_accounts_config_wizard"
-        name="⚙️ Configurer Comptes OHADA"
-        parent="menu_stockex_config"
-        action="action_stock_accounts_config_wizard"
-        sequence="25"
-        groups="stockex.group_stockex_manager"/>
+    <!-- Menu déplacé dans views/menus.xml pour éviter les problèmes d'ordre de chargement -->
     
 </odoo>

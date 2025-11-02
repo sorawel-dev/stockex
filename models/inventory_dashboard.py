@@ -447,7 +447,7 @@ class InventorySummary(models.Model):
             record.total_inventories = len(inventories)
             record.total_inventories_done = len(inventories.filtered(lambda i: i.state == 'done'))
             
-            # Compter tous les produits et valeurs
+            # Compter tous les produits et valeurs avec filtres
             total_products = 0
             total_qty = 0
             total_val = 0
@@ -456,19 +456,38 @@ class InventorySummary(models.Model):
             negative_diff_val = 0
             
             for inv in inventories.filtered(lambda i: i.state == 'done'):
-                total_products += len(inv.line_ids.mapped('product_id'))
-                total_qty += sum(inv.line_ids.mapped('product_qty'))
-                total_val += sum(line.product_qty * line.standard_price for line in inv.line_ids)
+                # Filtrer les lignes selon les critères
+                lines = inv.line_ids
                 
-                # Calculer les écarts
-                for line in inv.line_ids:
-                    diff = line.difference
-                    diff_value = diff * line.standard_price
-                    total_diff_val += diff_value
-                    if diff_value > 0:
-                        positive_diff_val += diff_value
-                    elif diff_value < 0:
-                        negative_diff_val += diff_value
+                # Filtre par catégorie
+                if record.category_ids:
+                    lines = lines.filtered(lambda l: l.product_id.categ_id in record.category_ids)
+                
+                # Filtre par entrepôt
+                if record.warehouse_ids:
+                    warehouse_locations = self.env['stock.location'].search([
+                        ('warehouse_id', 'in', record.warehouse_ids.ids)
+                    ])
+                    lines = lines.filtered(lambda l: l.location_id in warehouse_locations)
+                
+                # Filtre par emplacement
+                if record.location_ids:
+                    lines = lines.filtered(lambda l: l.location_id in record.location_ids)
+                
+                total_products += len(lines.mapped('product_id'))
+                total_qty += sum(lines.mapped('product_qty'))
+                total_val += sum(line.product_qty * line.standard_price for line in lines)
+                
+                # Calculer les écarts (sauf pour les stocks initiaux)
+                if not inv.is_initial_stock:
+                    for line in lines:
+                        diff = line.difference
+                        diff_value = diff * line.standard_price
+                        total_diff_val += diff_value
+                        if diff_value > 0:
+                            positive_diff_val += diff_value
+                        elif diff_value < 0:
+                            negative_diff_val += diff_value
             
             record.total_products_all = total_products
             record.total_quantity_all = total_qty
@@ -519,7 +538,8 @@ class InventorySummary(models.Model):
                     cat.name,
                     COUNT(DISTINCT line.product_id) as nb_products,
                     SUM(line.product_qty) as total_qty,
-                    SUM(line.product_qty * line.standard_price) as total_value
+                    SUM(line.product_qty * line.standard_price) as total_value,
+                    SUM(CASE WHEN inv.is_initial_stock = false THEN line.difference * line.standard_price ELSE 0 END) as total_difference
                 FROM stockex_stock_inventory_line line
                 JOIN stockex_stock_inventory inv ON inv.id = line.inventory_id
                 JOIN product_product prod ON prod.id = line.product_id
@@ -540,16 +560,20 @@ class InventorySummary(models.Model):
                     <tr>
                         <th>Catégorie</th>
                         <th class='text-end'>Valeur</th>
+                        <th class='text-end'>Écarts</th>
                     </tr>
                 </thead>
                 <tbody>
             """
             
-            for cat_name, nb_prod, qty, value in results:
+            for cat_name, nb_prod, qty, value, diff in results:
+                diff_color = 'text-success' if diff > 0 else ('text-danger' if diff < 0 else 'text-muted')
+                diff_icon = '✓' if diff > 0 else ('⚠️' if diff < 0 else '=')
                 html += f"""
                 <tr>
                     <td><small><strong>{cat_name or 'Sans catégorie'}</strong></small></td>
                     <td class='text-end'><small>{value:,.0f} FCFA</small></td>
+                    <td class='text-end {diff_color}'><small>{diff_icon} {diff:,.0f}</small></td>
                 </tr>
                 """
             
@@ -573,7 +597,8 @@ class InventorySummary(models.Model):
                     loc.complete_name,
                     COUNT(DISTINCT line.product_id) as nb_products,
                     SUM(line.product_qty) as total_qty,
-                    SUM(line.product_qty * line.standard_price) as total_value
+                    SUM(line.product_qty * line.standard_price) as total_value,
+                    SUM(CASE WHEN inv.is_initial_stock = false THEN line.difference * line.standard_price ELSE 0 END) as total_difference
                 FROM stockex_stock_inventory_line line
                 JOIN stockex_stock_inventory inv ON inv.id = line.inventory_id
                 JOIN stock_location loc ON loc.id = line.location_id
@@ -592,18 +617,22 @@ class InventorySummary(models.Model):
                     <tr>
                         <th>Entrepôt</th>
                         <th class='text-end'>Valeur</th>
+                        <th class='text-end'>Écarts</th>
                     </tr>
                 </thead>
                 <tbody>
             """
             
-            for loc_name, nb_prod, qty, value in results:
+            for loc_name, nb_prod, qty, value, diff in results:
                 # Raccourcir le nom si trop long
                 display_name = loc_name if len(loc_name) <= 25 else loc_name[:22] + '...'
+                diff_color = 'text-success' if diff > 0 else ('text-danger' if diff < 0 else 'text-muted')
+                diff_icon = '✓' if diff > 0 else ('⚠️' if diff < 0 else '=')
                 html += f"""
                 <tr>
                     <td><small><strong>{display_name}</strong></small></td>
                     <td class='text-end'><small>{value:,.0f} FCFA</small></td>
+                    <td class='text-end {diff_color}'><small>{diff_icon} {diff:,.0f}</small></td>
                 </tr>
                 """
             

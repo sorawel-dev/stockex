@@ -229,6 +229,12 @@ class StockInventory(models.Model):
         tracking=True,
         index=True
     )
+    is_initial_stock = fields.Boolean(
+        string='Stock Initial',
+        default=False,
+        help='Cocher si c\'est un inventaire de stock initial (base vide). Les écarts ne seront pas comptabilisés dans les statistiques.',
+        tracking=True
+    )
     description = fields.Text(string='Notes')
     location_id = fields.Many2one(
         comodel_name='stock.location',
@@ -278,11 +284,29 @@ class StockInventory(models.Model):
         inverse_name='inventory_id',
         string='Lignes'
     )
+    account_move_ids = fields.One2many(
+        comodel_name='account.move',
+        inverse_name='stockex_inventory_id',
+        string='Écritures Comptables',
+        readonly=True,
+        help='Écritures comptables générées par la validation de cet inventaire'
+    )
+    account_move_count = fields.Integer(
+        string='Nombre d\'écritures',
+        compute='_compute_account_move_count',
+        store=True
+    )
     
     _sql_constraints = [
         ('name_company_uniq', 'unique(name, company_id)', 
          'La référence doit être unique par société !'),
     ]
+    
+    @api.depends('account_move_ids')
+    def _compute_account_move_count(self):
+        """Calcule le nombre d'écritures comptables."""
+        for inventory in self:
+            inventory.account_move_count = len(inventory.account_move_ids)
     
     def unlink(self):
         """Empêcher la suppression des inventaires validés."""
@@ -549,20 +573,121 @@ class StockInventory(models.Model):
         return self.write({'state': 'draft'})
     
     def action_cancel(self):
-        """Annule l'inventaire validé (pour admin uniquement)."""
+        """Annule l'inventaire validé et supprime récursivement les écritures comptables et mouvements de stock."""
         for inventory in self:
             if inventory.state != 'done':
                 raise UserError("Seuls les inventaires validés peuvent être annulés.")
             
-            # Annuler l'inventaire
+            _logger.info(f"🔄 Début de l'annulation de l'inventaire {inventory.name}")
+            
+            stock_moves_count = 0
+            account_moves_count = 0
+            
+            # 1. Rechercher et annuler les mouvements de stock liés via les lignes d'inventaire
+            # Les mouvements de stock sont créés par les ajustements d'inventaire
+            stock_moves = self.env['stock.move'].search([
+                ('origin', '=', inventory.name),
+            ])
+            
+            # Rechercher aussi par référence dans les mouvements
+            if not stock_moves:
+                stock_moves = self.env['stock.move'].search([
+                    ('reference', 'ilike', inventory.name),
+                ])
+            
+            if stock_moves:
+                _logger.info(f"📦 Trouvé {len(stock_moves)} mouvement(s) de stock à annuler")
+                stock_moves_count = len(stock_moves)
+                
+                # Annuler les mouvements de stock
+                for move in stock_moves:
+                    try:
+                        if move.state == 'done':
+                            # Annuler le mouvement (crée un mouvement inverse)
+                            move._action_cancel()
+                            _logger.info(f"✅ Mouvement {move.name} annulé")
+                        elif move.state not in ['cancel', 'draft']:
+                            move.write({'state': 'cancel'})
+                    except Exception as e:
+                        _logger.warning(f"⚠️ Impossible d'annuler le mouvement {move.name}: {str(e)}")
+                        # Forcer l'annulation si possible
+                        try:
+                            if move.state != 'cancel':
+                                move.write({'state': 'cancel'})
+                        except:
+                            pass
+                
+                # Supprimer les mouvements annulés
+                try:
+                    stock_moves.unlink()
+                    _logger.info(f"🗑️ {stock_moves_count} mouvement(s) supprimé(s)")
+                except Exception as e:
+                    _logger.warning(f"⚠️ Impossible de supprimer les mouvements: {str(e)}")
+            
+            # 2. Rechercher et supprimer les écritures comptables liées
+            # Utiliser le champ move_ids si disponible (défini dans stock_accounting.py)
+            account_moves = inventory.move_ids if hasattr(inventory, 'move_ids') else self.env['account.move']
+            
+            # Rechercher aussi par référence si aucune écriture liée
+            if not account_moves:
+                account_moves = self.env['account.move'].search([
+                    ('ref', 'ilike', inventory.name),
+                    ('move_type', '=', 'entry'),
+                ])
+            
+            if account_moves:
+                _logger.info(f"📒 Trouvé {len(account_moves)} écriture(s) comptable(s) à supprimer")
+                account_moves_count = len(account_moves)
+                
+                for account_move in account_moves:
+                    try:
+                        move_name = account_move.name
+                        move_id = account_move.id
+                        
+                        # Annuler l'écriture si elle est validée
+                        if account_move.state == 'posted':
+                            account_move.button_draft()
+                            _logger.info(f"✅ Écriture {move_name} remise en brouillon")
+                        
+                        # Supprimer l'écriture avec force
+                        try:
+                            account_move.with_context(force_delete=True).unlink()
+                            _logger.info(f"🗑️ Écriture {move_name} supprimée")
+                        except Exception as unlink_error:
+                            # Si unlink échoue, forcer la suppression via SQL
+                            _logger.warning(f"⚠️ unlink() a échoué pour {move_name}, utilisation de SQL: {str(unlink_error)}")
+                            self.env.cr.execute("DELETE FROM account_move WHERE id = %s", (move_id,))
+                            _logger.info(f"🗑️ Écriture {move_name} (ID:{move_id}) supprimée via SQL")
+                    except Exception as e:
+                        _logger.error(f"❌ Erreur lors de la suppression de l'écriture {account_move.name}: {str(e)}")
+                        # Continuer même en cas d'erreur sur une écriture
+                        pass
+            
+            # 3. Remettre les quantités théoriques à zéro dans les lignes
+            for line in inventory.line_ids:
+                try:
+                    line.write({'theoretical_qty': 0.0})
+                except:
+                    pass
+            
+            # 4. Annuler l'inventaire
             inventory.write({'state': 'cancel'})
             
-            # Message dans le chatter
+            # 5. Message dans le chatter
+            message_body = f"""
+            <p><strong>❌ Inventaire annulé par {self.env.user.name}</strong></p>
+            <ul>
+                <li>📦 {stock_moves_count} mouvement(s) de stock supprimé(s)</li>
+                <li>📒 {account_moves_count} écriture(s) comptable(s) supprimée(s)</li>
+            </ul>
+            """
             inventory.message_post(
-                body=f"❌ Inventaire annulé par {self.env.user.name}",
-                message_type='notification',
+                body=message_body,
+                message_type='comment',
                 subtype_xmlid='mail.mt_note'
             )
+            
+            _logger.info(f"✅ Inventaire {inventory.name} annulé avec succès")
         
         return True
     
@@ -721,6 +846,75 @@ class StockInventory(models.Model):
         self.ensure_one()
         return self.env.ref('stockex.action_report_inventory').report_action(self)
     
+    def action_refresh_theoretical_qty(self):
+        """Recalcule les quantités théoriques depuis le stock Odoo actuel."""
+        self.ensure_one()
+        _logger.info(f"🔄 Recalcul des quantités théoriques pour inventaire {self.name}")
+        
+        if not self.line_ids:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Aucune ligne',
+                    'message': 'Cet inventaire ne contient aucune ligne.',
+                    'type': 'warning',
+                    'sticky': False,
+                }
+            }
+        
+        # Forcer le recalcul pour chaque ligne
+        updated_count = 0
+        for line in self.line_ids:
+            if not line.product_id or not line.location_id:
+                continue
+            
+            # Récupérer la quantité depuis stock.quant
+            quants = self.env['stock.quant'].search([
+                ('product_id', '=', line.product_id.id),
+                ('location_id', '=', line.location_id.id),
+            ])
+            
+            qty_available = sum(quants.mapped('quantity')) - sum(quants.mapped('reserved_quantity'))
+            
+            # Calculer la différence
+            difference = line.product_qty - qty_available
+            
+            # Forcer l'écriture directe (bypass du compute)
+            self.env.cr.execute("""
+                UPDATE stockex_stock_inventory_line 
+                SET theoretical_qty = %s, difference = %s
+                WHERE id = %s
+            """, (qty_available, difference, line.id))
+            
+            if qty_available > 0:
+                updated_count += 1
+            
+            _logger.info(f"📦 Ligne {line.id}: {line.product_id.name} → Théo: {qty_available}, Réel: {line.product_qty}, Écart: {difference}")
+        
+        # Invalider le cache pour forcer le rechargement
+        self.line_ids.invalidate_recordset(['theoretical_qty', 'difference', 'difference_display'])
+        
+        # Compter les résultats
+        lines_with_qty = len([l for l in self.line_ids if l.theoretical_qty > 0])
+        
+        message = f"✅ Quantités théoriques recalculées\n"
+        message += f"📊 {lines_with_qty} ligne(s) avec stock > 0\n"
+        message += f"📦 {len(self.line_ids) - lines_with_qty} ligne(s) avec stock = 0"
+        
+        _logger.info(f"✅ Recalcul terminé: {lines_with_qty}/{len(self.line_ids)} lignes avec stock")
+        
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Recalcul terminé',
+                'message': message,
+                'type': 'success',
+                'sticky': False,
+            }
+        }
+    
     @api.model
     def _send_inventory_reminders(self):
         """Envoie des rappels pour les inventaires en cours depuis plus de 7 jours."""
@@ -863,6 +1057,8 @@ class StockInventoryLine(models.Model):
         product_ids = list(set(lines.mapped('product_id').ids))
         location_ids = list(set(lines.mapped('location_id').ids))
 
+        _logger.info(f"🔍 Calcul theoretical_qty pour {len(lines)} lignes, {len(product_ids)} produits, {len(location_ids)} emplacements")
+
         # Agréger en une seule requête SQL
         groups = self.env['stock.quant'].read_group(
             domain=[
@@ -872,6 +1068,8 @@ class StockInventoryLine(models.Model):
             fields=['quantity:sum', 'reserved_quantity:sum'],
             groupby=['product_id', 'location_id'],
         )
+
+        _logger.info(f"📊 {len(groups)} groupes de stock.quant trouvés")
 
         # Construire un mapping (product_id, location_id) -> quantity - reserved
         qty_map = {}
@@ -885,9 +1083,17 @@ class StockInventoryLine(models.Model):
                     reserved = g.get('reserved_quantity_sum', 0.0) or 0.0
                     qty_map[(prod_id, loc_id)] = qty - reserved
 
+        # Appliquer les quantités
+        updated_count = 0
         for line in lines:
-            line.theoretical_qty = qty_map.get((line.product_id.id, line.location_id.id), 0.0)
-    
+            theo_qty = qty_map.get((line.product_id.id, line.location_id.id), 0.0)
+            line.theoretical_qty = theo_qty
+            if theo_qty > 0:
+                updated_count += 1
+        
+        if updated_count > 0:
+            _logger.info(f"✅ {updated_count} lignes avec quantité théorique > 0")
+
     def _inverse_theoretical_qty(self):
         """Méthode inverse pour permettre de forcer la valeur theoretical_qty (pour stock initial)."""
         # Ne rien faire - la valeur est déjà écrite par le create/write

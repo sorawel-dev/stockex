@@ -703,8 +703,12 @@ class InitialStockWizard(models.TransientModel):
         
         wb.close()
         _logger.info(f"📄 {len(lines)} lignes lues depuis Excel")
+        _logger.info(f"📄 En-têtes détectés: {headers}")
         if len(lines) > 0:
             _logger.info(f"📄 Première ligne: {lines[0]}")
+            _logger.info(f"📄 Clés disponibles: {list(lines[0].keys())}")
+        else:
+            _logger.warning("⚠️ Aucune ligne de données trouvée dans le fichier Excel")
         return lines
     
     def _get_or_create_warehouse(self, warehouse_name):
@@ -735,12 +739,17 @@ Recherche ou crée un entrepôt.
             
             # Si pas trouvé et qu'on autorise la création
             if self.create_warehouses:
-                # Créer un code unique pour l'entrepôt
-                code = warehouse_name[:5].upper().replace(' ', '')
+                # Créer un code unique pour l'entrepôt (utiliser plus de caractères)
+                # Enlever les espaces et prendre jusqu'à 10 caractères
+                code_base = warehouse_name.upper().replace(' ', '').replace('-', '')[:10]
+                
+                # Si le code est trop court, le compléter
+                if len(code_base) < 3:
+                    code_base = code_base.ljust(3, 'X')
                 
                 # Chercher un code disponible
                 counter = 0
-                test_code = code
+                test_code = code_base[:5]  # Commencer avec 5 caractères
                 while True:
                     existing = self.env['stock.warehouse'].search([
                         ('code', '=', test_code),
@@ -751,10 +760,14 @@ Recherche ou crée un entrepôt.
                         break
                     
                     counter += 1
-                    test_code = f"{code}{counter}"
+                    # Utiliser plus de caractères du nom si disponible
+                    if counter == 1 and len(code_base) > 5:
+                        test_code = code_base[:min(10, len(code_base))]
+                    else:
+                        test_code = f"{code_base[:5]}{counter}"
                     
-                    # Sécurité : max 100 itérations
-                    if counter > 100:
+                    # Sécurité : max 1000 itérations
+                    if counter > 1000:
                         _logger.error(f"❌ Impossible de générer un code unique pour '{warehouse_name}'")
                         self.env.cr.execute(f'ROLLBACK TO SAVEPOINT "{savepoint_name}"')
                         return None
@@ -853,7 +866,8 @@ Crée les lignes d'inventaire depuis les données Excel.
                     _logger.info(f"🔍 Ligne {i+1}: CODE={product_code}, NOM={product_name[:30]}, ENTREP={warehouse_name}, QTE={quantity}")
                 
                 if not product_code:
-                    _logger.warning(f"⚠️ Ligne {i+2}: CODE PRODUIT vide, ignorée")
+                    _logger.warning(f"⚠️ Ligne {i+2}: CODE PRODUIT vide, ignorée. Données: {line_data}")
+                    errors.append(f"Ligne {i+2}: CODE PRODUIT vide")
                     continue
                 
                 # Gérer l'entrepôt
@@ -898,7 +912,8 @@ Crée les lignes d'inventaire depuis les données Excel.
                     product_vals = {
                         'name': product_name or product_code,
                         'default_code': product_code,
-                        'type': 'product',
+                        'type': 'consu',  # Biens/Goods stockables
+                        'is_storable': True,  # Activer le suivi d'inventaire
                         'standard_price': price,
                     }
                     
@@ -981,7 +996,18 @@ Crée les lignes d'inventaire depuis les données Excel.
             if len(created_categories) > 5:
                 message += f" et {len(created_categories) - 5} autre(s)"
         if errors:
-            message += f"\n⚠️ {len(errors)} erreur(s):\n" + "\n".join(errors[:10])
+            message += f"\n⚠️ Lignes ignorées : {len(errors)}"
+            # Afficher les 20 premières erreurs
+            if len(errors) <= 20:
+                message += "\n" + "\n".join(errors)
+            else:
+                message += "\n" + "\n".join(errors[:20])
+                message += f"\n... et {len(errors) - 20} autre(s) erreur(s)"
+            
+            # Logger toutes les erreurs
+            _logger.warning(f"⚠️ {len(errors)} lignes ignorées lors de l'import:")
+            for error in errors[:50]:  # Logger les 50 premières
+                _logger.warning(f"  - {error}")
         
         # Enregistrer le message dans le chatter
         try:

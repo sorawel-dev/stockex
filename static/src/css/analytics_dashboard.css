@@ -1,0 +1,254 @@
+/* ========================================
+   Dashboard Analytique - Styles Responsive
+   ======================================== */
+
+/* Container principal */
+.o_kanban_dashboard {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Titre du dashboard - Responsive */
+.oe_title h1 {
+    font-size: clamp(24px, 5vw, 32px) !important;
+}
+
+.oe_title p {
+    font-size: clamp(12px, 2.5vw, 14px) !important;
+}
+
+/* Cards KPI - Ajustements responsive */
+.o_kanban_dashboard .row > div {
+    margin-bottom: 15px;
+}
+
+/* Textes dans les cards - Responsive */
+.o_kanban_dashboard [style*="font-size: 36px"] {
+    font-size: clamp(24px, 6vw, 36px) !important;
+}
+
+.o_kanban_dashboard [style*="font-size: 28px"] {
+    font-size: clamp(20px, 5vw, 28px) !important;
+}
+
+.o_kanban_dashboard [style*="font-size: 40px"] {
+    font-size: clamp(30px, 6vw, 40px) !important;
+}
+
+.o_kanban_dashboard [style*="font-size: 14px"] {
+    font-size: clamp(12px, 2.5vw, 14px) !important;
+}
+
+.o_kanban_dashboard [style*="font-size: 13px"] {
+    font-size: clamp(11px, 2.5vw, 13px) !important;
+}
+
+/* Icônes - Responsive */
+.o_kanban_dashboard i.fa {
+    font-size: clamp(24px, 5vw, 40px) !important;
+}
+
+/* Padding des cards - Responsive */
+.o_kanban_dashboard > .row > div > div {
+    padding: clamp(15px, 3vw, 25px) !important;
+}
+
+/* ========================================
+   Media Queries - Mobile First
+   ======================================== */
+
+/* Mobile (< 576px) */
+@media (max-width: 575.98px) {
+    /* Header */
+    .oe_title {
+        padding: 15px 10px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    .oe_title h1 {
+        font-size: 22px !important;
+    }
+    
+    .oe_title p {
+        font-size: 12px !important;
+    }
+    
+    /* Container */
+    .o_kanban_dashboard {
+        padding: 5px !important;
+    }
+    
+    /* Cards */
+    .o_kanban_dashboard .row > div {
+        padding: 5px !important;
+    }
+    
+    .o_kanban_dashboard > .row > div > div {
+        padding: 15px !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Flex items dans les cards */
+    .o_kanban_dashboard [style*="display: flex"] {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+    
+    .o_kanban_dashboard [style*="display: flex"] > i {
+        margin-right: 0 !important;
+        margin-bottom: 10px !important;
+    }
+    
+    /* Textes */
+    .o_kanban_dashboard [style*="font-size: 36px"] {
+        font-size: 24px !important;
+    }
+    
+    .o_kanban_dashboard [style*="font-size: 28px"] {
+        font-size: 20px !important;
+    }
+    
+    /* Badges */
+    .o_kanban_dashboard [style*="border-radius: 20px"] {
+        font-size: 11px !important;
+        padding: 4px 10px !important;
+    }
+    
+    /* Boutons */
+    button[style*="padding: 12px 30px"] {
+        padding: 10px 20px !important;
+        font-size: 13px !important;
+    }
+    
+    /* Onglets */
+    .o_notebook .nav-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .o_notebook .nav-tabs .nav-link {
+        font-size: 12px !important;
+        padding: 8px 12px !important;
+    }
+}
+
+/* Tablette Portrait (576px - 767px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .oe_title h1 {
+        font-size: 26px !important;
+    }
+    
+    .o_kanban_dashboard {
+        padding: 10px !important;
+    }
+    
+    .o_kanban_dashboard > .row > div > div {
+        padding: 18px !important;
+    }
+}
+
+/* Tablette Paysage (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .oe_title h1 {
+        font-size: 28px !important;
+    }
+    
+    .o_kanban_dashboard {
+        padding: 15px !important;
+    }
+    
+    .o_kanban_dashboard > .row > div > div {
+        padding: 20px !important;
+    }
+}
+
+/* Desktop (992px - 1199px) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .o_kanban_dashboard {
+        padding: 18px !important;
+    }
+}
+
+/* Large Desktop (>= 1200px) */
+@media (min-width: 1200px) {
+    .o_kanban_dashboard {
+        padding: 20px !important;
+    }
+    
+    /* Effet hover sur desktop */
+    .o_kanban_dashboard > .row > div > div:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+    }
+}
+
+/* ========================================
+   Onglets Responsive
+   ======================================== */
+
+/* Container des onglets */
+.o_notebook {
+    margin-top: clamp(15px, 3vw, 30px) !important;
+}
+
+/* Contenu des pages */
+.o_notebook .tab-pane > div {
+    padding: clamp(15px, 3vw, 25px) !important;
+}
+
+/* Titres dans les onglets */
+.o_notebook h3 {
+    font-size: clamp(16px, 3vw, 20px) !important;
+    margin-bottom: clamp(10px, 2vw, 20px) !important;
+}
+
+/* Groupes dans les onglets */
+.o_notebook .o_group {
+    margin-bottom: clamp(10px, 2vw, 20px) !important;
+}
+
+/* Boutons dans les onglets */
+.o_notebook button {
+    font-size: clamp(13px, 2.5vw, 15px) !important;
+    padding: clamp(8px 16px, 2vw, 12px 30px) !important;
+}
+
+/* ========================================
+   Utilitaires
+   ======================================== */
+
+/* Scroll horizontal sur mobile si nécessaire */
+@media (max-width: 575.98px) {
+    .o_form_sheet {
+        overflow-x: auto;
+    }
+}
+
+/* Amélioration de la lisibilité */
+.o_kanban_dashboard * {
+    box-sizing: border-box;
+}
+
+/* Transitions fluides */
+.o_kanban_dashboard > .row > div > div {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Accessibilité - Focus */
+.o_kanban_dashboard button:focus,
+.o_kanban_dashboard a:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .o_kanban_dashboard {
+        background: white !important;
+    }
+    
+    .o_kanban_dashboard > .row > div > div {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+    }
+}

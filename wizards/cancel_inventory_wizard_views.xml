@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire du wizard de confirmation d'annulation -->
+    <record id="view_cancel_inventory_wizard_form" model="ir.ui.view">
+        <field name="name">stockex.cancel.inventory.wizard.form</field>
+        <field name="model">stockex.cancel.inventory.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Confirmer l'Annulation">
+                <sheet>
+                    <field name="warning_message" nolabel="1"/>
+                    
+                    <group>
+                        <group>
+                            <field name="inventory_name" readonly="1"/>
+                            <field name="inventory_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="stock_moves_count" readonly="1"/>
+                            <field name="account_moves_count" readonly="1"/>
+                        </group>
+                    </group>
+                    
+                    <div style="padding: 15px; background: #f8d7da; border-left: 5px solid #dc3545; border-radius: 5px; margin-top: 20px;">
+                        <p style="font-size: 14px; color: #721c24; margin: 0;">
+                            <strong>❓ Êtes-vous sûr de vouloir continuer ?</strong>
+                        </p>
+                    </div>
+                </sheet>
+                
+                <footer>
+                    <button name="action_confirm_cancel" 
+                            string="✅ Oui, Annuler l'Inventaire" 
+                            type="object" 
+                            class="btn-danger"/>
+                    <button name="action_abort" 
+                            string="❌ Non, Abandonner" 
+                            type="object" 
+                            class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action pour ouvrir le wizard -->
+    <record id="action_cancel_inventory_wizard" model="ir.actions.act_window">
+        <field name="name">Confirmer l'Annulation</field>
+        <field name="res_model">stockex.cancel.inventory.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_stockex_stock_inventory"/>
+        <field name="binding_view_types">form</field>
+    </record>
+</odoo>

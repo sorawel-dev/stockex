@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        
+        <!-- Fonction pour auto-configurer les catégories au démarrage du module -->
+        <function model="product.category" name="_auto_configure_stock_accounts"/>
+        
+    </data>
+</odoo>

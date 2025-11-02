@@ -8,7 +8,9 @@ access_stockex_import_excel_wizard_user,Access Import Excel Wizard - User,model_
 access_stockex_fix_locations_wizard_user,Access Fix Locations Wizard - User,model_stockex_fix_locations_wizard,stockex.group_stockex_user,1,1,1,1
 access_stockex_import_method_wizard_user,Access Import Method Wizard - User,model_stockex_import_method_wizard,stockex.group_stockex_user,1,1,1,1
 access_stockex_import_kobo_wizard_user,Access Import Kobo Wizard - User,model_stockex_import_kobo_wizard,stockex.group_stockex_user,1,1,1,1
-access_stockex_initial_stock_wizard_user,Access Initial Stock Wizard - User,model_stockex_initial_stock_wizard,stockex.group_stockex_user,1,1,1,1
+access_stockex_initial_stock_wizard,access_stockex_initial_stock_wizard,model_stockex_initial_stock_wizard,base.group_user,1,1,1,1
+access_stockex_fix_product_types_wizard,access_stockex_fix_product_types_wizard,model_stockex_fix_product_types_wizard,base.group_user,1,1,1,1
+access_stockex_cancel_inventory_wizard,access_stockex_cancel_inventory_wizard,model_stockex_cancel_inventory_wizard,base.group_system,1,1,1,1
 access_stockex_import_flexible_inventory_wizard_user,Access Import Flexible Inventory Wizard - User,model_stockex_import_flexible_inventory_wizard,stockex.group_stockex_user,1,1,1,1
 access_stockex_kobo_config_user,Access Kobo Config - User,model_stockex_kobo_config,stockex.group_stockex_user,1,1,1,0
 access_stockex_kobo_config_manager,Access Kobo Config - Manager,model_stockex_kobo_config,stockex.group_stockex_manager,1,1,1,1

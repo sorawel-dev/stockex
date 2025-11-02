@@ -1,0 +1,416 @@
+/* ========================================
+   Dashboard Vue d'Ensemble - Styles Responsive
+   ======================================== */
+
+/* Container principal */
+.o_stockex_dashboard_main {
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 15px;
+}
+
+/* Header du dashboard */
+.o_stockex_dashboard_main .o_kanban_card_header {
+    margin-bottom: 20px !important;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    color: white;
+}
+
+.o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+    font-size: clamp(20px, 4vw, 28px);
+    margin: 0;
+    font-weight: 700;
+    color: white;
+}
+
+.o_stockex_dashboard_main .o_kanban_card_header_title .o_secondary {
+    font-size: clamp(12px, 2.5vw, 14px);
+    margin-top: 8px;
+    opacity: 0.95;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Cards statistiques */
+.o_stockex_dashboard_main .card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.o_stockex_dashboard_main .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Titres des cards */
+.o_stockex_dashboard_main .card-title {
+    font-size: clamp(28px, 5vw, 36px) !important;
+    font-weight: 700;
+}
+
+.o_stockex_dashboard_main .card-subtitle {
+    font-size: clamp(10px, 2vw, 12px) !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Icônes emoji */
+.o_stockex_dashboard_main .fs-1 {
+    font-size: clamp(32px, 6vw, 48px) !important;
+}
+
+/* Boutons */
+.o_stockex_dashboard_main .btn {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.o_stockex_dashboard_main .btn-lg {
+    padding: clamp(10px, 2vw, 15px) clamp(15px, 3vw, 25px);
+    font-size: clamp(14px, 2.5vw, 16px);
+}
+
+.o_stockex_dashboard_main .btn:hover {
+    transform: scale(1.05);
+}
+
+/* Badges */
+.o_stockex_dashboard_main .badge {
+    font-size: clamp(10px, 2vw, 12px);
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+/* Section Actions Rapides */
+.o_stockex_dashboard_main .card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.o_stockex_dashboard_main .card-header h5 {
+    font-size: clamp(16px, 3vw, 20px);
+    font-weight: 600;
+}
+
+.o_stockex_dashboard_main .card-header h6 {
+    font-size: clamp(14px, 2.5vw, 16px);
+    font-weight: 600;
+}
+
+/* Liste de définitions */
+.o_stockex_dashboard_main dl.row {
+    font-size: clamp(12px, 2vw, 14px);
+}
+
+.o_stockex_dashboard_main dl.row dt {
+    font-weight: 600;
+    color: #555;
+}
+
+.o_stockex_dashboard_main dl.row dd {
+    color: #333;
+}
+
+/* ========================================
+   Media Queries - Mobile First
+   ======================================== */
+
+/* Mobile (< 576px) */
+@media (max-width: 575.98px) {
+    .o_stockex_dashboard_main {
+        padding: 10px;
+    }
+    
+    /* Header compact */
+    .o_stockex_dashboard_main .o_kanban_card_header {
+        padding: 12px;
+        margin-bottom: 15px !important;
+    }
+    
+    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+        font-size: 18px;
+    }
+    
+    .o_stockex_dashboard_main .o_kanban_card_header_title .o_secondary {
+        font-size: 11px;
+    }
+    
+    /* Cards en pleine largeur */
+    .o_stockex_dashboard_main .card {
+        margin-bottom: 15px;
+    }
+    
+    .o_stockex_dashboard_main .card-body {
+        padding: 15px !important;
+    }
+    
+    /* Titres plus petits */
+    .o_stockex_dashboard_main .card-title {
+        font-size: 24px !important;
+    }
+    
+    .o_stockex_dashboard_main .card-subtitle {
+        font-size: 10px !important;
+    }
+    
+    /* Icônes plus petites */
+    .o_stockex_dashboard_main .fs-1 {
+        font-size: 32px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    /* Boutons compacts */
+    .o_stockex_dashboard_main .btn-lg {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+    
+    /* Actions rapides en colonne */
+    .o_stockex_dashboard_main .row.g-3 > div {
+        margin-bottom: 10px !important;
+    }
+    
+    /* Section analyses */
+    .o_stockex_dashboard_main .col-md-4 {
+        margin-bottom: 15px;
+    }
+    
+    /* Liste de définitions plus compacte */
+    .o_stockex_dashboard_main dl.row {
+        font-size: 12px;
+    }
+    
+    .o_stockex_dashboard_main dl.row dt,
+    .o_stockex_dashboard_main dl.row dd {
+        padding: 3px 0;
+    }
+}
+
+/* Tablette Portrait (576px - 767px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .o_stockex_dashboard_main {
+        padding: 12px;
+    }
+    
+    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+        font-size: 22px;
+    }
+    
+    .o_stockex_dashboard_main .card-title {
+        font-size: 28px !important;
+    }
+    
+    .o_stockex_dashboard_main .btn-lg {
+        padding: 12px 22px;
+        font-size: 15px;
+    }
+    
+    /* 2 colonnes pour les cards principales */
+    .o_stockex_dashboard_main .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+/* Tablette Paysage (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .o_stockex_dashboard_main {
+        padding: 15px;
+    }
+    
+    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+        font-size: 24px;
+    }
+    
+    .o_stockex_dashboard_main .card-title {
+        font-size: 30px !important;
+    }
+    
+    /* Forcer 3 colonnes pour les cards principales */
+    .o_stockex_dashboard_main .row > .col-md-4 {
+        flex: 0 0 33.333% !important;
+        max-width: 33.333% !important;
+    }
+    
+    /* Actions rapides en 3 colonnes sur tablette */
+    .o_stockex_dashboard_main .row.g-3 > .col-md-4 {
+        flex: 0 0 33.333%;
+        max-width: 33.333%;
+    }
+}
+
+/* Desktop (992px - 1199px) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .o_stockex_dashboard_main {
+        padding: 18px;
+    }
+    
+    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+        font-size: 26px;
+    }
+    
+    .o_stockex_dashboard_main .card-title {
+        font-size: 32px !important;
+    }
+    
+    /* Forcer 3 colonnes sur desktop moyen */
+    .o_stockex_dashboard_main .row > .col-md-4 {
+        flex: 0 0 33.333% !important;
+        max-width: 33.333% !important;
+    }
+}
+
+/* Large Desktop (>= 1200px) */
+@media (min-width: 1200px) {
+    .o_stockex_dashboard_main {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+        font-size: 28px;
+    }
+    
+    .o_stockex_dashboard_main .card-title {
+        font-size: 36px !important;
+    }
+    
+    /* Effet hover plus prononcé sur desktop */
+    .o_stockex_dashboard_main .card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+    }
+    
+    .o_stockex_dashboard_main .btn:hover {
+        transform: scale(1.08);
+    }
+}
+
+/* ========================================
+   Couleurs des cards (amélioration contraste)
+   ======================================== */
+
+.o_stockex_dashboard_main .bg-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.o_stockex_dashboard_main .bg-success {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
+}
+
+.o_stockex_dashboard_main .bg-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+}
+
+.o_stockex_dashboard_main .bg-warning {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+}
+
+/* ========================================
+   Utilitaires
+   ======================================== */
+
+/* Hauteur égale pour toutes les cards */
+.o_stockex_dashboard_main .h-100 {
+    height: 100% !important;
+}
+
+/* Espacement entre les rows */
+.o_stockex_dashboard_main .row {
+    margin-bottom: 15px;
+}
+
+.o_stockex_dashboard_main .mt-5 {
+    margin-top: clamp(20px, 4vw, 40px) !important;
+}
+
+.o_stockex_dashboard_main .mb-4 {
+    margin-bottom: clamp(15px, 3vw, 25px) !important;
+}
+
+/* Scroll pour les listes longues */
+.o_stockex_dashboard_main [style*="overflow-y: auto"] {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.o_stockex_dashboard_main [style*="overflow-y: auto"]::-webkit-scrollbar {
+    width: 6px;
+}
+
+.o_stockex_dashboard_main [style*="overflow-y: auto"]::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.o_stockex_dashboard_main [style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+/* Transitions fluides */
+.o_stockex_dashboard_main * {
+    box-sizing: border-box;
+}
+
+/* Accessibilité - Focus */
+.o_stockex_dashboard_main button:focus,
+.o_stockex_dashboard_main a:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .o_stockex_dashboard_main {
+        background: white !important;
+    }
+    
+    .o_stockex_dashboard_main .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+    }
+    
+    .o_stockex_dashboard_main .btn {
+        display: none !important;
+    }
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.o_stockex_dashboard_main .card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.o_stockex_dashboard_main .row > div:nth-child(1) .card {
+    animation-delay: 0.1s;
+}
+
+.o_stockex_dashboard_main .row > div:nth-child(2) .card {
+    animation-delay: 0.2s;
+}
+
+.o_stockex_dashboard_main .row > div:nth-child(3) .card {
+    animation-delay: 0.3s;
+}
+
+.o_stockex_dashboard_main .row > div:nth-child(4) .card {
+    animation-delay: 0.4s;
+}

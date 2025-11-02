@@ -121,5 +121,80 @@
             <field name="reconcile">False</field>
         </record>
         
+        <!-- ========================================= -->
+        <!-- CLASSE 3 : COMPTES D'ÉCARTS ET PROVISIONS -->
+        <!-- ========================================= -->
+        
+        <!-- 38 - Écarts de conversion - Actif -->
+        <!-- Note: En OHADA, le compte 38 est normalement pour écarts de conversion,
+             mais nous l'utilisons ici pour les écarts de prix sur stocks selon
+             les pratiques comptables de gestion des stocks -->
+        
+        <!-- 381 - Écarts sur prix d'achat (Mali) -->
+        <record id="account_price_difference_loss" model="account.account">
+            <field name="code">381</field>
+            <field name="name">Écarts de prix sur achats (Mali)</field>
+            <field name="account_type">asset_current</field>
+            <field name="reconcile">False</field>
+            <field name="note">Compte pour enregistrer les écarts défavorables (pertes) entre prix standard et prix réel d'achat</field>
+        </record>
+        
+        <!-- 382 - Écarts sur prix d'achat (Boni) -->
+        <record id="account_price_difference_gain" model="account.account">
+            <field name="code">382</field>
+            <field name="name">Écarts de prix sur achats (Boni)</field>
+            <field name="account_type">asset_current</field>
+            <field name="reconcile">False</field>
+            <field name="note">Compte pour enregistrer les écarts favorables (gains) entre prix standard et prix réel d'achat</field>
+        </record>
+        
+        <!-- Alternative: Utilisation du compte 658 pour les écarts (Charges diverses) -->
+        <!-- 658 - Charges diverses de gestion courante -->
+        <record id="account_price_difference_expense" model="account.account">
+            <field name="code">658</field>
+            <field name="name">Charges diverses de gestion courante</field>
+            <field name="account_type">expense</field>
+            <field name="reconcile">False</field>
+            <field name="note">Compte alternatif pour les écarts de prix (méthode simplifiée)</field>
+        </record>
+        
+        <!-- ========================================= -->
+        <!-- COMPTES PAR DÉFAUT RECOMMANDÉS -->
+        <!-- ========================================= -->
+        
+        <!-- 
+        RECOMMANDATIONS EXPERT COMPTABLE OHADA:
+        
+        1. COMPTE D'ENTRÉE EN STOCK (Stock Input Account):
+           - Marchandises: 603 "Variation des stocks de marchandises"
+           - Matières premières: 6031 "Variation des stocks de matières premières"
+           - Fournitures: 6032 "Variation des autres approvisionnements"
+           
+        2. COMPTE DE SORTIE DE STOCK (Stock Output Account):
+           - Marchandises: 603 "Variation des stocks de marchandises" (même compte)
+           - Produits finis: 713 "Variation des stocks de produits"
+           
+        3. COMPTE DE VALORISATION DES STOCKS (Stock Valuation Account):
+           - Marchandises: 31 "Marchandises"
+           - Matières premières: 32 "Matières premières et fournitures liées"
+           - Fournitures: 33 "Autres approvisionnements"
+           - Produits finis: 35 "Stocks de produits"
+           
+        4. COMPTE D'ÉCART DE PRIX (Price Difference Account):
+           - Méthode 1 (recommandée): 381/382 "Écarts de prix sur achats"
+           - Méthode 2 (simplifiée): 658 "Charges diverses de gestion courante"
+           
+        PRINCIPE OHADA:
+        - Les comptes 6 (Charges) et 7 (Produits) enregistrent les VARIATIONS de stocks
+        - Les comptes 3 (Stocks) enregistrent la VALEUR des stocks à l'inventaire
+        - Les écarts de prix peuvent être suivis séparément (381/382) ou en charges (658)
+        
+        CONFIGURATION PAR DÉFAUT POUR MARCHANDISES:
+        - Stock Input: 603
+        - Stock Output: 603
+        - Stock Valuation: 31
+        - Price Difference: 381 (Mali) ou 658 (simplifié)
+        -->
+        
     </data>
 </odoo>

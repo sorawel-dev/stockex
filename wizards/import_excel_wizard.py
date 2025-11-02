@@ -33,15 +33,14 @@ class ImportExcelWizard(models.TransientModel):
         string='Nom du fichier',
         help='Nom du fichier Excel importé'
     )
-    sheet_name = fields.Selection(
-        selection=[
-            ('Données Inventaire', 'Données Inventaire'),
-            ('Liste des Produits', 'Liste des Produits'),
-        ],
+    sheet_name = fields.Char(
         string='Feuille à importer',
-        default=lambda self: self.env['ir.config_parameter'].sudo().get_param('stockex.excel_sheet_name', 'Données Inventaire'),
-        required=True,
-        help='Sélectionnez la feuille Excel à importer'
+        help='Nom de la feuille Excel à importer. Laissez vide pour utiliser la première feuille disponible.'
+    )
+    auto_detect_sheet = fields.Boolean(
+        string='Détecter automatiquement',
+        default=True,
+        help='Utilise automatiquement la première feuille du fichier Excel'
     )
     create_missing_products = fields.Boolean(
         string='Créer les produits manquants',
@@ -94,14 +93,23 @@ class ImportExcelWizard(models.TransientModel):
             # Charger le workbook
             wb = load_workbook(excel_file, read_only=True, data_only=True)
             
-            # Vérifier que la feuille existe
-            if self.sheet_name not in wb.sheetnames:
-                raise UserError(
-                    f"La feuille '{self.sheet_name}' n'existe pas dans le fichier.\n"
-                    f"Feuilles disponibles : {', '.join(wb.sheetnames)}"
-                )
+            # Déterminer quelle feuille utiliser
+            if self.auto_detect_sheet or not self.sheet_name:
+                # Utiliser la première feuille disponible
+                sheet_to_use = wb.sheetnames[0]
+                _logger.info(f"📄 Utilisation automatique de la feuille: {sheet_to_use}")
+            else:
+                # Vérifier que la feuille spécifiée existe
+                if self.sheet_name not in wb.sheetnames:
+                    raise UserError(
+                        f"La feuille '{self.sheet_name}' n'existe pas dans le fichier.\n"
+                        f"Feuilles disponibles : {', '.join(wb.sheetnames)}\n\n"
+                        f"💡 Conseil: Cochez 'Détecter automatiquement' pour utiliser la première feuille."
+                    )
+                sheet_to_use = self.sheet_name
             
-            ws = wb[self.sheet_name]
+            ws = wb[sheet_to_use]
+            _logger.info(f"✅ Lecture de la feuille: {sheet_to_use}")
             
             # Lire les en-têtes (première ligne)
             headers = []
