@@ -881,9 +881,9 @@ class StockInventory(models.Model):
         return self.env.ref('stockex.action_report_inventory').report_action(self)
     
     def action_refresh_theoretical_qty(self):
-        """Recalcule les quantités théoriques depuis le stock Odoo actuel."""
+        """Recalcule les quantités théoriques ET les prix unitaires depuis le stock Odoo actuel."""
         self.ensure_one()
-        _logger.info(f"🔄 Recalcul des quantités théoriques pour inventaire {self.name}")
+        _logger.info(f"🔄 Recalcul des quantités théoriques ET prix pour inventaire {self.name}")
         
         if not self.line_ids:
             return {
@@ -899,6 +899,7 @@ class StockInventory(models.Model):
         
         # Forcer le recalcul pour chaque ligne
         updated_count = 0
+        price_updated = 0
         for line in self.line_ids:
             if not line.product_id or not line.location_id:
                 continue
@@ -911,32 +912,41 @@ class StockInventory(models.Model):
             
             qty_available = sum(quants.mapped('quantity')) - sum(quants.mapped('reserved_quantity'))
             
+            # Récupérer le prix du produit
+            product_price = line.product_id.standard_price
+            
             # Calculer la différence
             difference = line.product_qty - qty_available
             
             # Forcer l'écriture directe (bypass du compute)
             self.env.cr.execute("""
                 UPDATE stockex_stock_inventory_line 
-                SET theoretical_qty = %s, difference = %s
+                SET theoretical_qty = %s, difference = %s, standard_price = %s
                 WHERE id = %s
-            """, (qty_available, difference, line.id))
+            """, (qty_available, difference, product_price, line.id))
             
             if qty_available > 0:
                 updated_count += 1
+            if product_price > 0:
+                price_updated += 1
             
-            _logger.info(f"📦 Ligne {line.id}: {line.product_id.name} → Théo: {qty_available}, Réel: {line.product_qty}, Écart: {difference}")
+            _logger.info(
+                f"📦 Ligne {line.id}: {line.product_id.name} → "
+                f"Théo: {qty_available}, Réel: {line.product_qty}, Écart: {difference}, Prix: {product_price}"
+            )
         
         # Invalider le cache pour forcer le rechargement
-        self.line_ids.invalidate_recordset(['theoretical_qty', 'difference', 'difference_display'])
+        self.line_ids.invalidate_recordset(['theoretical_qty', 'difference', 'difference_display', 'standard_price'])
         
         # Compter les résultats
         lines_with_qty = len([l for l in self.line_ids if l.theoretical_qty > 0])
         
-        message = f"✅ Quantités théoriques recalculées\n"
+        message = f"✅ Quantités théoriques ET prix recalculés\n"
         message += f"📊 {lines_with_qty} ligne(s) avec stock > 0\n"
+        message += f"💰 {price_updated} ligne(s) avec prix > 0\n"
         message += f"📦 {len(self.line_ids) - lines_with_qty} ligne(s) avec stock = 0"
         
-        _logger.info(f"✅ Recalcul terminé: {lines_with_qty}/{len(self.line_ids)} lignes avec stock")
+        _logger.info(f"✅ Recalcul terminé: {lines_with_qty}/{len(self.line_ids)} lignes avec stock, {price_updated} avec prix")
         
         return {
             'type': 'ir.actions.client',
