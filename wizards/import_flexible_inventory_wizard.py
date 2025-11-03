@@ -606,7 +606,20 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
         if errors:
             message += f"\n⚠️ {len(errors)} erreur(s):\n" + "\n".join(errors[:20])
         
-        inventory.message_post(body=message)
+        # Poster le message avec gestion d'erreur transaction
+        try:
+            inventory.message_post(body=message)
+        except Exception as msg_error:
+            _logger.warning(f"⚠️ Impossible de poster le message dans le chatter: {msg_error}")
+            # En cas d'erreur de transaction, rollback et retry
+            try:
+                self.env.cr.rollback()
+                self.env.cr.commit()
+                inventory.invalidate_recordset()
+                inventory = self.env['stockex.stock.inventory'].browse(inventory.id)
+                inventory.message_post(body=message)
+            except Exception as retry_error:
+                _logger.error(f"❌ Échec définitif message_post: {retry_error}")
         
         # Envoyer les notifications
         self._send_notifications(inventory, created_count, len(errors))
