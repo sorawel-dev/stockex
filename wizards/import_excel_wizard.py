@@ -373,21 +373,41 @@ class ImportExcelWizard(models.TransientModel):
                     errors_detail.append(f"Ligne {i+2}: Produit '{product_code}' non trouvé")
                     continue
                 
-                # Mettre à jour le prix si demandé
-                if self.update_product_prices and standard_price > 0:
-                    product = self.env['product.product'].browse(product_id)
-                    if product.standard_price != standard_price:
-                        product.write({'standard_price': standard_price})
+                # Récupérer le prix du produit existant si pas fourni dans Excel
+                product_obj = self.env['product.product'].browse(product_id)
+                if standard_price <= 0:
+                    standard_price = product_obj.standard_price
                 
-                # Log pour debug (peut être enlevé après)
-                _logger.info(f"Import ligne {i+2}: Produit={product_code}, Qté={quantity}, Prix={standard_price}")
+                # Mettre à jour le prix si demandé ET si prix fourni dans Excel
+                elif self.update_product_prices and standard_price > 0:
+                    if product_obj.standard_price != standard_price:
+                        product_obj.write({'standard_price': standard_price})
                 
-                # Créer la ligne d'inventaire avec le prix unitaire
+                # Récupérer la quantité théorique depuis les quants
+                StockQuant = self.env['stock.quant']
+                quant = StockQuant.search([
+                    ('product_id', '=', product_id),
+                    ('location_id', '=', location_id),
+                    ('company_id', '=', self.company_id.id),
+                ], limit=1)
+                
+                theoretical_qty = 0.0
+                if quant:
+                    theoretical_qty = quant.quantity - quant.reserved_quantity
+                
+                # Log pour debug
+                _logger.info(
+                    f"Import ligne {i+2}: Produit={product_code}, "
+                    f"Qté théo={theoretical_qty}, Qté réelle={quantity}, Prix={standard_price}"
+                )
+                
+                # Créer la ligne d'inventaire avec quantité théorique ET prix unitaire
                 self.env['stockex.stock.inventory.line'].create({
                     'inventory_id': inventory.id,
                     'product_id': product_id,
                     'location_id': location_id,
                     'product_qty': quantity,
+                    'theoretical_qty': theoretical_qty,
                     'standard_price': standard_price,
                 })
                 

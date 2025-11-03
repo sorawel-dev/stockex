@@ -57,13 +57,13 @@
                     </div>
                 </group>
                 
-                <group string="Import Excel (Optionnel)" invisible="state != 'step1'">
+                <group string="Import Excel (Requis)" invisible="state != 'step1'">
                     <p class="text-muted">
                         <strong>Format du fichier Excel :</strong><br/>
                         Colonnes requises : CODE PRODUIT, NOM PRODUIT, QUANTITE, PRIX UNITAIRE<br/>
                         Colonnes optionnelles : CATEGORIE, CODE CATEGORIE, <strong style="color: #00A09D;">ENTREPOT</strong><br/>
-                        <i>Si aucun fichier n'est fourni, vous pourrez ajouter les lignes manuellement après création.</i><br/>
-                        <strong style="color: #00A09D;">✅ Multi-entrepôts supporté :</strong> Une ligne par produit/entrepôt
+                        <strong style="color: #00A09D;">✅ Multi-entrepôts supporté :</strong> Une ligne par produit/entrepôt<br/>
+                        <i style="color: #e74c3c;">Le fichier Excel est OBLIGATOIRE pour initialiser le stock.</i>
                     </p>
                     <field name="filename" invisible="1"/>
                     <field name="import_file" filename="filename"/>
@@ -71,7 +71,7 @@
                 
                 <div class="alert alert-warning" role="alert" invisible="state != 'step1'">
                     <strong>⚠️ ATTENTION :</strong> Cet assistant est destiné aux <strong>bases de données VIDES</strong> (sans stock existant).<br/>
-                    Il créera un inventaire initial avec quantités théoriques = 0 et quantités réelles = vos données.<br/>
+                    Il créera directement les <strong>stocks initiaux dans les quants</strong> (pas d'inventaire).<br/>
                     Pour une base avec stock existant, utilisez un inventaire normal.
                 </div>
                 
@@ -89,14 +89,14 @@
                     <!-- Boutons étape 1 -->
                     <button name="action_preview" type="object" string="🔍 Prévisualiser" class="btn-primary" 
                             invisible="state != 'step1' or not import_file"/>
-                    <button name="action_create_initial_stock" type="object" string="Créer Stock Initial" class="btn-primary" 
-                            invisible="state != 'step1' or import_file"/>
+                    <button name="action_create_initial_stock" type="object" string="✅ Créer Stock Initial" class="btn-success" 
+                            invisible="state != 'step1' or not import_file" confirm="Confirmez-vous la création du stock initial ?"/>
                     
                     <!-- Boutons étape 2 -->
                     <button name="action_back" type="object" string="← Retour" class="btn-secondary" 
                             invisible="state != 'step2'"/>
                     <button name="action_create_initial_stock" type="object" string="✅ Confirmer l'import" class="btn-primary" 
-                            invisible="state != 'step2'"/>
+                            invisible="state != 'step2'" confirm="Confirmez-vous l'import du stock initial ?"/>
                     
                     <button string="Annuler" class="btn-secondary" special="cancel"/>
                 </footer>
@@ -110,39 +110,6 @@
         <field name="res_model">stockex.initial.stock.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
-        <field name="binding_model_id" ref="model_stockex_stock_inventory"/>
     </record>
-    
-    <!-- Ajout du Champ Comptabilité dans la Vue Formulaire Inventaire -->
-    <record id="view_stockex_inventory_form_accounting" model="ir.ui.view">
-        <field name="name">stockex.stock.inventory.form.accounting</field>
-        <field name="model">stockex.stock.inventory</field>
-        <field name="inherit_id" ref="stockex.view_stockex_inventory_form"/>
-        <field name="arch" type="xml">
-            
-            <!-- Ajouter le champ comptabilité après company_id -->
-            <field name="company_id" position="after">
-                <field name="accounting_enabled" groups="account.group_account_user"/>
-            </field>
-            
-            <!-- Ajouter un onglet pour les écritures comptables -->
-            <xpath expr="//notebook" position="inside">
-                <page string="Écritures Comptables" name="accounting" groups="account.group_account_user" invisible="not accounting_enabled or state != 'done'">
-                    <field name="move_ids" readonly="1">
-                        <list>
-                            <field name="name"/>
-                            <field name="date"/>
-                            <field name="journal_id"/>
-                            <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state == 'draft'"/>
-                            <field name="amount_total"/>
-                        </list>
-                    </field>
-                </page>
-            </xpath>
-            
-        </field>
-    </record>
-    
-    <!-- Menu pour Stock Initial déplacé dans views/menus.xml -->
         
 </odoo>

@@ -281,214 +281,107 @@ class InitialStockWizard(models.TransientModel):
             'target': 'new',
         }
     
-    def _send_email_notification(self, inventory, created_count):
-        """Envoie une notification par email depuis les paramètres globaux."""
-        # Récupérer les paramètres depuis la configuration
-        ICP = self.env['ir.config_parameter'].sudo()
-        notify_email = ICP.get_param('stockex.notify_by_email', 'False') == 'True'
-        email_list = ICP.get_param('stockex.notification_emails', '')
-        
-        if not notify_email or not email_list:
-            return
-        
+    def _send_notifications(self, created_count, message):
+        """Envoie les notifications Email, WhatsApp et Telegram."""
+        try:
+            # Récupérer les paramètres
+            ICP = self.env['ir.config_parameter'].sudo()
+            
+            # Email
+            if ICP.get_param('stockex.notify_by_email', 'False') == 'True':
+                email_list = ICP.get_param('stockex.notification_emails', '')
+                if email_list:
+                    self._send_email(email_list, created_count, message)
+            
+            # WhatsApp  
+            if ICP.get_param('stockex.notify_by_whatsapp', 'False') == 'True':
+                numbers_list = ICP.get_param('stockex.whatsapp_numbers', '')
+                api_url = ICP.get_param('stockex.whatsapp_api_url', '')
+                if numbers_list and api_url:
+                    self._send_whatsapp(numbers_list, api_url, created_count, message)
+            
+            # Telegram
+            if ICP.get_param('stockex.notify_by_telegram', 'False') == 'True':
+                bot_token = ICP.get_param('stockex.telegram_bot_token', '')
+                chat_ids = ICP.get_param('stockex.telegram_chat_ids', '')
+                if bot_token and chat_ids:
+                    self._send_telegram(bot_token, chat_ids, created_count, message)
+                    
+        except Exception as e:
+            _logger.error(f"❌ Erreur notifications : {str(e)}")
+    
+    def _send_email(self, email_list, created_count, message):
+        """Envoie une notification par email."""
         emails = [email.strip() for email in email_list.split(',') if email.strip()]
         if not emails:
             return
         
-        subject = f"✅ Import Stock Initial Réussi - {inventory.name}"
-        
+        subject = f"✅ Stock Initial Créé - {self.name}"
         body = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;">
-                <h1 style="margin: 0; font-size: 28px;">✅ Import Réussi</h1>
-            </div>
-            
-            <div style="padding: 30px; background: #f8f9fa;">
-                <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <h2 style="color: #2d3748; margin-top: 0;">Inventaire Initial Créé</h2>
-                    
-                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                        <tr>
-                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #4a5568;">Nom:</td>
-                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #2d3748;">{inventory.name}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #4a5568;">Date:</td>
-                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #2d3748;">{inventory.date}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #4a5568;">Lignes importées:</td>
-                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #48bb78; font-weight: bold;">{created_count}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #4a5568;">Emplacement:</td>
-                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #2d3748;">{inventory.location_id.complete_name}</td>
-                        </tr>
-                        {"<tr><td style='padding: 12px; font-weight: bold; color: #e53e3e;'>⚠️ Réinitialisation:</td><td style='padding: 12px; color: #e53e3e;'>Stocks réinitialisés avant import</td></tr>" if self.force_reset else ""}
-                    </table>
-                    
-                    <div style="background: #edf2f7; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                        <p style="margin: 0; color: #4a5568; font-size: 14px;">
-                            <strong>📊 Prochaine étape :</strong> Consultez et validez l'inventaire dans Odoo.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <div style="padding: 20px; text-align: center; color: #a0aec0; font-size: 12px;">
-                <p>Notification automatique envoyée par Stockex - Odoo</p>
-            </div>
+        <div style="font-family: Arial, sans-serif;">
+            <h2>✅ Stock Initial Créé</h2>
+            <p><strong>Nom :</strong> {self.name}</p>
+            <p><strong>Date :</strong> {self.date}</p>
+            <p><strong>Enregistrements créés :</strong> {created_count}</p>
+            <pre>{message}</pre>
         </div>
         """
         
         try:
-            # Créer l'email
             mail_values = {
                 'subject': subject,
                 'body_html': body,
                 'email_to': ', '.join(emails),
                 'email_from': self.env.user.company_id.email or 'noreply@odoo.com',
-                'auto_delete': False,
             }
-            
             mail = self.env['mail.mail'].sudo().create(mail_values)
             mail.send()
-            
             _logger.info(f"📧 Email envoyé à : {', '.join(emails)}")
-            
         except Exception as e:
             _logger.error(f"❌ Erreur envoi email : {str(e)}")
     
-    def _send_whatsapp_notification(self, inventory, created_count):
-        """Envoie une notification WhatsApp depuis les paramètres globaux."""
-        # Récupérer les paramètres depuis la configuration
-        ICP = self.env['ir.config_parameter'].sudo()
-        notify_whatsapp = ICP.get_param('stockex.notify_by_whatsapp', 'False') == 'True'
-        numbers_list = ICP.get_param('stockex.whatsapp_numbers', '')
-        api_url = ICP.get_param('stockex.whatsapp_api_url', '')
-        api_token = ICP.get_param('stockex.whatsapp_api_token', '')
-        
-        if not notify_whatsapp or not numbers_list:
-            return
-        
-        if not api_url:
-            _logger.warning("⚠️ URL API WhatsApp non configurée dans les Paramètres")
-            return
-        
-        numbers = [num.strip() for num in numbers_list.split(',') if num.strip()]
-        if not numbers:
-            return
-        
-        message = f"""✅ *Import Stock Initial Réussi*
-
-📦 *Inventaire:* {inventory.name}
-📅 *Date:* {inventory.date}
-📊 *Lignes importées:* {created_count}
-📍 *Emplacement:* {inventory.location_id.complete_name}
-"""
-        
-        if self.force_reset:
-            message += "\n⚠️ *Stocks réinitialisés* avant import"
-        
-        message += "\n\n_Notification automatique Stockex - Odoo_"
-        
+    def _send_whatsapp(self, numbers_list, api_url, created_count, message):
+        """Envoie une notification WhatsApp."""
         try:
             import requests
+            numbers = [num.strip() for num in numbers_list.split(',') if num.strip()]
             
-            headers = {}
-            if api_token:
-                headers['Authorization'] = f'Bearer {api_token}'
+            whatsapp_message = f"✅ *Stock Initial Créé*\n\n📦 {created_count} enregistrement(s)\n📅 Date : {self.date}"
             
             for number in numbers:
                 try:
-                    # Format générique pour API WhatsApp
-                    # Adapter selon votre provider (Twilio, WhatsApp Business API, etc.)
-                    payload = {
-                        'to': number,
-                        'message': message
-                    }
-                    
-                    response = requests.post(
-                        api_url,
-                        json=payload,
-                        headers=headers,
-                        timeout=10
-                    )
-                    
+                    payload = {'to': number, 'message': whatsapp_message}
+                    response = requests.post(api_url, json=payload, timeout=10)
                     if response.status_code in [200, 201]:
                         _logger.info(f"💬 WhatsApp envoyé à : {number}")
-                    else:
-                        _logger.error(f"❌ Erreur WhatsApp pour {number} : {response.status_code}")
-                        
-                except Exception as num_error:
-                    _logger.error(f"❌ Erreur envoi WhatsApp à {number} : {str(num_error)}")
-                    
+                except Exception as e:
+                    _logger.error(f"❌ Erreur WhatsApp {number} : {str(e)}")
         except ImportError:
-            _logger.error("❌ Module 'requests' non installé. Installez-le : pip install requests")
+            _logger.error("❌ Module 'requests' non installé")
         except Exception as e:
-            _logger.error(f"❌ Erreur envoi WhatsApp : {str(e)}")
+            _logger.error(f"❌ Erreur WhatsApp : {str(e)}")
     
-    def _send_telegram_notification(self, inventory, created_count):
-        """Envoie une notification Telegram depuis les paramètres globaux."""
-        # Récupérer les paramètres depuis la configuration
-        ICP = self.env['ir.config_parameter'].sudo()
-        notify_telegram = ICP.get_param('stockex.notify_by_telegram', 'False') == 'True'
-        bot_token = ICP.get_param('stockex.telegram_bot_token', '')
-        chat_ids_list = ICP.get_param('stockex.telegram_chat_ids', '')
-        
-        if not notify_telegram or not bot_token or not chat_ids_list:
-            return
-        
-        chat_ids = [chat_id.strip() for chat_id in chat_ids_list.split(',') if chat_id.strip()]
-        if not chat_ids:
-            return
-        
-        # Message formaté pour Telegram (support Markdown)
-        message = f"""✅ *Import Stock Initial Réussi*
-
-📦 *Inventaire :* {inventory.name}
-📅 *Date :* {inventory.date}
-📊 *Lignes importées :* {created_count}
-📍 *Emplacement :* {inventory.location_id.complete_name}
-"""
-        
-        if self.force_reset:
-            message += "\n⚠️ *Stocks réinitialisés* avant import"
-        
-        message += "\n\n_Notification automatique Stockex - Odoo_"
-        
+    def _send_telegram(self, bot_token, chat_ids_list, created_count, message):
+        """Envoie une notification Telegram."""
         try:
             import requests
+            chat_ids = [cid.strip() for cid in chat_ids_list.split(',') if cid.strip()]
             
-            # URL de l'API Telegram
+            telegram_message = f"✅ *Stock Initial Créé*\n\n📦 {created_count} enregistrement(s)\n📅 Date : {self.date}"
             api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
             
             for chat_id in chat_ids:
                 try:
-                    payload = {
-                        'chat_id': chat_id,
-                        'text': message,
-                        'parse_mode': 'Markdown'
-                    }
-                    
-                    response = requests.post(
-                        api_url,
-                        json=payload,
-                        timeout=10
-                    )
-                    
+                    payload = {'chat_id': chat_id, 'text': telegram_message, 'parse_mode': 'Markdown'}
+                    response = requests.post(api_url, json=payload, timeout=10)
                     if response.status_code == 200:
-                        _logger.info(f"📱 Telegram envoyé à Chat ID : {chat_id}")
-                    else:
-                        _logger.error(f"❌ Erreur Telegram pour Chat ID {chat_id} : {response.status_code} - {response.text}")
-                        
-                except Exception as chat_error:
-                    _logger.error(f"❌ Erreur envoi Telegram à Chat ID {chat_id} : {str(chat_error)}")
-                    
+                        _logger.info(f"📱 Telegram envoyé à : {chat_id}")
+                except Exception as e:
+                    _logger.error(f"❌ Erreur Telegram {chat_id} : {str(e)}")
         except ImportError:
-            _logger.error("❌ Module 'requests' non installé. Installez-le : pip install requests")
+            _logger.error("❌ Module 'requests' non installé")
         except Exception as e:
-            _logger.error(f"❌ Erreur envoi Telegram : {str(e)}")
+            _logger.error(f"❌ Erreur Telegram : {str(e)}")
     
     def _reset_all_stocks(self):
         """Réinitialise complètement tous les stocks (DANGEREUX !)."""
@@ -548,12 +441,11 @@ class InitialStockWizard(models.TransientModel):
         }
     
     def action_create_initial_stock(self):
-        """Crée l'inventaire initial et met à jour les stocks."""
+        """Crée le stock initial directement dans les quants (sans inventaire)."""
         self.ensure_one()
         
         # Si réinitialisation forcée demandée
         if self.force_reset:
-            # Confirmation supplémentaire
             existing_quants = self.env['stock.quant'].search([
                 ('company_id', '=', self.company_id.id),
             ])
@@ -567,17 +459,15 @@ class InitialStockWizard(models.TransientModel):
                     f"{len(existing_quants)} quants et {len(existing_moves)} mouvements seront supprimés"
                 )
                 
-                # Effectuer la réinitialisation
                 reset_result = self._reset_all_stocks()
                 
-                # Loguer le résultat de la réinitialisation
                 _logger.warning(
                     f"✅ Réinitialisation terminée : "
                     f"{reset_result['moves_deleted']} mouvements et "
                     f"{reset_result['quants_deleted']} quants supprimés"
                 )
         else:
-            # Vérifier qu'il n'y a pas déjà de stock (comportement par défaut)
+            # Vérifier qu'il n'y a pas déjà de stock
             existing_quants = self.env['stock.quant'].search([
                 ('quantity', '>', 0),
                 ('location_id.usage', '=', 'internal'),
@@ -586,85 +476,60 @@ class InitialStockWizard(models.TransientModel):
             
             if existing_quants:
                 raise UserError(
-                    f"⚠️ ATTENTION : {len(existing_quants)} mouvement(s) de stock déjà enregistré(s).\n\n"
+                    f"⚠️ ATTENTION : {len(existing_quants)} enregistrement(s) de stock déjà existant(s).\n\n"
                     f"Cette fonction est destinée aux bases de données VIDES.\n\n"
                     f"Options :\n"
                     f"1. Utilisez un inventaire normal pour mettre à jour le stock existant\n"
                     f"2. Cochez l'option '⚠️ Réinitialiser tous les stocks' pour forcer une réinitialisation complète (DANGEREUX)"
                 )
         
-        # Générer un nom unique pour l'inventaire
-        inventory_name = self.name
-        counter = 1
-        while self.env['stockex.stock.inventory'].search([
-            ('name', '=', inventory_name),
-            ('company_id', '=', self.company_id.id)
-        ], limit=1):
-            inventory_name = f"{self.name} ({counter})"
-            counter += 1
+        if not self.import_file:
+            raise UserError(
+                "⚠️ Veuillez fournir un fichier Excel pour le stock initial.\n\n"
+                "Le stock initial nécessite des données d'import."
+            )
         
-        # Créer l'inventaire initial (sans entrepôt fixe)
-        # L'entrepôt sera déterminé ligne par ligne depuis le fichier Excel
-        default_warehouse = self.location_id if self.location_id else self.env['stock.warehouse'].search([], limit=1)
-        default_location = default_warehouse.lot_stock_id if default_warehouse else self.env.ref('stock.stock_location_stock')
+        # Parser et créer les stocks initiaux
+        lines = self._parse_excel_file()
+        created_count = self._create_initial_stock_quants(lines)
         
-        inventory = self.env['stockex.stock.inventory'].create({
-            'name': inventory_name,
-            'date': self.date,
-            'location_id': default_location.id,
-            'company_id': self.company_id.id,
-            'state': 'draft',
-            'description': 'Inventaire initial - Import multi-entrepôts depuis fichier Excel'
-        })
+        if created_count == 0:
+            raise UserError(
+                "⚠️ Aucun stock n'a pu être créé.\n\n"
+                "Vérifiez que votre fichier Excel contient des données valides.\n"
+                "Consultez les logs Odoo pour plus de détails."
+            )
         
-        # Si fichier Excel fourni, l'importer
-        created_count = 0
-        if self.import_file:
-            lines = self._parse_excel_file()
-            created_count = self._create_inventory_lines(inventory, lines)
-            
-            # Si aucune ligne créée, supprimer l'inventaire et afficher un message d'erreur
-            if created_count == 0:
-                inventory.unlink()
-                raise UserError(
-                    "⚠️ Aucune ligne n'a pu être créée.\n\n"
-                    "Vérifiez que votre fichier Excel contient des données valides.\n"
-                    "Consultez les logs Odoo pour plus de détails."
-                )
-        
-        # Message de succès dans le chatter
-        message = f"✅ Inventaire initial créé avec succès !\n\n"
-        if self.import_file:
-            message += f"• {created_count} ligne(s) importée(s)\n"
+        # Créer un message récapitulatif
+        message = f"✅ Stock initial créé avec succès !\n\n"
+        message += f"• {created_count} enregistrement(s) de stock créé(s)\n"
         if self.force_reset:
             message += f"• Stocks préalablement réinitialisés\n"
-        message += f"• Nom : {inventory.name}\n"
-        message += f"• Date : {inventory.date}\n"
-        
-        # Poster le message dans le chatter de l'inventaire
-        inventory.message_post(
-            body=message,
-            message_type='notification',
-            subtype_xmlid='mail.mt_note'
-        )
+        message += f"• Date : {self.date}\n"
         
         # Envoyer les notifications
         try:
-            self._send_email_notification(inventory, created_count)
-            self._send_whatsapp_notification(inventory, created_count)
-            self._send_telegram_notification(inventory, created_count)
+            self._send_notifications(created_count, message)
         except Exception as notif_error:
             _logger.error(f"❌ Erreur lors de l'envoi des notifications : {str(notif_error)}")
-            # Ne pas bloquer l'import si les notifications échouent
         
-        # Retourner l'action d'ouverture de l'inventaire
+        # Retourner un message de succès
         return {
-            'type': 'ir.actions.act_window',
-            'name': 'Inventaire Initial Créé',
-            'res_model': 'stockex.stock.inventory',
-            'res_id': inventory.id,
-            'view_mode': 'form',
-            'target': 'current',
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Stock Initial Créé',
+                'message': message,
+                'type': 'success',
+                'sticky': False,
+                'next': {
+                    'type': 'ir.actions.act_window',
+                    'name': 'Quantités en Stock',
+                    'res_model': 'stock.quant',
+                    'view_mode': 'list',
+                    'domain': [('company_id', '=', self.company_id.id), ('quantity', '>', 0)],
+                },
+            }
         }
     
     def _parse_excel_file(self):
@@ -831,27 +696,25 @@ Recherche ou crée un entrepôt.
         
         return category
     
-    def _create_inventory_lines(self, inventory, lines):
-        """
-Crée les lignes d'inventaire depuis les données Excel.
-        """
+    def _create_initial_stock_quants(self, lines):
+        """Crée les quants de stock initial directement (sans inventaire)."""
         created_count = 0
         errors = []
         created_categories = set()
         created_warehouses = set()
         total_lines = len(lines)
         
-        _logger.info(f"🔍 Début création lignes: {total_lines} lignes à traiter")
+        _logger.info(f"🔍 Début création stock initial: {total_lines} lignes à traiter")
         
         for i, line_data in enumerate(lines):
-            # Mettre à jour la progression tous les 50 lignes ou pour les 10 premières
+            # Mettre à jour la progression
             if i % 50 == 0 or i < 10:
                 progress_percent = (i / total_lines) * 100
                 self.write({
                     'progress': progress_percent,
                     'progress_message': f'Traitement ligne {i + 1}/{total_lines} ({progress_percent:.1f}%)'
                 })
-                self.env.cr.commit()  # Commit pour afficher la progression en temps réel
+                self.env.cr.commit()
             
             try:
                 product_code = str(line_data.get('CODE PRODUIT', '')).strip()
@@ -862,12 +725,17 @@ Crée les lignes d'inventaire depuis les données Excel.
                 quantity = float(line_data.get('QUANTITE', 0))
                 price = float(line_data.get('PRIX UNITAIRE', 0))
                 
-                if i < 3:  # Log des 3 premières lignes
+                if i < 3:
                     _logger.info(f"🔍 Ligne {i+1}: CODE={product_code}, NOM={product_name[:30]}, ENTREP={warehouse_name}, QTE={quantity}")
                 
                 if not product_code:
-                    _logger.warning(f"⚠️ Ligne {i+2}: CODE PRODUIT vide, ignorée. Données: {line_data}")
+                    _logger.warning(f"⚠️ Ligne {i+2}: CODE PRODUIT vide, ignorée")
                     errors.append(f"Ligne {i+2}: CODE PRODUIT vide")
+                    continue
+                
+                if quantity <= 0:
+                    _logger.warning(f"⚠️ Ligne {i+2}: Quantité nulle ou négative ({quantity}), ignorée")
+                    errors.append(f"Ligne {i+2}: Quantité invalide ({quantity})")
                     continue
                 
                 # Gérer l'entrepôt
@@ -884,7 +752,7 @@ Crée les lignes d'inventaire depuis les données Excel.
                 
                 # Vérifier que l'emplacement est de type internal
                 if not location or location.usage != 'internal':
-                    _logger.error(f"❌ Ligne {i+2}: Emplacement '{location.name if location else 'None'}' n'est pas de type 'internal' (type: {location.usage if location else 'None'})")
+                    _logger.error(f"❌ Ligne {i+2}: Emplacement invalide (type: {location.usage if location else 'None'})")
                     errors.append(f"Ligne {i+2}: Emplacement invalide pour entrepôt '{warehouse.name}'")
                     continue
                 
@@ -893,15 +761,12 @@ Crée les lignes d'inventaire depuis les données Excel.
                     ('default_code', '=', product_code)
                 ], limit=1)
                 
-                # Gérer la catégorie (pour produits nouveaux ET existants)
+                # Gérer la catégorie
                 category = None
                 if category_name:
                     category = self._get_or_create_category(category_name, category_code)
-                    if category:
-                        if category.name not in created_categories:
-                            created_categories.add(category.name)
-                        if i < 3:  # Log des 3 premières
-                            _logger.info(f"📁 Catégorie gérée: {category.name} (ID: {category.id})")
+                    if category and category.name not in created_categories:
+                        created_categories.add(category.name)
                 
                 if not product:
                     if not self.create_products:
@@ -912,12 +777,10 @@ Crée les lignes d'inventaire depuis les données Excel.
                     product_vals = {
                         'name': product_name or product_code,
                         'default_code': product_code,
-                        'type': 'consu',  # Biens/Goods stockables
-                        'is_storable': True,  # Activer le suivi d'inventaire
+                        'type': 'product',  # IMPORTANT: 'product' pour stockable (pas 'consu')
                         'standard_price': price,
                     }
                     
-                    # Ajouter la catégorie si disponible
                     if category:
                         product_vals['categ_id'] = category.id
                     
@@ -929,96 +792,72 @@ Crée les lignes d'inventaire depuis les données Excel.
                     # Mettre à jour la catégorie du produit existant si spécifiée
                     if product.categ_id.id != category.id:
                         product.write({'categ_id': category.id})
-                        if i < 3:
-                            _logger.info(f"🔄 Catégorie mise à jour: {product_code} → {category.name}")
                 
-                if product:
-                    # Créer la ligne d'inventaire avec l'emplacement du fichier
-                    try:
-                        line_vals = {
-                            'inventory_id': inventory.id,
-                            'product_id': product.id,
-                            'location_id': location.id,
-                            'product_qty': quantity,
-                            'standard_price': price,
-                            'theoretical_qty': 0.0,  # STOCK INITIAL : forcer à 0
-                        }
-                        
-                        # Log détaillé pour les 3 premières lignes
-                        if i < 3:
-                            _logger.info(
-                                f"📝 Création ligne {i+1}: "
-                                f"Produit={product.display_name}, "
-                                f"Catégorie={product.categ_id.name}, "
-                                f"Emplacement={location.complete_name} (usage={location.usage}), "
-                                f"Quantité={quantity}, "
-                                f"Prix={price}"
-                            )
-                        
-                        new_line = self.env['stockex.stock.inventory.line'].create(line_vals)
-                        created_count += 1
-                        
-                        # Vérifier que la ligne a bien été créée avec les bonnes valeurs
-                        if i < 3:
-                            _logger.info(
-                                f"✅ Ligne créée: ID={new_line.id}, "
-                                f"Quantité enregistrée={new_line.product_qty}, "
-                                f"Catégorie={new_line.product_id.categ_id.name}"
-                            )
-                        
-                    except Exception as line_error:
-                        errors.append(f"Ligne {i+2}: Erreur création ligne - {str(line_error)}")
-                        _logger.error(f"❌ Erreur ligne {i+2}: {str(line_error)}")
-                else:
-                    errors.append(f"Ligne {i+2}: Produit '{product_code}' non trouvé")
+                # Vérifier que le produit est stockable
+                if product.type != 'product':
+                    _logger.warning(f"⚠️ Ligne {i+2}: Produit '{product_code}' n'est pas stockable (type={product.type}), conversion en 'product'")
+                    product.write({'type': 'product'})
+                
+                # Mettre à jour le prix coûtant si fourni
+                if price > 0 and product.standard_price != price:
+                    product.write({'standard_price': price})
+                
+                # Créer ou mettre à jour le quant
+                quant = self.env['stock.quant'].search([
+                    ('product_id', '=', product.id),
+                    ('location_id', '=', location.id),
+                    ('company_id', '=', self.company_id.id),
+                ], limit=1)
+                
+                if quant:
+                    # Le quant existe déjà, mettre à jour la quantité
+                    old_qty = quant.quantity
+                    quant.inventory_quantity = quantity
+                    quant.inventory_quantity_set = True
+                    quant.action_apply_inventory()
                     
+                    if i < 3:
+                        _logger.info(f"🔄 Quant mis à jour: {product_code} @ {location.name} : {old_qty} → {quantity}")
+                else:
+                    # Créer un nouveau quant
+                    quant = self.env['stock.quant'].create({
+                        'product_id': product.id,
+                        'location_id': location.id,
+                        'company_id': self.company_id.id,
+                        'inventory_quantity': quantity,
+                        'inventory_quantity_set': True,
+                    })
+                    quant.action_apply_inventory()
+                    
+                    if i < 3:
+                        _logger.info(f"✅ Quant créé: {product_code} @ {location.name} : {quantity}")
+                
+                created_count += 1
+                
             except Exception as e:
                 errors.append(f"Ligne {i+2}: {str(e)}")
                 _logger.error(f"❌ Erreur ligne {i+2}: {str(e)}")
         
-        _logger.info(f"✅ Import terminé: {created_count} lignes créées")
+        _logger.info(f"✅ Import terminé: {created_count} stock(s) créé(s)")
         
-        # Mettre la progression à 100%
+        # Progression à 100%
         self.write({
             'progress': 100.0,
-            'progress_message': f'Import terminé : {created_count} lignes créées'
+            'progress_message': f'Import terminé : {created_count} stock(s) créé(s)'
         })
         self.env.cr.commit()
         
-        # Message récapitulatif
-        message = f"✅ {created_count} ligne(s) créée(s)"
+        # Message récapitulatif dans les logs
+        message = f"✅ {created_count} stock(s) créé(s)"
         if created_warehouses:
             message += f"\n🏭 {len(created_warehouses)} entrepôt(s): {', '.join(list(created_warehouses)[:5])}"
-            if len(created_warehouses) > 5:
-                message += f" et {len(created_warehouses) - 5} autre(s)"
         if created_categories:
-            message += f"\n📁 {len(created_categories)} catégorie(s) créée(s): {', '.join(list(created_categories)[:5])}"
-            if len(created_categories) > 5:
-                message += f" et {len(created_categories) - 5} autre(s)"
+            message += f"\n📁 {len(created_categories)} catégorie(s): {', '.join(list(created_categories)[:5])}"
         if errors:
-            message += f"\n⚠️ Lignes ignorées : {len(errors)}"
-            # Afficher les 20 premières erreurs
-            if len(errors) <= 20:
-                message += "\n" + "\n".join(errors)
-            else:
-                message += "\n" + "\n".join(errors[:20])
-                message += f"\n... et {len(errors) - 20} autre(s) erreur(s)"
-            
-            # Logger toutes les erreurs
-            _logger.warning(f"⚠️ {len(errors)} lignes ignorées lors de l'import:")
-            for error in errors[:50]:  # Logger les 50 premières
+            message += f"\n⚠️ {len(errors)} ligne(s) ignorée(s)"
+            for error in errors[:20]:
                 _logger.warning(f"  - {error}")
         
-        # Enregistrer le message dans le chatter
-        try:
-            # Utiliser sudo() pour éviter les problèmes de permissions et d'email
-            inventory.sudo().message_post(
-                body=message,
-                message_type='comment',
-                subtype_xmlid='mail.mt_note'
-            )
-        except Exception as msg_error:
-            _logger.warning(f"⚠️ Impossible d'enregistrer le message dans le chatter: {str(msg_error)}")
-            # Message enregistré uniquement dans les logs
+        _logger.info(message)
         
         return created_count
