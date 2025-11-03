@@ -555,14 +555,36 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                 
                 # Gérer l'entrepôt
                 warehouse = self.env['stock.warehouse'].search([
-                    ('name', '=', warehouse_name)
+                    '|',
+                    ('name', '=', warehouse_name),
+                    ('code', '=', warehouse_name[:5].upper())
                 ], limit=1)
                 
                 if not warehouse and self.create_warehouses:
-                    warehouse = self.env['stock.warehouse'].create({
-                        'name': warehouse_name,
-                        'code': warehouse_name[:5].upper(),
-                    })
+                    try:
+                        # Utiliser un savepoint pour éviter d'annuler toute la transaction
+                        savepoint_name = f'warehouse_create_{i}'
+                        self.env.cr.execute(f'SAVEPOINT {savepoint_name}')
+                        
+                        warehouse = self.env['stock.warehouse'].create({
+                            'name': warehouse_name,
+                            'code': warehouse_name[:5].upper(),
+                        })
+                        
+                        self.env.cr.execute(f'RELEASE SAVEPOINT {savepoint_name}')
+                        _logger.info(f"✅ Entrepôt créé: {warehouse_name} (code: {warehouse.code})")
+                        
+                    except Exception as wh_error:
+                        # Rollback au savepoint pour continuer
+                        self.env.cr.execute(f'ROLLBACK TO SAVEPOINT {savepoint_name}')
+                        _logger.warning(f"⚠️ Erreur création entrepôt {warehouse_name}: {wh_error}")
+                        
+                        # Retry recherche (peut exister avec un code différent)
+                        warehouse = self.env['stock.warehouse'].search([
+                            '|',
+                            ('name', '=', warehouse_name),
+                            ('code', 'ilike', warehouse_name[:5])
+                        ], limit=1)
                 
                 if not warehouse:
                     errors.append(f"Ligne {i+2}: Entrepôt '{warehouse_name}' non trouvé")
