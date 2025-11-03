@@ -609,12 +609,31 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                     if rack_name and str(rack_name).strip():
                         location = self._get_or_create_child_location(location, rack_name)
                 
-                # Créer la ligne d'inventaire
+                # Récupérer la quantité théorique depuis les quants
+                StockQuant = self.env['stock.quant']
+                quant = StockQuant.search([
+                    ('product_id', '=', product.id),
+                    ('location_id', '=', location.id),
+                    ('company_id', '=', self.company_id.id),
+                ], limit=1)
+                
+                theoretical_qty = 0.0
+                if quant:
+                    theoretical_qty = quant.quantity - quant.reserved_quantity
+                
+                # Log pour debug
+                _logger.info(
+                    f"Import ligne {i+2}: Produit={code}, "
+                    f"Qté théo={theoretical_qty}, Qté réelle={quantity}, Prix={price}"
+                )
+                
+                # Créer la ligne d'inventaire avec quantité théorique ET prix unitaire
                 self.env['stockex.stock.inventory.line'].create({
                     'inventory_id': inventory.id,
                     'product_id': product.id,
                     'location_id': location.id,
                     'product_qty': quantity,
+                    'theoretical_qty': theoretical_qty,
                     'standard_price': price,
                 })
                 created_count += 1
