@@ -553,7 +553,7 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                     })
                     _logger.info(f"✅ Produit {code}: Converti en type Biens/Goods (consu) avec suivi d'inventaire activé")
                 
-                # Gérer l'entrepôt
+                # Gérer l'entrepôt (colonne MAGASIN)
                 warehouse = self.env['stock.warehouse'].search([
                     '|',
                     ('name', '=', warehouse_name),
@@ -572,7 +572,10 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                         })
                         
                         self.env.cr.execute(f'RELEASE SAVEPOINT {savepoint_name}')
-                        _logger.info(f"✅ Entrepôt créé: {warehouse_name} (code: {warehouse.code})")
+                        _logger.info(
+                            f"✅ Entrepôt créé: {warehouse_name} "
+                            f"(code: {warehouse.code}, stock: {warehouse.lot_stock_id.complete_name})"
+                        )
                         
                     except Exception as wh_error:
                         # Rollback au savepoint pour continuer
@@ -590,24 +593,36 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                     errors.append(f"Ligne {i+2}: Entrepôt '{warehouse_name}' non trouvé")
                     continue
                 
-                # Point de départ : emplacement stock de l'entrepôt
-                location = warehouse.lot_stock_id
+                # ✅ POINT CLÉ: Utiliser l'emplacement stock de l'entrepôt comme parent
+                parent_location = warehouse.lot_stock_id
                 
-                # Gérer la hiérarchie d'emplacements enfants si présente
-                if 'sub_location' in mapping:
-                    sub_location_name = line.get(mapping['sub_location'])
-                    if sub_location_name and str(sub_location_name).strip():
-                        location = self._get_or_create_child_location(location, sub_location_name)
+                # Gérer l'emplacement enfant (colonne EMPLACEMENT du fichier Kobo)
+                # Si un emplacement est spécifié, le créer sous l'entrepôt
+                location = parent_location
                 
-                if 'aisle' in mapping:
-                    aisle_name = line.get(mapping['aisle'])
-                    if aisle_name and str(aisle_name).strip():
-                        location = self._get_or_create_child_location(location, aisle_name)
+                # Chercher l'emplacement dans les différentes colonnes possibles
+                location_name = None
+                for loc_key in ['sub_location', 'aisle', 'rack']:
+                    if loc_key in mapping:
+                        loc_val = line.get(mapping[loc_key])
+                        if loc_val and str(loc_val).strip():
+                            location_name = str(loc_val).strip()
+                            break
                 
-                if 'rack' in mapping:
-                    rack_name = line.get(mapping['rack'])
-                    if rack_name and str(rack_name).strip():
-                        location = self._get_or_create_child_location(location, rack_name)
+                # Si un emplacement est trouvé, créer/trouver sous l'entrepôt
+                if location_name:
+                    location = self._get_or_create_child_location(
+                        parent_location, 
+                        location_name
+                    )
+                    _logger.info(
+                        f"📏 Ligne {i+2}: {warehouse_name}/{location_name} "
+                        f"(ID: {location.id}, Parent: {parent_location.complete_name})"
+                    )
+                else:
+                    _logger.info(
+                        f"📏 Ligne {i+2}: {warehouse_name}/Stock (pas d'emplacement spécifique)"
+                    )
                 
                 # Récupérer la quantité théorique depuis les quants
                 StockQuant = self.env['stock.quant']
