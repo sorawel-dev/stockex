@@ -1087,7 +1087,10 @@ class StockInventoryLine(models.Model):
     
     @api.depends('product_id', 'location_id')
     def _compute_theoretical_qty(self):
-        """Calcule la quantité théorique depuis le stock Odoo."""
+        """Calcule la quantité théorique depuis le stock Odoo.
+        
+        Cherche dans l'emplacement exact ET ses enfants pour plus de flexibilité.
+        """
         # Préparer l'ensemble des lignes pertinentes (avec produit et emplacement)
         lines = self.filtered(lambda l: l.product_id and l.location_id)
 
@@ -1099,7 +1102,16 @@ class StockInventoryLine(models.Model):
             return
 
         product_ids = list(set(lines.mapped('product_id').ids))
-        location_ids = list(set(lines.mapped('location_id').ids))
+        
+        # Récupérer tous les emplacements + leurs enfants
+        location_ids = set()
+        for loc in lines.mapped('location_id'):
+            # Ajouter l'emplacement lui-même
+            location_ids.add(loc.id)
+            # Ajouter tous ses enfants (child_ids est récursif dans Odoo)
+            location_ids.update(loc.child_ids.ids)
+        
+        location_ids = list(location_ids)
         
         # Récupérer les company_ids des lignes
         company_ids = list(set(lines.mapped('inventory_id.company_id').ids))
@@ -1108,16 +1120,16 @@ class StockInventoryLine(models.Model):
 
         _logger.info(
             f"🔍 Calcul theoretical_qty pour {len(lines)} lignes, "
-            f"{len(product_ids)} produits, {len(location_ids)} emplacements, "
+            f"{len(product_ids)} produits, {len(location_ids)} emplacements (incluant enfants), "
             f"companies: {company_ids}"
         )
 
-        # Agréger en une seule requête SQL AVEC FILTRE COMPANY
+        # Agréger en une seule requête SQL AVEC FILTRE COMPANY ET EMPLACEMENTS ENFANTS
         groups = self.env['stock.quant'].read_group(
             domain=[
                 ('product_id', 'in', product_ids),
-                ('location_id', 'in', location_ids),
-                ('company_id', 'in', company_ids),  # ✅ Ajout du filtre company
+                ('location_id', 'in', location_ids),  # ✅ Inclut les enfants
+                ('company_id', 'in', company_ids),
             ],
             fields=['quantity:sum', 'reserved_quantity:sum'],
             groupby=['product_id', 'location_id'],
@@ -1125,17 +1137,28 @@ class StockInventoryLine(models.Model):
 
         _logger.info(f"📊 {len(groups)} groupes de stock.quant trouvés")
 
-        # Construire un mapping (product_id, location_id) -> quantity - reserved
-        qty_map = {}
+        # Construire un mapping (product_id, location_id) -> quantity
+        # Inclure les quantités des emplacements enfants
+        qty_map = {}  # (product_id, location_id) -> qty
+        
         for g in groups:
-            # Vérifier que les clés existent pour éviter KeyError
             if 'product_id' in g and 'location_id' in g:
                 prod_id = g['product_id'][0] if g['product_id'] else None
                 loc_id = g['location_id'][0] if g['location_id'] else None
                 if prod_id and loc_id:
                     qty = g.get('quantity_sum', 0.0) or 0.0
                     reserved = g.get('reserved_quantity_sum', 0.0) or 0.0
-                    qty_map[(prod_id, loc_id)] = qty - reserved
+                    available = qty - reserved
+                    
+                    # Ajouter à toutes les lignes dont le location_id correspond
+                    # (soit exact, soit parent de loc_id)
+                    for line in lines:
+                        if line.product_id.id == prod_id:
+                            # Vérifier si loc_id est l'emplacement de la ligne ou un enfant
+                            if (loc_id == line.location_id.id or 
+                                loc_id in line.location_id.child_ids.ids):
+                                key = (line.product_id.id, line.location_id.id)
+                                qty_map[key] = qty_map.get(key, 0.0) + available
 
         # Appliquer les quantités
         updated_count = 0
@@ -1147,6 +1170,11 @@ class StockInventoryLine(models.Model):
         
         if updated_count > 0:
             _logger.info(f"✅ {updated_count} lignes avec quantité théorique > 0")
+        else:
+            _logger.warning(
+                f"⚠️ Aucune ligne avec stock trouvée ! "
+                f"Vérifiez que les emplacements correspondent."
+            )
 
     def _inverse_theoretical_qty(self):
         """Méthode inverse pour permettre de forcer la valeur theoretical_qty (pour stock initial)."""
