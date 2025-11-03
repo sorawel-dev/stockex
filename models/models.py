@@ -1100,14 +1100,24 @@ class StockInventoryLine(models.Model):
 
         product_ids = list(set(lines.mapped('product_id').ids))
         location_ids = list(set(lines.mapped('location_id').ids))
+        
+        # Récupérer les company_ids des lignes
+        company_ids = list(set(lines.mapped('inventory_id.company_id').ids))
+        if not company_ids:
+            company_ids = [self.env.company.id]
 
-        _logger.info(f"🔍 Calcul theoretical_qty pour {len(lines)} lignes, {len(product_ids)} produits, {len(location_ids)} emplacements")
+        _logger.info(
+            f"🔍 Calcul theoretical_qty pour {len(lines)} lignes, "
+            f"{len(product_ids)} produits, {len(location_ids)} emplacements, "
+            f"companies: {company_ids}"
+        )
 
-        # Agréger en une seule requête SQL
+        # Agréger en une seule requête SQL AVEC FILTRE COMPANY
         groups = self.env['stock.quant'].read_group(
             domain=[
                 ('product_id', 'in', product_ids),
                 ('location_id', 'in', location_ids),
+                ('company_id', 'in', company_ids),  # ✅ Ajout du filtre company
             ],
             fields=['quantity:sum', 'reserved_quantity:sum'],
             groupby=['product_id', 'location_id'],
