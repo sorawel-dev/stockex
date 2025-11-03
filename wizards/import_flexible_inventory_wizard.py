@@ -621,6 +621,10 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                 if quant:
                     theoretical_qty = quant.quantity - quant.reserved_quantity
                 
+                # Récupérer le prix du produit si pas fourni dans Excel
+                if price <= 0:
+                    price = product.standard_price
+                
                 # Log pour debug
                 _logger.info(
                     f"Import ligne {i+2}: Produit={code}, "
