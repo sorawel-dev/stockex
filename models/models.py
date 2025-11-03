@@ -1173,6 +1173,31 @@ class StockInventoryLine(models.Model):
                     }
                 }
     
+    @api.onchange('product_id', 'location_id')
+    def _onchange_product_location(self):
+        """Remplit automatiquement la quantité théorique et le prix unitaire."""
+        if self.product_id:
+            # Récupérer le prix unitaire du produit
+            self.standard_price = self.product_id.standard_price
+            
+            # Récupérer la quantité théorique si l'emplacement est défini
+            if self.location_id:
+                quant = self.env['stock.quant'].search([
+                    ('product_id', '=', self.product_id.id),
+                    ('location_id', '=', self.location_id.id),
+                    ('company_id', '=', self.inventory_id.company_id.id if self.inventory_id else self.env.company.id),
+                ], limit=1)
+                
+                if quant:
+                    theoretical_qty = quant.quantity - quant.reserved_quantity
+                    self.theoretical_qty = theoretical_qty
+                    _logger.info(
+                        f"✅ Auto-rempli: {self.product_id.default_code} @ {self.location_id.name}: "
+                        f"Qté théo={theoretical_qty}, Prix={self.standard_price}"
+                    )
+                else:
+                    self.theoretical_qty = 0.0
+    
     @api.constrains('product_id', 'inventory_id')
     def _check_product_uniqueness(self):
         """Vérifie qu'un produit n'apparaît qu'une seule fois par inventaire."""
