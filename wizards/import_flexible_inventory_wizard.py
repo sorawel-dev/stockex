@@ -614,7 +614,7 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                 quant = StockQuant.search([
                     ('product_id', '=', product.id),
                     ('location_id', '=', location.id),
-                    ('company_id', '=', self.company_id.id),
+                    ('company_id', '=', inventory.company_id.id),
                 ], limit=1)
                 
                 theoretical_qty = 0.0
