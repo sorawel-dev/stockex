@@ -73,7 +73,15 @@ class StockInventoryAccounting(models.Model):
             total_credit = 0
             
             for line in lines:
-                value_diff = line.difference * line.standard_price
+                # Utiliser le prix capturé dans la ligne d'inventaire
+                # ou la méthode de valorisation du produit
+                if line.standard_price and line.standard_price > 0:
+                    unit_price = line.standard_price
+                else:
+                    # Utiliser la méthode de valorisation via l'inventaire
+                    unit_price = line.inventory_id._get_product_valuation_price(line.product_id)
+                
+                value_diff = line.difference * unit_price
                 
                 if value_diff > 0:
                     # Surplus : augmentation du stock

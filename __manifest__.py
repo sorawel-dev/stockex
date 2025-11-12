@@ -53,13 +53,13 @@ Ce module permet de gérer les inventaires de stock avec :
         # 'data/product_categories_config.xml',  # Désactivé : auto-configuration gère les catégories
         'data/auto_configure_categories.xml',
         'data/cron_jobs.xml',
+        'data/kobo_config_data.xml',  # Configuration Kobo Collect par défaut
         'views/res_config_settings_views.xml',
         'views/stock_warehouse_views.xml',
         'views/stock_location_views.xml',
         'views/product_category_config_views.xml',
         'views/product_category_views.xml',
         'views/kobo_config_views.xml',
-        'views/inventory_dashboard_views.xml',
         # Wizards (DOIVENT être chargés EN PREMIER - définissent les actions)
         'wizards/import_method_wizard_views.xml',  # Définit action_import_method_wizard
         'wizards/import_inventory_wizard_views.xml',  # Définit action_import_inventory_wizard
@@ -76,9 +76,8 @@ Ce module permet de gérer les inventaires de stock avec :
         'wizards/initial_stock_wizard_views.xml',  # Hérite de stock_inventory_views
         # Actions dashboard et reports (utilisent les actions wizards)
         'views/dashboard_home_views.xml',  # Utilise action_import_method_wizard
-        'views/dashboard_home_form_view.xml',
         'views/stock_reports_views.xml',
-        'views/analytics_dashboard_views.xml',  # Définit action_inventory_analysis
+        'views/depreciation_report_views.xml',
         'reports/inventory_report.xml',
         # Menus (utilisent toutes les actions - DOIVENT être EN DERNIER)
         'views/menus.xml',
@@ -89,9 +88,7 @@ Ce module permet de gérer les inventaires de stock avec :
         'web.assets_backend': [
             'stockex/static/src/css/dashboard.css',
             'stockex/static/src/css/dashboard_home.css',
-            'stockex/static/src/css/analytics_dashboard.css',
             'stockex/static/src/css/cleanup_wizard.css',
-            'stockex/static/src/js/analytics_dashboard.js',
         ],
         'web.assets_frontend': [
             'stockex/static/src/css/mobile.css',

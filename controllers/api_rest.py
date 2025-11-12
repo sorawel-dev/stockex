@@ -307,14 +307,21 @@ class StockexAPIController(http.Controller):
             - period: Période (today, week, month, year)
         """
         try:
-            dashboard_model = request.env['stockex.inventory.dashboard']
+            summary_model = request.env['stockex.inventory.summary']
             
-            # Récupération KPIs depuis le dashboard existant
+            # Récupérer l'enregistrement par défaut
+            summary = summary_model.search([], limit=1)
+            if not summary:
+                summary = summary_model.create({})
+            
+            # Récupération KPIs depuis le summary
             kpis = {
-                'total_inventories': dashboard_model.get_inventory_count(),
-                'pending_validations': dashboard_model.get_pending_validation_count(),
-                'average_accuracy': dashboard_model.get_average_accuracy(),
-                'total_variance_value': dashboard_model.get_total_variance_value(),
+                'total_inventories': summary.total_inventories,
+                'total_inventories_done': summary.total_inventories_done,
+                'total_products': summary.total_products_all,
+                'total_quantity': summary.total_quantity_all,
+                'total_value': summary.total_value_all,
+                'current_stock_value': summary.current_stock_value,
             }
             
             return self._json_response(kpis)

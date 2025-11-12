@@ -16,6 +16,7 @@
                         <field name="date"/>
                         <field name="filename" invisible="1"/>
                         <field name="file" filename="filename"/>
+                        <field name="manual_warehouse_id" options="{'no_create': True}"/>
                     </group>
                     <group>
                         <field name="create_products"/>

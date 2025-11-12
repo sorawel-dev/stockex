@@ -242,6 +242,13 @@ class StockInventory(models.Model):
         index=True,
         tracking=True
     )
+    warehouse_id = fields.Many2one(
+        comodel_name='stock.warehouse',
+        string='Entrepôt',
+        index=True,
+        tracking=True,
+        help='Entrepôt principal de cet inventaire'
+    )
     company_id = fields.Many2one(
         comodel_name='res.company',
         string='Société',
@@ -297,6 +304,29 @@ class StockInventory(models.Model):
         store=True
     )
     
+    # Totaux inventaire
+    total_quantity_real = fields.Float(string='Quantité réelle totale', compute='_compute_totals', digits='Product Unit of Measure')
+    total_quantity_theoretical = fields.Float(string='Quantité théorique totale', compute='_compute_totals', digits='Product Unit of Measure')
+    total_quantity_difference = fields.Float(string='Écart de quantité total', compute='_compute_totals', digits='Product Unit of Measure')
+    total_value_real = fields.Float(string='Valeur totale réelle', compute='_compute_totals', digits='Product Price')
+    total_value_theoretical = fields.Float(string='Valeur totale théorique', compute='_compute_totals', digits='Product Price')
+    total_value_difference = fields.Float(
+        string='Valeur totale des écarts',
+        compute='_compute_value_difference',
+        digits='Product Price',
+        help='Différence entre la valeur inventoriée et la valeur réelle du stock Odoo'
+    )
+    
+    # Valeur réelle du stock Odoo (tous produits de l'emplacement/entrepôt)
+    odoo_stock_value = fields.Float(
+        string='Valeur Stock Odoo',
+        compute='_compute_odoo_stock_value',
+        digits='Product Price',
+        help='Valeur totale du stock dans Odoo pour l\'emplacement/entrepôt de cet inventaire'
+    )
+    
+    company_currency_id = fields.Many2one(comodel_name='res.currency', string='Devise', related='company_id.currency_id', store=False)
+    
     _sql_constraints = [
         ('name_company_uniq', 'unique(name, company_id)', 
          'La référence doit être unique par société !'),
@@ -308,6 +338,241 @@ class StockInventory(models.Model):
         for inventory in self:
             inventory.account_move_count = len(inventory.account_move_ids)
     
+    def _get_product_valuation_price(self, product):
+        """Retourne le prix de valorisation d'un produit selon la règle Stockex.
+        
+        Args:
+            product: recordset product.product
+            
+        Returns:
+            float: Prix de valorisation unitaire (avec décote éventuelle)
+            
+        Règles Stockex:
+        - Règle 1 (standard): Utilise product.standard_price
+        - Règle 2 (economic): Utilise stock.valuation.layer (coût économique réel)
+        
+        Décote selon rotation (optionnel):
+        - Si activée, applique un coefficient de décote selon la rotation du produit
+        - Stock actif (< 12 mois) : 0% de décote
+        - Rotation lente (12-36 mois) : 40% de décote
+        - Stock mort (> 36 mois) : 100% de décote
+        
+        Configuration: Inventaire > Configuration > Paramètres > Règle de valorisation
+        """
+        self.ensure_one()
+        
+        if not product:
+            return 0.0
+        
+        # Récupérer la règle de valorisation configurée dans Stockex
+        ICP = self.env['ir.config_parameter'].sudo()
+        rule = ICP.get_param('stockex.valuation_rule', 'standard')
+        
+        # Étape 1: Calculer le prix de base selon la règle
+        base_price = 0.0
+        
+        # Règle 2: Coût économique réel (stock.valuation.layer)
+        if rule == 'economic':
+            ValuationLayer = self.env['stock.valuation.layer']
+            
+            # Rechercher la dernière couche de valorisation du produit
+            layer = ValuationLayer.search([
+                ('product_id', '=', product.id),
+                ('company_id', '=', self.company_id.id),
+            ], limit=1, order='create_date desc')
+            
+            if layer and (layer.unit_cost or layer.value):
+                # Utiliser unit_cost si disponible, sinon calculer depuis value/quantity
+                unit = layer.unit_cost or (layer.value / layer.quantity if layer.quantity else 0.0)
+                if unit and unit > 0:
+                    base_price = unit
+        
+        # Règle 1 (fallback): Coût standard
+        if base_price == 0.0:
+            base_price = product.standard_price or 0.0
+        
+        # Étape 2: Appliquer la décote selon rotation (si activée)
+        apply_depreciation = ICP.get_param('stockex.apply_depreciation', 'False') == 'True'
+        
+        if apply_depreciation and base_price > 0:
+            depreciation_coef = self._get_depreciation_coefficient(product)
+            return base_price * depreciation_coef
+        
+        return base_price
+    
+    def _get_depreciation_coefficient(self, product):
+        """Retourne le coefficient de décote selon la rotation du produit.
+        
+        Args:
+            product: recordset product.product
+            
+        Returns:
+            float: Coefficient de décote (1.0 = pas de décote, 0.6 = 40%, 0.0 = 100%)
+            
+        Catégories:
+        - Stock actif: Mouvement dans les N derniers jours → Coefficient 1.0 (0% décote)
+        - Rotation lente: Mouvement entre N et M jours → Coefficient 0.6 (40% décote)
+        - Stock mort: Aucun mouvement depuis plus de M jours → Coefficient 0.0 (100% décote)
+        """
+        self.ensure_one()
+        
+        if not product:
+            return 1.0
+        
+        # Récupérer les paramètres de décote
+        ICP = self.env['ir.config_parameter'].sudo()
+        active_days = int(ICP.get_param('stockex.depreciation_active_days', '365'))
+        slow_days = int(ICP.get_param('stockex.depreciation_slow_days', '1095'))
+        slow_rate = float(ICP.get_param('stockex.depreciation_slow_rate', '40.0'))
+        dead_rate = float(ICP.get_param('stockex.depreciation_dead_rate', '100.0'))
+        
+        # Chercher le dernier mouvement du produit (sortie ou entrée)
+        StockMove = self.env['stock.move']
+        last_move = StockMove.search([
+            ('product_id', '=', product.id),
+            ('state', '=', 'done'),
+        ], limit=1, order='date desc')
+        
+        if not last_move:
+            # Aucun mouvement = stock mort (décote maximale)
+            return 1.0 - (dead_rate / 100.0)
+        
+        # Calculer le nombre de jours depuis le dernier mouvement
+        from datetime import datetime
+        
+        # Convertir last_move.date en date si c'est un datetime
+        if isinstance(last_move.date, datetime):
+            last_move_date = last_move.date.date()
+        else:
+            last_move_date = last_move.date
+        
+        now = datetime.now().date()
+        days_since_last_move = (now - last_move_date).days
+        
+        # Appliquer les règles de décote
+        if days_since_last_move <= active_days:
+            # Stock actif: pas de décote
+            return 1.0
+        
+        elif days_since_last_move <= slow_days:
+            # Rotation lente: décote partielle
+            return 1.0 - (slow_rate / 100.0)
+        
+        else:
+            # Stock mort: décote maximale
+            return 1.0 - (dead_rate / 100.0)
+    
+    @api.depends('line_ids.product_qty','line_ids.theoretical_qty','line_ids.difference','line_ids.standard_price','line_ids.product_id.standard_price')
+    def _compute_totals(self):
+        """Calcule les totaux (quantités et valeur) de l'inventaire.
+        
+        Pour l'écart de quantité, on utilise la somme des écarts des lignes
+        (qui prend en compte la règle : si stock initial et qte_theo=0 alors écart=0)
+        
+        IMPORTANT: total_value_difference = total_value_real - odoo_stock_value
+        (c'est-à-dire la différence entre la valeur inventoriée et la valeur réelle du stock Odoo)
+        
+        ⚠️ VALORISATION: Utilise line.standard_price si défini (prix capturé lors de l'inventaire),
+        sinon utilise la méthode de valorisation du produit (FIFO/AVCO/Standard)
+        """
+        for inv in self:
+            qty_real = sum(inv.line_ids.mapped('product_qty'))
+            qty_theo = sum(inv.line_ids.mapped('theoretical_qty'))
+            # Utiliser la somme des écarts calculés (qui respecte la règle stock initial)
+            qty_diff = sum(inv.line_ids.mapped('difference'))
+            total_val_real = 0.0
+            total_val_theo = 0.0
+            
+            for line in inv.line_ids:
+                # Utiliser line.standard_price si défini (prix capturé lors de l'inventaire)
+                # Sinon, utiliser la méthode de valorisation du produit
+                if line.standard_price and line.standard_price > 0:
+                    price = line.standard_price
+                else:
+                    price = inv._get_product_valuation_price(line.product_id)
+                
+                total_val_real += (line.product_qty or 0.0) * price
+                total_val_theo += (line.theoretical_qty or 0.0) * price
+            
+            inv.total_quantity_real = qty_real
+            inv.total_quantity_theoretical = qty_theo
+            inv.total_quantity_difference = qty_diff
+            inv.total_value_real = total_val_real
+            inv.total_value_theoretical = total_val_theo
+    
+    @api.depends('total_value_real', 'odoo_stock_value')
+    def _compute_value_difference(self):
+        """Calcule l'écart de valeur entre l'inventaire et le stock Odoo.
+        
+        total_value_difference = total_value_real - odoo_stock_value
+        Cela garantit que l'écart reflète la différence avec la valeur totale du stock Odoo.
+        """
+        for inv in self:
+            inv.total_value_difference = inv.total_value_real - inv.odoo_stock_value
+    
+    @api.depends('location_id', 'warehouse_id', 'company_id')
+    def _compute_odoo_stock_value(self):
+        """Calcule la valeur totale réelle du stock dans Odoo.
+        
+        Cette valeur représente la somme de tous les stock.quants
+        dans l'emplacement/entrepôt de l'inventaire.
+        Cela permet de comparer la valeur inventoriée avec la valeur réelle du stock Odoo.
+        
+        IMPORTANT: Utilise la règle de valorisation Stockex configurée:
+        - Règle 1 (standard): product.standard_price
+        - Règle 2 (economic): stock.valuation.layer (coût économique réel)
+        
+        Configuration: Inventaire > Configuration > Paramètres > Règle de valorisation
+        """
+        StockQuant = self.env['stock.quant']
+        
+        for inv in self:
+            odoo_value = 0.0
+            
+            # Déterminer les emplacements à inclure
+            location_ids = []
+            if inv.location_id:
+                # Emplacement spécifique + ses enfants
+                location_ids.append(inv.location_id.id)
+                location_ids.extend(inv.location_id.child_ids.ids)
+            elif inv.warehouse_id:
+                # Tous les emplacements de l'entrepôt (stock internal)
+                stock_location = inv.warehouse_id.lot_stock_id
+                if stock_location:
+                    location_ids.append(stock_location.id)
+                    location_ids.extend(stock_location.child_ids.ids)
+            
+            if not location_ids:
+                inv.odoo_stock_value = 0.0
+                continue
+            
+            # Récupérer tous les quants pour ces emplacements
+            domain = [
+                ('location_id', 'in', location_ids),
+                ('company_id', '=', inv.company_id.id),
+            ]
+            
+            quants = StockQuant.search(domain)
+            
+            # Calculer la valeur totale selon la règle de valorisation Stockex
+            for quant in quants:
+                available_qty = quant.quantity - quant.reserved_quantity
+                
+                if available_qty <= 0:
+                    continue
+                
+                # Utiliser la méthode de valorisation Stockex
+                product_price = inv._get_product_valuation_price(quant.product_id)
+                odoo_value += available_qty * product_price
+            
+            inv.odoo_stock_value = odoo_value
+            
+            _logger.info(
+                f"📊 Inventaire {inv.name}: Valeur Stock Odoo = {odoo_value:.2f} | "
+                f"Valeur Inventoriée = {inv.total_value_real:.2f} | "
+                f"Écart = {inv.total_value_real - odoo_value:.2f}"
+            )
+
     def unlink(self):
         """Empêcher la suppression des inventaires validés."""
         for inventory in self:
@@ -329,6 +594,25 @@ class StockInventory(models.Model):
                 )
         return super(StockInventory, self).unlink()
     
+    def _notify_telegram(self, text):
+        ICP = self.env['ir.config_parameter'].sudo()
+        enabled = ICP.get_param('stockex.notify_by_telegram') or ''
+        if str(enabled).lower() in ('false', '0', '', 'none'):
+            return
+        token = ICP.get_param('stockex.telegram_bot_token') or ''
+        chats = ICP.get_param('stockex.telegram_chat_ids') or ''
+        if not token or not chats:
+            return
+        import requests
+        for chat_id in [c.strip() for c in chats.split(',') if c.strip()]:
+            try:
+                requests.post(
+                    f'https://api.telegram.org/bot{token}/sendMessage',
+                    data={'chat_id': chat_id, 'text': text}
+                )
+            except Exception as e:
+                _logger.error(f"Telegram notification error: {e}")
+
     def action_start(self):
         """Démarre l'inventaire."""
         if not self.line_ids:
@@ -396,6 +680,7 @@ class StockInventory(models.Model):
                     'validation_date': fields.Datetime.now()
                 })
                 self.env.cr.commit()
+                inventory._notify_telegram(f"✅ Inventaire {inventory.name} validé ({total_lines} lignes). Mise à jour en arrière-plan.")
                 
                 # Lancer le traitement dans un thread séparé
                 thread = threading.Thread(
@@ -425,11 +710,13 @@ class StockInventory(models.Model):
                 # Pour petits inventaires (≤ 500 lignes), traitement immédiat
                 inventory._update_odoo_stock()
                 
-                return inventory.write({
+                res = inventory.write({
                     'state': 'done',
                     'validator_id': self.env.user.id,
                     'validation_date': fields.Datetime.now()
                 })
+                inventory._notify_telegram(f"✅ Inventaire {inventory.name} validé ({total_lines} lignes). Stocks mis à jour.")
+                return res
     
     def _update_odoo_stock(self):
         """Met à jour les stocks Odoo avec les quantités de l'inventaire (optimisé avec commits par lots)."""
@@ -791,8 +1078,7 @@ class StockInventory(models.Model):
             'Qté Réelle',
             'Écart',
             'Prix Standard (FCFA)',
-            'Valeur Écart (FCFA)',
-            'UdM'
+            'Valeur Écart (FCFA)'
         ]
         
         for col_num, header in enumerate(headers, 1):
@@ -820,10 +1106,9 @@ class StockInventory(models.Model):
             
             diff_value = line.difference * line.standard_price
             ws.cell(row=row_num, column=9, value=diff_value)
-            ws.cell(row=row_num, column=10, value=line.product_uom_id.name or '')
             
             # Bordures
-            for col in range(1, 11):
+            for col in range(1, 10):
                 ws.cell(row=row_num, column=col).border = border
             
             # Colorer les écarts
@@ -846,11 +1131,11 @@ class StockInventory(models.Model):
         ws.cell(row=row_num, column=7, value=total_real - total_theoretical).font = Font(bold=True)
         ws.cell(row=row_num, column=9, value=total_difference_value).font = Font(bold=True)
         
-        for col in range(1, 11):
+        for col in range(1, 10):
             ws.cell(row=row_num, column=col).fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
         
         # Ajuster largeur colonnes
-        column_widths = [30, 15, 20, 35, 15, 15, 12, 15, 15, 10]
+        column_widths = [30, 15, 20, 35, 15, 15, 12, 15, 15]
         for i, width in enumerate(column_widths, 1):
             ws.column_dimensions[get_column_letter(i)].width = width
         
@@ -1181,11 +1466,20 @@ class StockInventoryLine(models.Model):
         # Ne rien faire - la valeur est déjà écrite par le create/write
         pass
     
-    @api.depends('theoretical_qty', 'product_qty')
+    @api.depends('theoretical_qty', 'product_qty', 'inventory_id.is_initial_stock')
     def _compute_difference(self):
-        """Calcule la différence entre la quantité réelle et théorique."""
+        """Calcule la différence entre la quantité réelle et théorique.
+        
+        Pour les inventaires de stock initial :
+        - Si qte_theorique = 0, alors écart = 0 (pas d'écart sur stock initial vide)
+        - Sinon, écart normal = qte_reelle - qte_theorique
+        """
         for line in self:
-            line.difference = line.product_qty - line.theoretical_qty
+            # Pour stock initial avec qte théorique = 0 : écart = 0
+            if line.inventory_id.is_initial_stock and line.theoretical_qty == 0:
+                line.difference = 0.0
+            else:
+                line.difference = line.product_qty - line.theoretical_qty
     
     @api.depends('difference')
     def _compute_difference_display(self):

@@ -10,7 +10,7 @@
 }
 
 /* Header du dashboard */
-.o_stockex_dashboard_main .o_kanban_card_header {
+.o_stockex_dashboard_main .o_kanban_card-header, .o_stockex_dashboard_main .o_kanban_card_header {
     margin-bottom: 20px !important;
     padding: 15px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -18,14 +18,14 @@
     color: white;
 }
 
-.o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+.o_stockex_dashboard_main .o_kanban_card-header_title .o_primary h3, .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
     font-size: clamp(20px, 4vw, 28px);
     margin: 0;
     font-weight: 700;
     color: white;
 }
 
-.o_stockex_dashboard_main .o_kanban_card_header_title .o_secondary {
+.o_stockex_dashboard_main .o_kanban_card-header_title .o_secondary, .o_stockex_dashboard_main .o_kanban_card_header_title .o_secondary {
     font-size: clamp(12px, 2.5vw, 14px);
     margin-top: 8px;
     opacity: 0.95;
@@ -43,6 +43,30 @@
 .o_stockex_dashboard_main .card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Card mise en avant pour valeur totale */
+.o_stockex_dashboard_main .card.shadow-lg {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
+    animation: pulseGlow 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 15px 35px rgba(17, 153, 142, 0.3);
+    }
+    50% {
+        box-shadow: 0 20px 45px rgba(56, 239, 125, 0.4);
+    }
+}
+
+.o_stockex_dashboard_main .display-3 {
+    font-size: clamp(2rem, 5vw, 3.5rem) !important;
+    line-height: 1.2;
+}
+
+.o_stockex_dashboard_main .display-1 {
+    font-size: clamp(3rem, 8vw, 6rem) !important;
 }
 
 /* Titres des cards */
@@ -125,16 +149,16 @@
     }
     
     /* Header compact */
-    .o_stockex_dashboard_main .o_kanban_card_header {
+    .o_stockex_dashboard_main .o_kanban_card-header, .o_stockex_dashboard_main .o_kanban_card_header {
         padding: 12px;
         margin-bottom: 15px !important;
     }
     
-    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+    .o_stockex_dashboard_main .o_kanban_card-header_title .o_primary h3, .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
         font-size: 18px;
     }
     
-    .o_stockex_dashboard_main .o_kanban_card_header_title .o_secondary {
+    .o_stockex_dashboard_main .o_kanban_card-header_title .o_secondary, .o_stockex_dashboard_main .o_kanban_card_header_title .o_secondary {
         font-size: 11px;
     }
     
@@ -195,7 +219,7 @@
         padding: 12px;
     }
     
-    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+    .o_stockex_dashboard_main .o_kanban_card-header_title .o_primary h3, .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
         font-size: 22px;
     }
     
@@ -221,7 +245,7 @@
         padding: 15px;
     }
     
-    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+    .o_stockex_dashboard_main .o_kanban_card-header_title .o_primary h3, .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
         font-size: 24px;
     }
     
@@ -248,7 +272,7 @@
         padding: 18px;
     }
     
-    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+    .o_stockex_dashboard_main .o_kanban_card-header_title .o_primary h3, .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
         font-size: 26px;
     }
     
@@ -271,7 +295,7 @@
         margin: 0 auto;
     }
     
-    .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
+    .o_stockex_dashboard_main .o_kanban_card-header_title .o_primary h3, .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {
         font-size: 28px;
     }
     

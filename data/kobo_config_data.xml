@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Configuration Kobo Collect par défaut -->
+        <record id="kobo_config_douala_default" model="stockex.kobo.config">
+            <field name="name">Configuration Kobo - Magasin Douala</field>
+            <field name="active" eval="True"/>
+            
+            <!-- API Configuration -->
+            <field name="kobo_url">https://kf.kesafrica.com</field>
+            <field name="api_token">KOBO_API_TOKEN_TO_CONFIGURE</field>
+            <field name="form_id">aQJVWdSP4xyzhru6Ztfo4Q</field>
+            <field name="form_name">001_Bassa_Distribution_Central_Warehouse</field>
+            
+            <!-- Mapping Configuration - Structure réelle de Kobo -->
+            <field name="mapping_product_code">begin_group_TSW6h0mGE/material_description</field>
+            <field name="mapping_product_name">begin_group_TSW6h0mGE/nom_materiel</field>
+            <field name="mapping_quantity">begin_group_TSW6h0mGE/quantity</field>
+            <field name="mapping_location">begin_group_TSW6h0mGE/Sous_magasin</field>
+            <field name="mapping_warehouse">begin_group_TSW6h0mGE/Sous_magasin</field>
+            <field name="mapping_brand">begin_group_TSW6h0mGE/marque</field>
+            <field name="mapping_product_type">begin_group_TSW6h0mGE/type_article</field>
+            <field name="mapping_gps_lat">_geolocation[0]</field>
+            <field name="mapping_gps_lon">_geolocation[1]</field>
+            <field name="mapping_photo_url">begin_group_TSW6h0mGE/photo</field>
+            <field name="mapping_label_url">begin_group_HZpqEzA1G/Ajouter_une_photo_de_te_d_inventaire_ENEO</field>
+            <field name="mapping_submission_id">_id</field>
+            <field name="mapping_submission_time">_submission_time</field>
+            
+            <!-- Options -->
+            <field name="auto_import" eval="False"/>
+            <field name="auto_validate" eval="False"/>
+            <field name="create_missing_products" eval="True"/>
+            <field name="create_missing_locations" eval="True"/>
+        </record>
+        
+    </data>
+</odoo>

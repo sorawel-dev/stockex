@@ -67,6 +67,13 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
     ], string='Mode Multi-Entrepôts', default='global', required=True,
        help='Comment gérer les données provenant de plusieurs entrepôts')
     
+    # Entrepôt manuel (si pas de colonne dans le fichier)
+    manual_warehouse_id = fields.Many2one(
+        'stock.warehouse',
+        string='Entrepôt',
+        help='Entrepôt à utiliser si le fichier ne contient pas de colonne entrepôt'
+    )
+    
     # Prévisualisation
     state = fields.Selection([
         ('draft', 'Configuration'),
@@ -472,12 +479,53 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                 unique_name = f"{base_name} - {fields.Datetime.now().strftime('%H:%M:%S')}"
                 break
         
-        # Créer l'inventaire
-        inventory = self.env['stockex.stock.inventory'].create({
+        # Déterminer l'entrepôt principal de l'inventaire
+        inventory_warehouse = None
+        if warehouse_filter:
+            # Si un filtre d'entrepôt est spécifié (mode split)
+            inventory_warehouse = self.env['stock.warehouse'].search([
+                '|',
+                ('name', '=', warehouse_filter),
+                ('code', '=', warehouse_filter[:5].upper())
+            ], limit=1)
+        elif self.manual_warehouse_id:
+            # Si un entrepôt manuel a été sélectionné
+            inventory_warehouse = self.manual_warehouse_id
+            _logger.info(f"📍 Entrepôt manuel sélectionné: {inventory_warehouse.name}")
+        elif 'warehouse' in mapping:
+            # Déterminer l'entrepôt le plus fréquent dans les données
+            warehouse_counts = {}
+            for line in data:
+                wh_name = line.get(mapping.get('warehouse'), 'Stock')
+                warehouse_counts[wh_name] = warehouse_counts.get(wh_name, 0) + 1
+            
+            if warehouse_counts:
+                # Prendre l'entrepôt le plus fréquent
+                main_warehouse_name = max(warehouse_counts, key=warehouse_counts.get)
+                inventory_warehouse = self.env['stock.warehouse'].search([
+                    '|',
+                    ('name', '=', main_warehouse_name),
+                    ('code', '=', main_warehouse_name[:5].upper())
+                ], limit=1)
+        
+        # Si aucun entrepôt trouvé, utiliser l'entrepôt par défaut de l'entreprise
+        if not inventory_warehouse:
+            inventory_warehouse = self.env['stock.warehouse'].search([
+                ('company_id', '=', self.env.company.id)
+            ], limit=1)
+        
+        # Créer l'inventaire avec l'entrepôt
+        inventory_vals = {
             'name': unique_name,
             'date': self.date,
             'state': 'draft',
-        })
+        }
+        
+        if inventory_warehouse:
+            inventory_vals['warehouse_id'] = inventory_warehouse.id
+            _logger.info(f"📦 Inventaire créé avec entrepôt: {inventory_warehouse.name}")
+        
+        inventory = self.env['stockex.stock.inventory'].create(inventory_vals)
         
         created_count = 0
         errors = []
@@ -493,7 +541,14 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                 quantity = float(line.get(mapping.get('quantity'), 0) or 0)
                 price = float(line.get(mapping.get('price'), self.default_price) or self.default_price)
                 category_name = line.get(mapping.get('category'))
-                warehouse_name = line.get(mapping.get('warehouse'), 'Stock')
+                
+                # Déterminer l'entrepôt : priorité au fichier, puis au champ manuel
+                if 'warehouse' in mapping:
+                    warehouse_name = line.get(mapping.get('warehouse'), 'Stock')
+                elif self.manual_warehouse_id:
+                    warehouse_name = self.manual_warehouse_id.name
+                else:
+                    warehouse_name = 'Stock'
                 
                 # Rechercher ou créer le produit
                 product = self.env['product.product'].search([

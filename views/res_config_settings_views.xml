@@ -19,38 +19,68 @@
             <xpath expr="//form" position="inside">
                 <app name="stockex" string="Gestion d'Inventaire" groups="stockex.group_stockex_manager">
                     
-                    <!-- Statistiques -->
-                    <block title="📊 Statistiques" name="stockex_stats">
-                        <setting>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="text-muted">Nombre d'Inventaires</div>
-                                    <div class="h3 mb-0"><field name="stockex_inventory_count" readonly="1"/></div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="text-muted">Dernier Import</div>
-                                    <div class="h5 mb-0"><field name="stockex_last_import_date" readonly="1"/></div>
-                                </div>
-                            </div>
-                        </setting>
-                    </block>
                     
                     <!-- Méthode d'Import -->
                     <block title="🎯 Méthode d'Import par Défaut" name="stockex_import_method">
                         <setting help="Choisissez la méthode utilisée par défaut lors de la création d'un nouvel inventaire">
                             <field name="stockex_default_import_method" widget="radio"/>
                             
-                            <div class="alert alert-info mt-2" role="status">
+                            <div class="alert alert-info mt-2 mb-0 py-2" role="status">
                                 <strong>💡 Astuce :</strong> 
-                                <ul class="mb-0">
-                                    <li><strong>Fichier Excel/CSV</strong> : Import bureau, parfait pour consolidation</li>
-                                    <li><strong>Kobo Collect</strong> : Collecte terrain mobile/tablette</li>
-                                    <li><strong>Demander à Chaque Fois</strong> : Affiche le choix à chaque nouvel inventaire</li>
-                                </ul>
+                                <span class="text-muted">Excel/CSV = Bureau • Kobo = Terrain • Demander = Choix flexible</span>
                             </div>
                         </setting>
                     </block>
                     
+                    <!-- Règle de valorisation -->
+                    <block title="💰 Règle de valorisation" name="stockex_valuation_rule">
+                        <setting help="Choisir la méthode de valorisation">
+                            <field name="stockex_valuation_rule" widget="radio"/>
+                            <div class="alert alert-info mt-2 mb-0 py-2" role="status">
+                                <strong>💡 Explication :</strong> 
+                                <span class="text-muted">Standard = prix fixe • Économique = dernier prix d'achat réel</span>
+                            </div>
+                        </setting>
+                        
+                        <!-- Décote selon rotation -->
+                        <setting string="Décote selon Rotation">
+                            <div class="content-group mt-2">
+                                <field name="stockex_apply_depreciation"/>
+                                <label for="stockex_apply_depreciation"/>
+                                
+                                <div class="alert alert-success mt-2 mb-0 py-2" role="status">
+                                    <strong>💡 Principe :</strong> 
+                                    <span class="text-muted">Stock actif (0%) • Rotation lente (40%) • Stock mort (100%)</span>
+                                </div>
+                            </div>
+                        </setting>
+                        
+                        <!-- Paramètres de décote -->
+                        <setting string="Paramètres de Décote" invisible="not stockex_apply_depreciation">
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <label for="stockex_depreciation_active_days" class="col-lg-5 o_light_label"/>
+                                    <field name="stockex_depreciation_active_days" class="col-lg-3"/>
+                                    <div class="col-lg-4 text-muted"><small>→ Décote 0%</small></div>
+                                </div>
+                                <div class="row mt-1">
+                                    <label for="stockex_depreciation_slow_days" class="col-lg-5 o_light_label"/>
+                                    <field name="stockex_depreciation_slow_days" class="col-lg-3"/>
+                                    <div class="col-lg-4 text-muted"><small>Au-delà = mort</small></div>
+                                </div>
+                                <div class="row mt-1">
+                                    <label for="stockex_depreciation_slow_rate" class="col-lg-5 o_light_label"/>
+                                    <field name="stockex_depreciation_slow_rate" class="col-lg-3"/>
+                                    <div class="col-lg-4 text-muted"><small>0-100%</small></div>
+                                </div>
+                                <div class="row mt-1">
+                                    <label for="stockex_depreciation_dead_rate" class="col-lg-5 o_light_label"/>
+                                    <field name="stockex_depreciation_dead_rate" class="col-lg-3"/>
+                                    <div class="col-lg-4 text-muted"><small>Gén. 100%</small></div>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
                     <!-- Options Excel/CSV -->
                     <block title="📊 Options Import Excel/CSV" name="stockex_excel_options">
                         <setting string="Création Automatique">
@@ -284,9 +314,6 @@
                     <!-- Notifications Telegram -->
                     <block title="📱 Notifications Telegram" name="stockex_telegram_notifications">
                         <setting string="Activer les Notifications Telegram">
-                            <div class="text-muted">
-                                Envoyer automatiquement des messages Telegram après les imports réussis
-                            </div>
                             <div class="content-group mt-2">
                                 <field name="stockex_notify_by_telegram"/>
                                 <label for="stockex_notify_by_telegram"/>
@@ -294,9 +321,6 @@
                         </setting>
                         
                         <setting string="Configuration Bot Telegram" invisible="not stockex_notify_by_telegram">
-                            <div class="text-muted">
-                                Créez un bot via @BotFather sur Telegram pour obtenir le token
-                            </div>
                             <div class="content-group mt-2">
                                 <div class="row">
                                     <label for="stockex_telegram_bot_token" class="col-lg-3 o_light_label"/>
@@ -306,31 +330,20 @@
                                            class="col-lg-9"/>
                                 </div>
                                 
-                                <div class="alert alert-info mt-3" role="status">
-                                    <strong>💡 Comment créer un bot Telegram :</strong>
-                                    <ol class="mb-0 mt-2">
-                                        <li>Ouvrez Telegram et cherchez <strong>@BotFather</strong></li>
-                                        <li>Envoyez la commande <code>/newbot</code></li>
-                                        <li>Suivez les instructions pour nommer votre bot</li>
-                                        <li>Copiez le <strong>Bot Token</strong> fourni</li>
-                                        <li>Pour obtenir votre Chat ID : envoyez un message à votre bot, puis visitez<br/>
-                                            <code>https://api.telegram.org/bot[VOTRE_TOKEN]/getUpdates</code></li>
-                                    </ol>
+                                <div class="alert alert-info mt-2 mb-0 py-2" role="status">
+                                    <strong>💡 Créer un bot :</strong> 
+                                    <span class="text-muted">@BotFather → /newbot → Copiez le token</span>
                                 </div>
                             </div>
                         </setting>
                         
                         <setting string="Destinataires (Chat IDs)" invisible="not stockex_notify_by_telegram">
-                            <div class="text-muted">
-                                IDs des utilisateurs ou groupes Telegram qui recevront les notifications
-                            </div>
                             <div class="content-group mt-2">
                                 <field name="stockex_telegram_chat_ids" 
                                        placeholder="123456789, 987654321"
                                        class="w-100"/>
                                 <small class="text-muted">
-                                    💡 Pour obtenir votre Chat ID : envoyez un message à votre bot et visitez 
-                                    <code>https://api.telegram.org/bot[TOKEN]/getUpdates</code>
+                                    💡 Envoyez un message au bot puis visitez api.telegram.org/bot[TOKEN]/getUpdates
                                 </small>
                             </div>
                         </setting>

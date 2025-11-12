@@ -11,9 +11,9 @@ from . import product_category
 from . import product_category_auto_config
 from . import res_config_settings
 from . import inventory_dashboard
+from . import depreciation_report
 from . import kobo_submission
 from . import cycle_count
 from . import inventory_comparison
 from . import variance_report
 from . import stock_accounting
-from . import analytics_dashboard

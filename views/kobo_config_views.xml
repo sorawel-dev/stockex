@@ -52,7 +52,9 @@
                                     <field name="mapping_product_name"/>
                                     <field name="mapping_category"/>
                                     <field name="mapping_price"/>
-                                    <field name="mapping_gps"/>
+                                    <field name="mapping_gps_lat"/>
+                                    <field name="mapping_gps_lon"/>
+                                    <field name="mapping_gps_alt"/>
                                 </group>
                             </group>
                             
@@ -77,6 +79,77 @@
                                     <field name="create_missing_locations"/>
                                 </group>
                             </group>
+                            
+                            <separator string="⏰ Planification Import Automatique (CRON)"/>
+                            <group>
+                                <group string="Intervalle d'Exécution">
+                                    <label for="cron_interval_number" string="Exécuter toutes les"/>
+                                    <div class="o_row">
+                                        <field name="cron_interval_number" class="oe_inline"/>
+                                        <field name="cron_interval_type" class="oe_inline"/>
+                                    </div>
+                                    <field name="cron_active" widget="boolean_toggle"/>
+                                </group>
+                                <group string="Actions">
+                                    <button name="action_update_cron_interval" 
+                                            string="🔄 Appliquer l'Intervalle" 
+                                            type="object" 
+                                            class="btn-primary"
+                                            help="Met à jour l'intervalle du CRON avec les valeurs ci-dessus"/>
+                                </group>
+                            </group>
+                            
+                            <div class="alert alert-warning" invisible="not auto_import or cron_active">
+                                <strong>⚠️ Attention :</strong> L'import automatique est activé mais le CRON est désactivé.
+                                Activez le CRON ci-dessus pour que les imports automatiques fonctionnent.
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h5>💡 Recommandations d'intervalle :</h5>
+                                <ul>
+                                    <li><strong>30 minutes</strong> : Pour inventaires très actifs (peut surcharger)</li>
+                                    <li><strong>1 heure</strong> : ✅ Bon compromis (par défaut)</li>
+                                    <li><strong>4 heures</strong> : Pour inventaires moins fréquents</li>
+                                    <li><strong>1 jour</strong> : Pour imports ponctuels quotidiens</li>
+                                </ul>
+                                <p class="mb-0">
+                                    <strong>Note :</strong> Les modifications d'intervalle sont appliquées au CRON global.
+                                    Toutes les configurations Kobo actives utiliseront le même intervalle.
+                                </p>
+                            </div>
+                            
+                            <!-- Configuration Telegram -->
+                            <separator string="📱 Notifications Telegram"/>
+                            <group>
+                                <group>
+                                    <field name="telegram_enabled" widget="boolean_toggle"/>
+                                </group>
+                                <group invisible="not telegram_enabled">
+                                    <div class="alert alert-info">
+                                        <p>Les notifications Telegram utilisent les paramètres globaux configurés dans <strong>Paramètres → Configuration Stockex</strong>.</p>
+                                        <p>Assurez-vous que le Token Bot et le Chat ID sont correctement configurés dans les paramètres généraux.</p>
+                                    </div>
+                                </group>
+                            </group>
+                            
+                            <!-- Bouton de synchronisation manuelle -->
+                            <separator string="⚡ Synchronisation Manuelle"/>
+                            <div class="row">
+                                <div class="col-12">
+                                    <button name="action_manual_sync" 
+                                            string="🔄 Synchroniser maintenant" 
+                                            type="object" 
+                                            class="btn-success"
+                                            icon="fa-refresh"
+                                            help="Déclenche une synchronisation immédiate avec KoboToolbox"/>
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            Dernière synchronisation: <field name="last_sync" nolabel="1"/> | 
+                                            Soumissions trouvées: <field name="submissions_count" nolabel="1"/>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
                         </page>
                         
                         <page string="📖 Guide Configuration" name="help">

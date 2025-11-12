@@ -204,7 +204,7 @@ class AnalyticsDashboardRenderer extends Component {
 
 AnalyticsDashboardRenderer.template = "stockex.AnalyticsDashboardRenderer";
 
-registry.category("view_widgets").add("analytics_dashboard_renderer", AnalyticsDashboardRenderer);
+registry.category("view_widgets").add("analytics_dashboard_renderer", { component: AnalyticsDashboardRenderer });
 
 // Script simple pour les vues legacy (non-OWL)
 document.addEventListener('DOMContentLoaded', function() {
@@ -243,7 +243,7 @@ function renderChart(fieldName, canvasId, chartType, horizontal = false) {
     const container = document.getElementById(canvasId);
     
     if (!field || !container || !field.value) {
-        console.log(`Chart ${canvasId} not found or no data`);
+        // Silencieux: pas d'erreur si le graphique n'est pas présent
         return;
     }
     

@@ -9,11 +9,14 @@
                 <field name="product_id" readonly="1"/>
                 <field name="product_categ_id" readonly="1" optional="show"/>
                 <field name="location_id" readonly="1"/>
-                <field name="theoretical_qty" readonly="1"/>
-                <field name="product_qty"/>
+                <field name="theoretical_qty" readonly="1" string="Qté Théorique"/>
+                <field name="product_qty" string="Qté Réelle"/>
                 <field name="standard_price" readonly="1" optional="show"/>
                 <field name="difference" column_invisible="1"/>
                 <field name="difference_display" readonly="1"/>
+                <field name="image_1" widget="image" class="oe_avatar" optional="show"/>
+                <field name="image_2" widget="image" class="oe_avatar" optional="show"/>
+                <field name="note" optional="show"/>
             </list>
         </field>
     </record>
@@ -44,15 +47,20 @@
         <field name="name">stockex.stock.inventory.list</field>
         <field name="model">stockex.stock.inventory</field>
         <field name="arch" type="xml">
-            <list string="Inventaires" decoration-info="state == 'draft'" decoration-warning="state == 'in_progress'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'">
+            <list string="Inventaires" decoration-info="state == 'draft'" decoration-primary="state == 'in_progress'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'">
                 <header>
                     <button name="%(action_import_inventory_wizard)d" string="Importer CSV" type="action" class="btn-primary" icon="fa-upload"/>
                 </header>
                 <field name="name"/>
                 <field name="date"/>
                 <field name="location_id" optional="show"/>
+                <field name="total_value_theoretical" string="Valeur Théorique" widget="monetary" options="{'currency_field': 'company_currency_id'}" sum="Total Théorique"/>
+                <field name="total_value_real" string="Valeur Réelle" widget="monetary" options="{'currency_field': 'company_currency_id'}" sum="Total Réel"/>
+                <field name="odoo_stock_value" string="Valeur Stock Odoo" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show" sum="Total Stock Odoo"/>
+                <field name="total_value_difference" string="Écart" widget="monetary" options="{'currency_field': 'company_currency_id'}" sum="Total Écart" decoration-danger="total_value_difference &lt; 0" decoration-success="total_value_difference &gt;= 0"/>
+                <field name="company_currency_id" column_invisible="1"/>
                 <field name="user_id" widget="many2one_avatar_user"/>
-                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state == 'in_progress'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-primary="state == 'in_progress'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'"/>
             </list>
         </field>
     </record>
@@ -66,10 +74,10 @@
                 <header>
                     <button name="action_start" string="Démarrer" type="object" invisible="state != 'draft'" class="oe_highlight"/>
                     <button name="action_validate" string="Valider" type="object" invisible="state != 'in_progress'" class="oe_highlight"/>
+                    <button name="action_draft" string="🔄 Retour Brouillon" type="object" invisible="state != 'in_progress'" class="btn-warning" groups="base.group_system"/>
                     <button name="action_refresh_theoretical_qty" string="🔄 Recalculer Qté Théoriques" type="object" icon="fa-refresh" class="btn-info" invisible="state != 'draft'" help="Recalcule les quantités théoriques depuis le stock Odoo actuel"/>
                     <button name="action_export_excel" string="📥 Export Excel" type="object" icon="fa-file-excel-o" class="btn-success"/>
                     <button name="action_print_pdf" string="🖨️ Imprimer PDF" type="object" icon="fa-print" class="btn-primary"/>
-                    <button name="%(action_cancel_inventory_wizard)d" string="❌ Annuler l'Inventaire" type="action" invisible="state != 'done'" groups="base.group_system" class="btn-danger" context="{'default_inventory_id': id}"/>
                     <button name="action_draft" string="🔄 Remettre en brouillon" type="object" invisible="state != 'cancel'" groups="base.group_system"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,done"/>
                 </header>
@@ -88,6 +96,76 @@
                             <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}" readonly="state != 'draft'"/>
                         </group>
                     </group>
+                    <div class="row mb-2">
+                        <div class="col-12 text-end">
+                            <field name="state" widget="badge"/>
+                        </div>
+                    </div>
+                    <div class="container o_kanban_card_content mt-2">
+                        <div class="row g-3">
+                            <div class="col-md-4 col-sm-12">
+                                <div class="card border-primary h-100">
+                                    <div class="card-header bg-primary text-white"><h6 class="mb-0">📋 Valeur Théorique (Stock Odoo)</h6></div>
+                                    <div class="card-body text-center">
+                                        <h2 class="mb-0">
+                                            <field name="odoo_stock_value" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                                        </h2>
+                                        <small class="text-muted">Valeur théorique du stock Odoo</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-12">
+                                <div class="card border-success h-100">
+                                    <div class="card-header bg-success text-white"><h6 class="mb-0">💰 Valeur Réelle (Inventoriée)</h6></div>
+                                    <div class="card-body text-center">
+                                        <h2 class="mb-0">
+                                            <field name="total_value_real" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                                        </h2>
+                                        <small class="text-muted">Somme des lignes réelles</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-12">
+                                <div class="card border-warning h-100">
+                                    <div class="card-header bg-warning text-white"><h6 class="mb-0">⚠️ Écart de valeur</h6></div>
+                                    <div class="card-body text-center">
+                                        <h2 class="mb-0">
+                                            <field name="total_value_difference" widget="monetary" options="{'currency_field': 'company_currency_id'}" 
+                                                   decoration-danger="total_value_difference &lt; 0" 
+                                                   decoration-success="total_value_difference &gt;= 0"/>
+                                        </h2>
+                                        <small class="text-muted">Réel − Théorique</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-4 col-sm-12">
+                                <div class="card border-secondary h-100">
+                                    <div class="card-header bg-light"><h6 class="mb-0">📦 Quantité Théorique</h6></div>
+                                    <div class="card-body text-center">
+                                        <h3 class="mb-0"><field name="total_quantity_theoretical"/></h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-12">
+                                <div class="card border-info h-100">
+                                    <div class="card-header bg-info text-white"><h6 class="mb-0">🔢 Quantité Réelle</h6></div>
+                                    <div class="card-body text-center">
+                                        <h3 class="mb-0"><field name="total_quantity_real"/></h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-12">
+                                <div class="card border-dark h-100">
+                                    <div class="card-header bg-dark text-white"><h6 class="mb-0">∆ Écart Quantité</h6></div>
+                                    <div class="card-body text-center">
+                                        <h3 class="mb-0"><field name="total_quantity_difference"/></h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <notebook>
                         <page string="Lignes d'inventaire" name="inventory_lines">
                             <field name="line_ids" readonly="state == 'done'" 

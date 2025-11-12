@@ -145,6 +145,54 @@ class ResConfigSettings(models.TransientModel):
         help='ID du numéro de téléphone WhatsApp Business (requis pour Meta)'
     )
     
+    # Règle de valorisation
+    stockex_valuation_rule = fields.Selection(
+        selection=[
+            ('standard', 'Regle-1: Cout standard'),
+            ('economic', 'Regle-2: Cout économique réel'),
+        ],
+        string='Règle de valorisation',
+        default='standard',
+        config_parameter='stockex.valuation_rule',
+        help='Choix de la règle de valorisation pour les calculs de valeur de stock'
+    )
+    
+    # Décote selon rotation du stock
+    stockex_apply_depreciation = fields.Boolean(
+        string='Appliquer la décote selon rotation',
+        default=False,
+        config_parameter='stockex.apply_depreciation',
+        help='Appliquer une décote sur la valorisation selon la rotation du stock (stock mort, rotation lente)'
+    )
+    
+    stockex_depreciation_active_days = fields.Integer(
+        string='Période stock actif (jours)',
+        default=365,
+        config_parameter='stockex.depreciation_active_days',
+        help='Nombre de jours sans mouvement pour considérer le stock comme actif (décote 0%)'
+    )
+    
+    stockex_depreciation_slow_days = fields.Integer(
+        string='Période rotation lente (jours)',
+        default=1095,
+        config_parameter='stockex.depreciation_slow_days',
+        help='Nombre de jours sans mouvement pour considérer le stock en rotation lente (au-delà = stock mort)'
+    )
+    
+    stockex_depreciation_slow_rate = fields.Float(
+        string='Taux décote rotation lente (%)',
+        default=40.0,
+        config_parameter='stockex.depreciation_slow_rate',
+        help='Pourcentage de décote pour les produits en rotation lente (ex: 40%)'
+    )
+    
+    stockex_depreciation_dead_rate = fields.Float(
+        string='Taux décote stock mort (%)',
+        default=100.0,
+        config_parameter='stockex.depreciation_dead_rate',
+        help='Pourcentage de décote pour les produits en stock mort (ex: 100% = valeur nulle)'
+    )
+
     # Notifications Telegram
     stockex_notify_by_telegram = fields.Boolean(
         string='📱 Activer Notifications Telegram',
@@ -166,28 +214,11 @@ class ResConfigSettings(models.TransientModel):
     )
     
     # Statistiques
-    stockex_inventory_count = fields.Integer(
-        string='Nombre d\'Inventaires',
-        compute='_compute_stockex_stats',
-        readonly=True
-    )
+
     
-    stockex_last_import_date = fields.Datetime(
-        string='Dernier Import',
-        compute='_compute_stockex_stats',
-        readonly=True
-    )
+
     
-    @api.depends('company_id')
-    def _compute_stockex_stats(self):
-        """Calcule les statistiques d'utilisation."""
-        for config in self:
-            inventories = self.env['stockex.stock.inventory'].search([
-                ('company_id', '=', config.company_id.id)
-            ])
-            
-            config.stockex_inventory_count = len(inventories)
-            config.stockex_last_import_date = inventories[0].create_date if inventories else False
+
     
     @api.onchange('stockex_whatsapp_provider', 'stockex_whatsapp_account_sid', 'stockex_whatsapp_phone_number_id')
     def _onchange_whatsapp_provider(self):

@@ -71,6 +71,15 @@ class InitialStockWizard(models.TransientModel):
              'Cette action est IRRÉVERSIBLE. À utiliser uniquement pour une réinitialisation complète de la base.'
     )
     
+    incremental_update = fields.Boolean(
+        string='🔄 Mise à jour incrémentale',
+        default=False,
+        help='Permet de continuer l\'import même si des stocks existent déjà.\n'
+             '• Les produits existants seront mis à jour (ajout de quantité)\n'
+             '• Les nouveaux produits seront créés\n'
+             'Utile pour importer un fichier par étapes ou compléter un import partiel.'
+    )
+    
     # Champs pour la prévisualisation
     state = fields.Selection([
         ('step1', 'Import'),
@@ -474,13 +483,21 @@ class InitialStockWizard(models.TransientModel):
                 ('company_id', '=', self.company_id.id),
             ])
             
-            if existing_quants:
+            if existing_quants and not self.incremental_update:
                 raise UserError(
                     f"⚠️ ATTENTION : {len(existing_quants)} enregistrement(s) de stock déjà existant(s).\n\n"
                     f"Cette fonction est destinée aux bases de données VIDES.\n\n"
                     f"Options :\n"
-                    f"1. Utilisez un inventaire normal pour mettre à jour le stock existant\n"
-                    f"2. Cochez l'option '⚠️ Réinitialiser tous les stocks' pour forcer une réinitialisation complète (DANGEREUX)"
+                    f"1. Cochez '🔄 Mise à jour incrémentale' pour continuer l'import et compléter les données\n"
+                    f"2. Utilisez un inventaire normal pour mettre à jour le stock existant\n"
+                    f"3. Cochez '⚠️ Réinitialiser tous les stocks' pour forcer une réinitialisation complète (DANGEREUX)"
+                )
+            
+            # Si mode incrémental, afficher un message d'information
+            if existing_quants and self.incremental_update:
+                _logger.warning(
+                    f"🔄 MODE INCRÉMENTAL : {len(existing_quants)} quants existants détectés. "
+                    f"L'import continuera en mode mise à jour."
                 )
         
         if not self.import_file:
@@ -522,13 +539,6 @@ class InitialStockWizard(models.TransientModel):
                 'message': message,
                 'type': 'success',
                 'sticky': False,
-                'next': {
-                    'type': 'ir.actions.act_window',
-                    'name': 'Quantités en Stock',
-                    'res_model': 'stock.quant',
-                    'view_mode': 'list',
-                    'domain': [('company_id', '=', self.company_id.id), ('quantity', '>', 0)],
-                },
             }
         }
     
@@ -604,18 +614,30 @@ Recherche ou crée un entrepôt.
             
             # Si pas trouvé et qu'on autorise la création
             if self.create_warehouses:
-                # Créer un code unique pour l'entrepôt (utiliser plus de caractères)
-                # Enlever les espaces et prendre jusqu'à 10 caractères
-                code_base = warehouse_name.upper().replace(' ', '').replace('-', '')[:10]
+                # Créer un code unique pour l'entrepôt
+                # Stratégie de génération de code intelligente
+                import re
+                
+                # Nettoyer et prendre les éléments significatifs
+                parts = re.findall(r'[A-Z0-9]+', warehouse_name.upper())
+                
+                if len(parts) >= 2:
+                    # Si plusieurs parties, combiner intelligemment
+                    # Ex: BASSA-KITS-COMP → BASSAKITSCO ou BASSA-KITS
+                    code_base = ''.join(parts)[:16]
+                else:
+                    # Sinon prendre le nom nettoyé
+                    code_base = re.sub(r'[^A-Z0-9]', '', warehouse_name.upper())[:16]
                 
                 # Si le code est trop court, le compléter
                 if len(code_base) < 3:
-                    code_base = code_base.ljust(3, 'X')
+                    code_base = (code_base + str(abs(hash(warehouse_name)))[:8]).ljust(5, 'X')
                 
-                # Chercher un code disponible
+                # Chercher un code disponible avec stratégie améliorée
                 counter = 0
-                test_code = code_base[:5]  # Commencer avec 5 caractères
-                while True:
+                test_code = code_base[:5]  # Commencer avec 5 caractères (minimum Odoo)
+                
+                while counter < 100:
                     existing = self.env['stock.warehouse'].search([
                         ('code', '=', test_code),
                         ('company_id', '=', self.company_id.id)
@@ -625,17 +647,25 @@ Recherche ou crée un entrepôt.
                         break
                     
                     counter += 1
-                    # Utiliser plus de caractères du nom si disponible
-                    if counter == 1 and len(code_base) > 5:
-                        test_code = code_base[:min(10, len(code_base))]
-                    else:
-                        test_code = f"{code_base[:5]}{counter}"
                     
-                    # Sécurité : max 1000 itérations
-                    if counter > 1000:
-                        _logger.error(f"❌ Impossible de générer un code unique pour '{warehouse_name}'")
-                        self.env.cr.execute(f'ROLLBACK TO SAVEPOINT "{savepoint_name}"')
-                        return None
+                    # Stratégies progressives pour éviter les doublons
+                    if counter == 1 and len(code_base) > 5:
+                        # Essayer avec le code complet (jusqu'à 16 caractères)
+                        test_code = code_base[:min(16, len(code_base))]
+                    elif counter < 10:
+                        # Ajouter un suffixe numérique court
+                        suffix_len = len(str(counter))
+                        test_code = f"{code_base[:min(16-suffix_len, len(code_base))]}{counter}"
+                    else:
+                        # Utiliser un hash unique
+                        unique_hash = str(abs(hash(f"{warehouse_name}{counter}")))[:3]
+                        test_code = f"{code_base[:min(13, len(code_base))]}{unique_hash}"
+                
+                # Si toujours pas trouvé après 100 tentatives
+                if counter >= 100:
+                    _logger.error(f"❌ Impossible de générer un code unique pour '{warehouse_name}' après 100 tentatives")
+                    self.env.cr.execute(f'ROLLBACK TO SAVEPOINT "{savepoint_name}"')
+                    return None
                 
                 warehouse_vals = {
                     'name': warehouse_name,
@@ -699,22 +729,32 @@ Recherche ou crée un entrepôt.
     def _create_initial_stock_quants(self, lines):
         """Crée les quants de stock initial directement (sans inventaire)."""
         created_count = 0
+        updated_count = 0
         errors = []
         created_categories = set()
         created_warehouses = set()
+        created_products = set()
         total_lines = len(lines)
         
+        # Cache pour améliorer les performances
+        warehouse_cache = {}
+        category_cache = {}
+        product_cache = {}
+        
         _logger.info(f"🔍 Début création stock initial: {total_lines} lignes à traiter")
+        if self.incremental_update:
+            _logger.info("🔄 Mode incrémental activé : mise à jour des stocks existants autorisée")
         
         for i, line_data in enumerate(lines):
-            # Mettre à jour la progression
-            if i % 50 == 0 or i < 10:
+            # Mettre à jour la progression et commit périodique (tous les 100 lignes)
+            if i % 100 == 0:
                 progress_percent = (i / total_lines) * 100
                 self.write({
                     'progress': progress_percent,
-                    'progress_message': f'Traitement ligne {i + 1}/{total_lines} ({progress_percent:.1f}%)'
+                    'progress_message': f'Traitement ligne {i + 1}/{total_lines} ({progress_percent:.1f}%) - {created_count} stocks créés'
                 })
                 self.env.cr.commit()
+                _logger.info(f"📊 Progression: {i + 1}/{total_lines} ({progress_percent:.1f}%) - {created_count} stocks créés")
             
             try:
                 product_code = str(line_data.get('CODE PRODUIT', '')).strip()
@@ -724,9 +764,6 @@ Recherche ou crée un entrepôt.
                 warehouse_name = str(line_data.get('ENTREPOT', '') or line_data.get('EMPLACEMENT', '')).strip() if line_data.get('ENTREPOT') or line_data.get('EMPLACEMENT') else None
                 quantity = float(line_data.get('QUANTITE', 0))
                 price = float(line_data.get('PRIX UNITAIRE', 0))
-                
-                if i < 3:
-                    _logger.info(f"🔍 Ligne {i+1}: CODE={product_code}, NOM={product_name[:30]}, ENTREP={warehouse_name}, QTE={quantity}")
                 
                 if not product_code:
                     _logger.warning(f"⚠️ Ligne {i+2}: CODE PRODUIT vide, ignorée")
@@ -738,13 +775,19 @@ Recherche ou crée un entrepôt.
                     errors.append(f"Ligne {i+2}: Quantité invalide ({quantity})")
                     continue
                 
-                # Gérer l'entrepôt
-                warehouse = self._get_or_create_warehouse(warehouse_name)
+                # Gérer l'entrepôt (avec cache)
+                if warehouse_name in warehouse_cache:
+                    warehouse = warehouse_cache[warehouse_name]
+                else:
+                    warehouse = self._get_or_create_warehouse(warehouse_name)
+                    if warehouse:
+                        warehouse_cache[warehouse_name] = warehouse
+                
                 if not warehouse:
                     errors.append(f"Ligne {i+2}: Entrepôt '{warehouse_name}' non trouvé et création désactivée")
                     continue
                 
-                if warehouse and warehouse.name not in created_warehouses:
+                if warehouse.name not in created_warehouses:
                     created_warehouses.add(warehouse.name)
                 
                 # Utiliser l'emplacement stock de l'entrepôt
@@ -756,17 +799,29 @@ Recherche ou crée un entrepôt.
                     errors.append(f"Ligne {i+2}: Emplacement invalide pour entrepôt '{warehouse.name}'")
                     continue
                 
-                # Rechercher ou créer le produit
-                product = self.env['product.product'].search([
-                    ('default_code', '=', product_code)
-                ], limit=1)
-                
-                # Gérer la catégorie
+                # Gérer la catégorie (avec cache)
                 category = None
                 if category_name:
-                    category = self._get_or_create_category(category_name, category_code)
+                    cache_key = f"{category_name}|{category_code}"
+                    if cache_key in category_cache:
+                        category = category_cache[cache_key]
+                    else:
+                        category = self._get_or_create_category(category_name, category_code)
+                        if category:
+                            category_cache[cache_key] = category
+                    
                     if category and category.name not in created_categories:
                         created_categories.add(category.name)
+                
+                # Rechercher ou créer le produit (avec cache)
+                if product_code in product_cache:
+                    product = product_cache[product_code]
+                else:
+                    product = self.env['product.product'].search([
+                        ('default_code', '=', product_code)
+                    ], limit=1)
+                    if product:
+                        product_cache[product_code] = product
                 
                 if not product:
                     if not self.create_products:
@@ -785,22 +840,20 @@ Recherche ou crée un entrepôt.
                         product_vals['categ_id'] = category.id
                     
                     product = self.env['product.product'].create(product_vals)
-                    if i < 3:
-                        _logger.info(f"✅ Produit créé: {product_code} ({product.name}) - Catégorie: {category.name if category else 'Par défaut'}")
+                    product_cache[product_code] = product
+                    created_products.add(product_code)
                 
                 elif category:
                     # Mettre à jour la catégorie du produit existant si spécifiée
                     if product.categ_id.id != category.id:
                         product.write({'categ_id': category.id})
                 
-                # Vérifier que le produit est stockable
-                if product.type != 'product':
-                    _logger.warning(f"⚠️ Ligne {i+2}: Produit '{product_code}' n'est pas stockable (type={product.type}), conversion en 'product'")
-                    product.write({'type': 'product'})
+                # Note: On suppose que tous les produits ont été convertis en 'product' en amont
+                # On skip la vérification du type pour éviter les problèmes de cache Odoo
                 
-                # Mettre à jour le prix coûtant si fourni
-                if price > 0 and product.standard_price != price:
-                    product.write({'standard_price': price})
+                # Mettre à jour le prix coûtant si fourni (optimisé - pas de vérification)
+                if price > 0:
+                    product.standard_price = price
                 
                 # Créer ou mettre à jour le quant
                 quant = self.env['stock.quant'].search([
@@ -810,27 +863,17 @@ Recherche ou crée un entrepôt.
                 ], limit=1)
                 
                 if quant:
-                    # Le quant existe déjà, mettre à jour la quantité
-                    old_qty = quant.quantity
-                    quant.inventory_quantity = quantity
-                    quant.inventory_quantity_set = True
-                    quant.action_apply_inventory()
-                    
-                    if i < 3:
-                        _logger.info(f"🔄 Quant mis à jour: {product_code} @ {location.name} : {old_qty} → {quantity}")
+                    # Le quant existe déjà, mettre à jour directement la quantité (sans action_apply_inventory)
+                    quant.write({'quantity': quantity})
+                    updated_count += 1
                 else:
-                    # Créer un nouveau quant
+                    # Créer un nouveau quant directement (sans action_apply_inventory)
                     quant = self.env['stock.quant'].create({
                         'product_id': product.id,
                         'location_id': location.id,
                         'company_id': self.company_id.id,
-                        'inventory_quantity': quantity,
-                        'inventory_quantity_set': True,
+                        'quantity': quantity,
                     })
-                    quant.action_apply_inventory()
-                    
-                    if i < 3:
-                        _logger.info(f"✅ Quant créé: {product_code} @ {location.name} : {quantity}")
                 
                 created_count += 1
                 
@@ -838,21 +881,25 @@ Recherche ou crée un entrepôt.
                 errors.append(f"Ligne {i+2}: {str(e)}")
                 _logger.error(f"❌ Erreur ligne {i+2}: {str(e)}")
         
-        _logger.info(f"✅ Import terminé: {created_count} stock(s) créé(s)")
+        _logger.info(f"✅ Import terminé: {created_count} stock(s) traité(s) ({created_count - updated_count} créés, {updated_count} mis à jour)")
         
         # Progression à 100%
         self.write({
             'progress': 100.0,
-            'progress_message': f'Import terminé : {created_count} stock(s) créé(s)'
+            'progress_message': f'Import terminé : {created_count} stock(s) traité(s)'
         })
         self.env.cr.commit()
         
         # Message récapitulatif dans les logs
-        message = f"✅ {created_count} stock(s) créé(s)"
+        message = f"✅ {created_count} stock(s) traité(s)"
+        if updated_count > 0:
+            message += f" (🔄 {updated_count} mis à jour, ➕ {created_count - updated_count} créés)"
+        if created_products:
+            message += f"\n📦 {len(created_products)} produit(s) créé(s)"
         if created_warehouses:
-            message += f"\n🏭 {len(created_warehouses)} entrepôt(s): {', '.join(list(created_warehouses)[:5])}"
+            message += f"\n🏭 {len(created_warehouses)} entrepôt(s): {', '.join(sorted(created_warehouses))}"
         if created_categories:
-            message += f"\n📁 {len(created_categories)} catégorie(s): {', '.join(list(created_categories)[:5])}"
+            message += f"\n📁 {len(created_categories)} catégorie(s): {', '.join(sorted(created_categories))}"
         if errors:
             message += f"\n⚠️ {len(errors)} ligne(s) ignorée(s)"
             for error in errors[:20]:

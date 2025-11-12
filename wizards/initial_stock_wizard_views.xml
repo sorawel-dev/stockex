@@ -55,6 +55,18 @@
                         • ❌ Effacer tout l'historique de stock<br/><br/>
                         <strong style="color: #dc3545;">⚠️ NE PAS UTILISER EN PRODUCTION</strong> sauf réinitialisation complète volontaire.
                     </div>
+                    
+                    <field name="incremental_update" 
+                           widget="boolean_toggle"
+                           class="text-success"/>
+                    <div class="alert alert-success" role="alert" invisible="not incremental_update" style="margin: 10px 0;">
+                        <strong>🔄 MODE INCRÉMENTAL ACTIVÉ</strong><br/>
+                        L'import continuera même si des stocks existent déjà :<br/>
+                        • ✅ Les produits existants seront mis à jour (ajout de quantité)<br/>
+                        • ✅ Les nouveaux produits seront créés<br/>
+                        • 📊 Utile pour compléter un import partiel<br/><br/>
+                        <strong style="color: #28a745;">ℹ️ Les stocks existants ne seront PAS supprimés</strong>
+                    </div>
                 </group>
                 
                 <group string="Import Excel (Requis)" invisible="state != 'step1'">
@@ -71,8 +83,9 @@
                 
                 <div class="alert alert-warning" role="alert" invisible="state != 'step1'">
                     <strong>⚠️ ATTENTION :</strong> Cet assistant est destiné aux <strong>bases de données VIDES</strong> (sans stock existant).<br/>
-                    Il créera directement les <strong>stocks initiaux dans les quants</strong> (pas d'inventaire).<br/>
-                    Pour une base avec stock existant, utilisez un inventaire normal.
+                    Il créera directement les <strong>stocks initiaux dans les quants</strong> (pas d'inventaire).<br/><br/>
+                    <strong>🔄 Si des stocks existent déjà :</strong> Cochez l'option "Mise à jour incrémentale" pour continuer l'import.<br/>
+                    Pour une gestion complète du stock, utilisez un inventaire normal.
                 </div>
                 
                 <div class="alert alert-info" role="alert" invisible="state != 'step1'">

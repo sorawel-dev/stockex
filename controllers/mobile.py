@@ -14,8 +14,10 @@ Features:
 
 import json
 import logging
+import os
 from odoo import http, fields
 from odoo.http import request, Response
+from odoo.modules.module import get_module_path
 
 _logger = logging.getLogger(__name__)
 
@@ -351,8 +353,8 @@ class StockexMobileController(http.Controller):
     @http.route('/stockex/manifest.json', type='http', auth='public')
     def manifest(self, **kwargs):
         """Retourne le manifest PWA."""
-        manifest_path = http.addons_manifest.get('stockex', {}).get('addons_path', '')
-        manifest_file = f"{manifest_path}/stockex/static/manifest.json"
+        manifest_path = get_module_path('stockex')
+        manifest_file = os.path.join(manifest_path, 'static', 'manifest.json')
         
         try:
             with open(manifest_file, 'r') as f:
@@ -389,8 +391,8 @@ class StockexMobileController(http.Controller):
     @http.route('/stockex/sw.js', type='http', auth='public')
     def service_worker(self, **kwargs):
         """Retourne le Service Worker JavaScript."""
-        sw_path = http.addons_manifest.get('stockex', {}).get('addons_path', '')
-        sw_file = f"{sw_path}/stockex/static/src/js/service-worker.js"
+        sw_path = get_module_path('stockex')
+        sw_file = os.path.join(sw_path, 'static', 'src', 'js', 'service-worker.js')
         
         try:
             with open(sw_file, 'r') as f:

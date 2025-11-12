@@ -143,31 +143,13 @@
               groups="base.group_user"/>
     
     <!-- Sous-menu : Dashboard -->
-    <menuitem id="menu_stockex_dashboard"
-              name="📊 Dashboard"
-              parent="menu_stockex_root"
-              sequence="5"/>
+
     
-    <menuitem id="menu_stockex_dashboard_overview"
-              name="📊 Vue d'Ensemble (Kanban)"
-              parent="menu_stockex_dashboard"
-              action="action_stockex_dashboard_home"
-              sequence="1"
-              groups="base.group_user"/>
+
     
-    <menuitem id="menu_stockex_dashboard_filters"
-              name="🔍 Dashboard avec Filtres"
-              parent="menu_stockex_dashboard"
-              action="stockex.action_inventory_summary_form"
-              sequence="2"
-              groups="base.group_user"/>
+
     
-    <menuitem id="menu_analytics_dashboard"
-              name="📊 Analytics"
-              parent="menu_stockex_dashboard"
-              action="action_analytics_dashboard"
-              sequence="3"
-              groups="base.group_user"/>
+
     
     <!-- Sous-menu : Analyse (utilise les menus natifs d'Odoo) -->
     <menuitem id="menu_stockex_reporting"
@@ -207,7 +189,7 @@
     <record id="action_product_stock_view_filtered" model="ir.actions.act_window">
         <field name="name">Valorisation du stock</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="domain">[('qty_available', '!=', 0)]</field>
         <field name="context">{
             'search_default_consumable': 1,

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue Liste du Rapport de Décote -->
+    <record id="view_depreciation_report_tree" model="ir.ui.view">
+        <field name="name">stockex.depreciation.report.tree</field>
+        <field name="model">stockex.depreciation.report</field>
+        <field name="arch" type="xml">
+            <list string="Rapport de Décote du Stock" create="false" edit="false" delete="false" 
+                  decoration-danger="depreciation_rate &gt;= 100"
+                  decoration-warning="depreciation_rate &gt;= 40 and depreciation_rate &lt; 100"
+                  decoration-success="depreciation_rate == 0">
+                <field name="default_code" string="Référence"/>
+                <field name="product_id" string="Produit"/>
+                <field name="category_id" string="Catégorie"/>
+                <field name="quantity_on_hand" string="Quantité" sum="Total Quantité"/>
+                <field name="last_move_date" string="Dernier Mouvement"/>
+                <field name="days_since_move" string="Jours"/>
+                <field name="depreciation_category" string="Statut"/>
+                <field name="depreciation_rate" string="Décote (%)"/>
+                <field name="base_price" string="Prix Base" widget="monetary" options="{'currency_field': 'company_id'}"/>
+                <field name="depreciated_price" string="Prix Décoté" widget="monetary" options="{'currency_field': 'company_id'}"/>
+                <field name="base_value" string="Valeur Base" widget="monetary" options="{'currency_field': 'company_id'}" sum="Total Base"/>
+                <field name="depreciated_value" string="Valeur Décotée" widget="monetary" options="{'currency_field': 'company_id'}" sum="Total Décoté"/>
+                <field name="value_loss" string="Perte" widget="monetary" options="{'currency_field': 'company_id'}" sum="Total Perte"/>
+                <field name="company_id" invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue Recherche du Rapport de Décote -->
+    <record id="view_depreciation_report_search" model="ir.ui.view">
+        <field name="name">stockex.depreciation.report.search</field>
+        <field name="model">stockex.depreciation.report</field>
+        <field name="arch" type="xml">
+            <search string="Recherche Décote">
+                <field name="product_id" string="Produit"/>
+                <field name="default_code" string="Référence"/>
+                <field name="category_id" string="Catégorie"/>
+                
+                <filter string="Stock Actif (0% décote)" name="active_stock" 
+                        domain="[('depreciation_rate', '=', 0)]"/>
+                <filter string="Rotation Lente (40% décote)" name="slow_rotation" 
+                        domain="[('depreciation_rate', '=', 40)]"/>
+                <filter string="Stock Mort (100% décote)" name="dead_stock" 
+                        domain="[('depreciation_rate', '=', 100)]"/>
+                
+                <separator/>
+                <filter string="Avec Décote" name="with_depreciation" 
+                        domain="[('depreciation_rate', '&gt;', 0)]"/>
+                <filter string="Sans Décote" name="no_depreciation" 
+                        domain="[('depreciation_rate', '=', 0)]"/>
+                
+                <separator/>
+                <group expand="0" string="Grouper par">
+                    <filter string="Catégorie" name="group_category" context="{'group_by': 'category_id'}"/>
+                    <filter string="Statut Décote" name="group_status" context="{'group_by': 'depreciation_category'}"/>
+                    <filter string="Taux Décote" name="group_rate" context="{'group_by': 'depreciation_rate'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Vue Pivot du Rapport de Décote -->
+    <record id="view_depreciation_report_pivot" model="ir.ui.view">
+        <field name="name">stockex.depreciation.report.pivot</field>
+        <field name="model">stockex.depreciation.report</field>
+        <field name="arch" type="xml">
+            <pivot string="Analyse de Décote">
+                <field name="depreciation_category" type="row"/>
+                <field name="quantity_on_hand" type="measure"/>
+                <field name="base_value" type="measure"/>
+                <field name="depreciated_value" type="measure"/>
+                <field name="value_loss" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Vue Graphique du Rapport de Décote -->
+    <record id="view_depreciation_report_graph" model="ir.ui.view">
+        <field name="name">stockex.depreciation.report.graph</field>
+        <field name="model">stockex.depreciation.report</field>
+        <field name="arch" type="xml">
+            <graph string="Graphique Décote" type="bar" stacked="True">
+                <field name="depreciation_category"/>
+                <field name="value_loss" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Action pour le Rapport de Décote -->
+    <record id="action_depreciation_report" model="ir.actions.act_window">
+        <field name="name">📉 Rapport de Décote du Stock</field>
+        <field name="res_model">stockex.depreciation.report</field>
+        <field name="view_mode">tree,pivot,graph</field>
+        <field name="context">{'search_default_with_depreciation': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                📊 Rapport de Décote du Stock
+            </p>
+            <p>
+                Ce rapport affiche tous les produits en stock avec leur taux de décote appliqué selon la rotation.
+            </p>
+            <ul>
+                <li><strong>Stock Actif</strong> : Mouvement récent (&lt; 1 an) → 0% décote</li>
+                <li><strong>Rotation Lente</strong> : Mouvement ancien (1-3 ans) → 40% décote par défaut</li>
+                <li><strong>Stock Mort</strong> : Aucun mouvement (&gt; 3 ans) → 100% décote par défaut</li>
+            </ul>
+        </field>
+    </record>
+
+    <!-- Menu pour le Rapport de Décote -->
+    <menuitem
+        id="menu_depreciation_report"
+        name="Rapport de Décote"
+        parent="menu_stockex_reporting"
+        action="action_depreciation_report"
+        sequence="15"/>
+
+</odoo>

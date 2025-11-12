@@ -4,7 +4,7 @@
     <record id="action_stockex_dashboard_home" model="ir.actions.act_window">
         <field name="name">Vue d'Ensemble</field>
         <field name="res_model">stockex.inventory.summary</field>
-        <field name="view_mode">form</field>
+        <field name="view_mode">kanban</field>
         <field name="res_id" ref="inventory_summary_default"/>
         <field name="target">current</field>
         <field name="context">{'form_view_initial_mode': 'readonly'}</field>
@@ -30,121 +30,239 @@
                 <field name="total_products_all"/>
                 <field name="total_quantity_all"/>
                 <field name="total_value_all"/>
+                <field name="current_stock_value"/>
+                <field name="current_stock_value_no_depreciation"/>
+                <field name="initial_stock_date"/>
+                <field name="company_currency_id"/>
+                <field name="is_economic_valuation"/>
+                <field name="stock_value_difference"/>
+                <field name="stock_value_difference_percent"/>
+                <field name="warehouse_valuation_html"/>
+                <field name="inventoried_warehouse_valuation_html"/>
                 <field name="last_inventory_id"/>
                 <field name="last_inventory_date"/>
+                <field name="last_inventory_products"/>
                 <field name="last_inventory_value"/>
                 <field name="top_categories_html"/>
                 <field name="top_warehouses_html"/>
                 <templates>
-                    <t t-name="kanban-box">
+                    <t t-name="card">
                         <div class="oe_kanban_global_click o_stockex_dashboard_main">
                             
                             <!-- Header avec titre -->
-                            <div class="o_kanban_card_header mb-4">
-                                <div class="o_kanban_card_header_title">
+                            <div class="o_kanban_card-header mb-4">
+                                <div class="o_kanban_card-header_title">
                                     <div class="o_primary">
                                         <h3>✨ Vue d'Ensemble - Gestion d'Inventaire</h3>
                                     </div>
                                     <div class="o_secondary">
-                                        🎯 Tableau de bord intelligent de vos stocks et inventaires en temps réel
+                                        📊 Stock actuel vs Stocks inventoriés - Tableau de bord en temps réel
                                     </div>
                                 </div>
                             </div>
                             
-                            <!-- Cards principales avec statistiques -->
+                            <!-- Section 1: ÉTAT DU STOCK ARRÊTÉ (Stock Initial) -->
                             <div class="container o_kanban_card_content mt-4">
                                 <div class="row">
-                                    <!-- Card 1: Inventaires -->
-                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-4">
-                                        <div class="card bg-primary text-white h-100">
-                                            <div class="card-body text-center">
-                                                <div class="fs-1 mb-3">📋</div>
-                                                <h6 class="card-subtitle mb-3 text-white-50">INVENTAIRES VALIDÉS</h6>
-                                                <h2 class="card-title mb-2">
-                                                    <field name="total_inventories_done"/>
-                                                </h2>
-                                                <div class="mt-4">
-                                                    <button class="btn btn-light btn-sm w-100" 
-                                                            name="action_view_inventories" 
-                                                            type="object">
-                                                        👁️ Voir tout
-                                                    </button>
+                                    <div class="col-12 mb-4">
+                                        <div class="card border-success">
+                                            <div class="card-header bg-success text-white" style="overflow-x: auto;">
+                                                <h5 class="mb-0" style="white-space: nowrap; font-size: 1.1rem;">📊 STOCK ARRÊTÉ EN DATE DU <field name="initial_stock_date" widget="date"/></h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <!-- Valeur Stock Actuel - Cards avec et sans décote -->
+                                                    <!-- Pleine page si Coût standard, demi-page si Coût économique -->
+                                                    <div t-attf-class="col-12 mb-4 #{record.is_economic_valuation.raw_value and 'col-md-6' or ''}">
+                                                        <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                            <div class="card-body text-center py-5">
+                                                                <div class="mb-3">
+                                                                    <span class="display-1" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">💰</span>
+                                                                </div>
+                                                                <h5 class="text-white text-uppercase mb-3" style="letter-spacing: 2px; font-weight: 600;">Stock Initial (SANS Décote)</h5>
+                                                                <div class="display-3 fw-bold text-white mb-3" style="text-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 3.5rem;">
+                                                                    <field name="current_stock_value_no_depreciation" widget="monetary" options="{'currency_field': 'company_currency_id', 'no_symbol': True}"/> FCFA
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-3">
+                                                                    <span class="badge bg-white text-primary px-4 py-2 fs-6" style="border-radius: 50px;">📊 Valeur Théorique</span>
+                                                                    <span class="badge bg-white bg-opacity-25 text-white px-4 py-2 fs-6" style="border-radius: 50px;">✓ Prix de base</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Stock Initial (AVEC Décote) - Visible uniquement si règle = Coût économique -->
+                                                    <div class="col-12 col-md-6 mb-4" t-if="record.is_economic_valuation.raw_value">
+                                                        <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                                                            <div class="card-body text-center py-5">
+                                                                <div class="mb-3">
+                                                                    <span class="display-1" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">💵</span>
+                                                                </div>
+                                                                <h5 class="text-white text-uppercase mb-3" style="letter-spacing: 2px; font-weight: 600;">Stock Initial (AVEC Décote)</h5>
+                                                                <div class="display-3 fw-bold text-white mb-3" style="text-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 3.5rem;">
+                                                                    <field name="current_stock_value" widget="monetary" options="{'currency_field': 'company_currency_id', 'no_symbol': True}"/> FCFA
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-3">
+                                                                    <span class="badge bg-white text-success px-4 py-2 fs-6" style="border-radius: 50px;">📉 Valeur Réelle</span>
+                                                                    <span class="badge bg-white bg-opacity-25 text-white px-4 py-2 fs-6" style="border-radius: 50px;">✓ Selon rotation</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Valorisation par Entrepôt -->
+                                                    <div class="col-12">
+                                                        <div class="card border-success h-100 shadow">
+                                                            <div class="card-header bg-success text-white">
+                                                                <h5 class="mb-0"><i class="fa fa-warehouse"></i> 🏭 Valorisation Détaillée par Entrepôt</h5>
+                                                            </div>
+                                                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                                                <field name="warehouse_valuation_html" nolabel="1"/>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Card 2: Produits -->
-                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-4">
-                                        <div class="card bg-success text-white h-100">
-                                            <div class="card-body text-center">
-                                                <div class="fs-1 mb-3">📦</div>
-                                                <h6 class="card-subtitle mb-3 text-white-50">PRODUITS RÉFÉRENCÉS</h6>
-                                                <h2 class="card-title mb-2">
-                                                    <field name="total_products_all"/>
-                                                </h2>
-                                                <small class="badge badge-light mt-2">Références actives</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Card 3: Quantité -->
-                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-4">
-                                        <div class="card bg-info text-white h-100">
-                                            <div class="card-body text-center">
-                                                <div class="fs-1 mb-3">📊</div>
-                                                <h6 class="card-subtitle mb-3 text-white-50">QUANTITÉ TOTALE</h6>
-                                                <h2 class="card-title mb-2">
-                                                    <field name="total_quantity_all" widget="integer"/>
-                                                </h2>
-                                                <small class="badge badge-light mt-2">Unités en stock</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Card 4: Valeur -->
-                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-4">
-                                        <div class="card bg-warning text-white h-100">
-                                            <div class="card-body text-center">
-                                                <div class="fs-1 mb-3">💰</div>
-                                                <h6 class="card-subtitle mb-3 text-white-50">VALEUR TOTALE</h6>
-                                                <h2 class="card-title mb-2">
-                                                    <field name="total_value_all" widget="monetary"/>
-                                                </h2>
-                                                <small class="badge badge-light mt-2">Valeur de tous les stocks</small>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 
+                                <!-- Section 2: ÉTAT DES STOCKS INVENTORIÉS -->
+                                <div class="row mt-4">
+                                    <div class="col-12 mb-4">
+                                        <div class="card border-primary">
+                                            <div class="card-header bg-primary text-white">
+                                                <h5 class="mb-0">📋 STOCKS INVENTORIÉS (Dernier Inventaire Validé)</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <!-- Card 1: Inventaires Validés CLIQUABLE -->
+                                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-3">
+                                                        <div class="card border-primary h-100" style="cursor: pointer;">
+                                                            <div class="card-body text-center">
+                                                                <div class="fs-3 mb-2">📋</div>
+                                                                <h6 class="card-subtitle mb-2 text-muted">Inventaires (Tous états)</h6>
+                                                                <h3 class="card-title mb-0 text-primary">
+                                                                    <field name="total_inventories"/>
+                                                                </h3>
+                                                                <div class="mt-3">
+                                                                    <button class="btn btn-outline-primary btn-sm w-100" 
+                                                                            name="action_view_inventories" 
+                                                                            type="object"
+                                                                            t-attf-onclick="event.stopPropagation();">
+                                                                        👁️ Voir tout
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Card 2: Produits Référencés CLIQUABLE -->
+                                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-3">
+                                                        <div class="card border-info h-100" style="cursor: pointer;">
+                                                            <div class="card-body text-center" 
+                                                                 t-attf-onclick="event.stopPropagation();" 
+                                                                 data-oe-model="stockex.inventory.summary" 
+                                                                 t-attf-data-oe-id="#{record.id.raw_value}" 
+                                                                 data-oe-field="action_view_inventoried_products">
+                                                                <div class="fs-3 mb-2">📦</div>
+                                                                <h6 class="card-subtitle mb-2 text-muted">Produits Inventoriés</h6>
+                                                                <h3 class="card-title mb-0 text-info">
+                                                                    <field name="total_products_all" widget="integer"/>
+                                                                </h3>
+                                                                <small class="badge bg-info-subtle text-info mt-2">Références</small>
+                                                                <div class="mt-2">
+                                                                    <button class="btn btn-outline-info btn-sm w-100" 
+                                                                            name="action_view_inventoried_products" 
+                                                                            type="object">
+                                                                        👁️ Voir produits
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Card 3: Quantité NON CLIQUABLE -->
+                                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-3">
+                                                        <div class="card border-info h-100">
+                                                            <div class="card-body text-center">
+                                                                <div class="fs-3 mb-2">📊</div>
+                                                                <h6 class="card-subtitle mb-2 text-muted">Quantité Totale</h6>
+                                                                <h3 class="card-title mb-0 text-info">
+                                                                    <field name="total_quantity_all" widget="integer"/>
+                                                                </h3>
+                                                                <small class="badge bg-info-subtle text-info mt-2">Unités</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Card 4: Valeur Inventoriée NON CLIQUABLE -->
+                                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-3">
+                                                        <div class="card border-warning h-100">
+                                                            <div class="card-body text-center">
+                                                                <div class="fs-3 mb-2">💵</div>
+                                                                <h6 class="card-subtitle mb-2 text-muted">Valeur Inventoriée</h6>
+                                                                <h3 class="card-title mb-0 text-warning">
+                                                                    <field name="total_value_all" widget="monetary" options="{'currency_field': 'company_currency_id', 'no_symbol': True}"/> FCFA
+                                                                </h3>
+                                                                <small class="badge bg-warning-subtle text-warning mt-2">Dernier inventaire</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Valorisation par Entrepôt NON CLIQUABLE -->
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <div class="card border-warning h-100 shadow">
+                                            <div class="card-header bg-warning text-dark">
+                                                <h5 class="mb-0"><i class="fa fa-warehouse"></i> 🏭 Valorisation Inventoriée par Entrepôt</h5>
+                                            </div>
+                                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                                <field name="inventoried_warehouse_valuation_html" nolabel="1"/>
+                                                <div class="mt-3 d-flex justify-content-end gap-2">
+                                                    <button name="action_export_warehouse_valuation_excel" type="object" class="btn btn-success btn-sm">📊 Export Excel</button>
+                                                    <button name="action_view_warehouse_details" type="object" class="btn btn-outline-warning btn-sm">🏭 Voir entrepôts</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Deleted: Carte 'COMPARAISON STOCK ACTUEL vs STOCKS INVENTORIÉS' supprimée -->
+                                
                                 <!-- Section Actions Rapides -->
                                 <div class="row mt-5">
                                     <div class="col-12">
-                                        <div class="card">
+                                        <div class="card border">
                                             <div class="card-header bg-light">
                                                 <h5 class="mb-0">⚡ Actions Rapides</h5>
                                             </div>
                                             <div class="card-body p-4">
                                                 <div class="row g-3">
-                                                    <div class="col-md-4 mb-3">
-                                                        <button class="btn btn-primary btn-lg w-100" 
+                                                    <div class="col-md-4 col-sm-12 mb-3">
+                                                        <button class="btn btn-outline-primary btn-lg w-100" 
                                                                 name="%(action_import_method_wizard)d" 
                                                                 type="action">
                                                             ➕ Nouvel Inventaire
                                                         </button>
                                                     </div>
-                                                    <div class="col-md-4 mb-3">
-                                                        <button class="btn btn-secondary btn-lg w-100" 
+                                                    <div class="col-md-4 col-sm-12 mb-3">
+                                                        <button class="btn btn-outline-secondary btn-lg w-100" 
                                                                 name="%(action_stockex_inventory)d" 
                                                                 type="action">
                                                             📋 Tous les Inventaires
                                                         </button>
                                                     </div>
-                                                    <div class="col-md-4 mb-3">
-                                                        <button class="btn btn-info btn-lg w-100" 
-                                                                name="%(action_inventory_analysis)d" 
-                                                                type="action">
-                                                            📊 Analyse &amp; Rapports
+                                                    <div class="col-md-4 col-sm-12 mb-3">
+                                                        <button class="btn btn-outline-info btn-lg w-100" 
+                                                                name="action_view_warehouse_details" 
+                                                                type="object">
+                                                            🏭 Voir Entrepôts
                                                         </button>
                                                     </div>
                                                 </div>
@@ -153,63 +271,7 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Section Dernier Inventaire + Analyses -->
-                                <div class="row mt-5">
-                                    <!-- Dernier Inventaire -->
-                                    <div class="col-md-4 mb-3">
-                                        <div class="card h-100">
-                                            <div class="card-header bg-primary text-white">
-                                                <h6 class="mb-0">🔄 Dernier Inventaire</h6>
-                                            </div>
-                                            <div class="card-body">
-                                                <t t-if="record.last_inventory_id.value">
-                                                    <dl class="row mb-0">
-                                                        <dt class="col-sm-5">Inventaire:</dt>
-                                                        <dd class="col-sm-7"><field name="last_inventory_id"/></dd>
-                                                        
-                                                        <dt class="col-sm-5">Date:</dt>
-                                                        <dd class="col-sm-7"><field name="last_inventory_date"/></dd>
-                                                        
-                                                        <dt class="col-sm-5">Produits:</dt>
-                                                        <dd class="col-sm-7"><field name="last_inventory_products"/></dd>
-                                                        
-                                                        <dt class="col-sm-5">Valeur:</dt>
-                                                        <dd class="col-sm-7"><field name="last_inventory_value" widget="monetary"/></dd>
-                                                    </dl>
-                                                </t>
-                                                <t t-else="">
-                                                    <p class="text-muted text-center mb-0">
-                                                        Aucun inventaire validé
-                                                    </p>
-                                                </t>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Top Catégories -->
-                                    <div class="col-md-4 mb-3">
-                                        <div class="card h-100">
-                                            <div class="card-header bg-success text-white">
-                                                <h6 class="mb-0">📊 Top 5 Catégories</h6>
-                                            </div>
-                                            <div class="card-body p-2" style="max-height: 300px; overflow-y: auto;">
-                                                <field name="top_categories_html" nolabel="1"/>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Top Entrepôts -->
-                                    <div class="col-md-4 mb-3">
-                                        <div class="card h-100">
-                                            <div class="card-header bg-info text-white">
-                                                <h6 class="mb-0">🏭 Top 5 Entrepôts</h6>
-                                            </div>
-                                            <div class="card-body p-2" style="max-height: 300px; overflow-y: auto;">
-                                                <field name="top_warehouses_html" nolabel="1"/>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+
                                 
                             </div>
                         </div>
@@ -218,5 +280,7 @@
             </kanban>
         </field>
     </record>
+    
+
     
 </odoo>
