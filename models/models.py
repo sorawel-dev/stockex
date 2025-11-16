@@ -12,6 +12,14 @@ class StockWarehouse(models.Model):
     """Héritage de stock.warehouse pour ajouter une hiérarchie d'entrepôts"""
     _inherit = 'stock.warehouse'
     
+    # Redéfinition du champ code natif pour augmenter la taille à 6 caractères
+    code = fields.Char(
+        string='Diminutif',
+        size=6,
+        required=True,
+        help='Diminutif de l\'entrepôt (6 caractères maximum)'
+    )
+    
     # Code entrepôt (ancien "nom court")
     warehouse_code = fields.Char(
         string='Code Entrepôt',
@@ -60,6 +68,13 @@ class StockWarehouse(models.Model):
         help='Type de magasin : Production, Distribution ou Commercialisation'
     )
     
+    # Champ color pour compatibilité avec les vues kanban Odoo standard
+    color = fields.Integer(
+        string='Couleur',
+        default=0,
+        help='Couleur pour l\'affichage dans les vues kanban'
+    )
+    
     # Champs de géolocalisation
     latitude = fields.Float(
         string='Latitude',
@@ -89,6 +104,133 @@ class StockWarehouse(models.Model):
     phone = fields.Char(string='Téléphone')
     email = fields.Char(string='Email')
     
+    # Région électrique ENEO
+    eneo_region_id = fields.Many2one(
+        'stockex.eneo.region',
+        string='Région Électrique ENEO',
+        index=True,
+        help='Région électrique ENEO à laquelle appartient cet entrepôt'
+    )
+    
+    eneo_region_code = fields.Char(
+        related='eneo_region_id.code',
+        string='Code Région ENEO',
+        store=True,
+        readonly=True
+    )
+    
+    eneo_network = fields.Selection(
+        related='eneo_region_id.network',
+        string='Réseau ENEO',
+        store=True,
+        readonly=True
+    )
+    
+    # Smart Buttons & valeurs
+    currency_id = fields.Many2one(
+        'res.currency',
+        string='Devise',
+        related='company_id.currency_id',
+        store=True,
+        readonly=True,
+    )
+    stock_value_fcfa = fields.Monetary(
+        string='Valeur du stock (FCFA)',
+        currency_field='currency_id',
+        compute='_compute_stock_value_fcfa',
+        store=False,
+    )
+    move_count = fields.Integer(
+        string='Mouvements',
+        compute='_compute_move_count',
+        store=False,
+    )
+    quant_count = fields.Integer(
+        string='Articles en stock',
+        compute='_compute_quant_count',
+        store=False,
+    )
+    product_ref_count = fields.Integer(
+        string='Références d\'articles',
+        compute='_compute_product_ref_count',
+        store=False,
+        help='Nombre de références de produits uniques en stock'
+    )
+    
+    def _compute_quant_count(self):
+        for wh in self:
+            root = wh.view_location_id.id if wh.view_location_id else False
+            domain = [('location_id', 'child_of', root), ('quantity', '>', 0)] if root else [('id', '=', 0)]
+            wh.quant_count = self.env['stock.quant'].search_count(domain)
+    
+    def _compute_product_ref_count(self):
+        """Calcule le nombre de références (produits uniques) en stock."""
+        for wh in self:
+            root = wh.view_location_id.id if wh.view_location_id else False
+            if root:
+                # Compter les produits uniques avec quantité > 0
+                quants = self.env['stock.quant'].search([('location_id', 'child_of', root), ('quantity', '>', 0)])
+                wh.product_ref_count = len(quants.mapped('product_id'))
+            else:
+                wh.product_ref_count = 0
+    
+    def _compute_move_count(self):
+        for wh in self:
+            root = wh.view_location_id.id if wh.view_location_id else False
+            domain = ['|', ('location_id', 'child_of', root), ('location_dest_id', 'child_of', root)] if root else [('id', '=', 0)]
+            domain = domain + [('state', '=', 'done')]
+            wh.move_count = self.env['stock.move'].search_count(domain)
+    
+    def _compute_stock_value_fcfa(self):
+        for wh in self:
+            total = 0.0
+            root = wh.view_location_id.id if wh.view_location_id else False
+            quants = self.env['stock.quant'].search([('location_id', 'child_of', root), ('quantity', '>', 0)]) if root else []
+            for q in quants:
+                total += (q.quantity or 0.0) * (q.product_id.standard_price or 0.0)
+            wh.stock_value_fcfa = total
+    
+    def action_open_stock_value(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Valorisation du stock',
+            'res_model': 'product.product',
+            'view_mode': 'list,form',
+            'domain': [('qty_available', '!=', 0)],
+            'context': {
+                'search_default_real_stock_available': 1,
+                'location': self.view_location_id.id,
+            },
+        }
+    
+    def action_open_moves(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Mouvements de stock',
+            'res_model': 'stock.move',
+            'view_mode': 'list,form,pivot,graph',
+            'domain': ['|', ('location_id', 'child_of', self.view_location_id.id), ('location_dest_id', 'child_of', self.view_location_id.id)],
+            'context': {
+                'search_default_done': 1,
+            },
+        }
+    
+    def action_open_quants(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Articles en stock',
+            'res_model': 'stock.quant',
+            'view_mode': 'list,form',
+            'domain': [('location_id', 'child_of', self.view_location_id.id), ('quantity', '>', 0)],
+            'context': {
+                'search_default_productgroup': 1,
+                'search_default_locationgroup': 1,
+            },
+        }
+    
     def _generate_warehouse_code(self, name):
         """
         Génère un diminutif intelligent du nom de l'entrepôt.
@@ -97,10 +239,10 @@ class StockWarehouse(models.Model):
             name (str): Nom de l'entrepôt
             
         Returns:
-            str: Code diminutif (max 5 caractères)
+            str: Code diminutif (max 6 caractères)
         
         Exemples:
-            - "Abidjan" → "ABIDJ"
+            - "Abidjan" → "ABIDJA"
             - "Entrepôt Central" → "EC"
             - "Grand Bassam Site Nord" → "GBSN"
         """
@@ -111,14 +253,14 @@ class StockWarehouse(models.Model):
         words = name.split()
         
         if len(words) == 1:
-            # Un seul mot : prendre les 5 premiers caractères
-            code = name[:5].upper()
+            # Un seul mot : prendre les 6 premiers caractères
+            code = name[:6].upper()
         else:
-            # Plusieurs mots : prendre la première lettre de chaque mot (max 5)
-            code = ''.join([word[0].upper() for word in words[:5] if word])
+            # Plusieurs mots : prendre la première lettre de chaque mot (max 6)
+            code = ''.join([word[0].upper() for word in words[:6] if word])
             # Si le code est trop court, compléter avec les premières lettres du premier mot
             if len(code) < 3 and words:
-                code = (words[0][:3] + code).upper()[:5]
+                code = (words[0][:3] + code).upper()[:6]
         
         return code
     
@@ -197,6 +339,9 @@ class StockInventory(models.Model):
     _order = 'date desc, id desc'
     _rec_name = 'name'
     _rec_names_search = ['name']
+
+    # Champ requis pour le widget badge
+    color = fields.Integer(string='Couleur', default=0)
 
     name = fields.Char(
         string='Référence',
@@ -327,10 +472,7 @@ class StockInventory(models.Model):
     
     company_currency_id = fields.Many2one(comodel_name='res.currency', string='Devise', related='company_id.currency_id', store=False)
     
-    _sql_constraints = [
-        ('name_company_uniq', 'unique(name, company_id)', 
-         'La référence doit être unique par société !'),
-    ]
+    _name_company_uniq = models.UniqueIndex("(name, company_id)")
     
     @api.depends('account_move_ids')
     def _compute_account_move_count(self):
@@ -1275,6 +1417,9 @@ class StockInventoryLine(models.Model):
     _description = 'Ligne d\'inventaire'
     _order = 'product_id, id'
     _rec_name = 'product_id'
+    
+    # Champ requis pour le widget badge
+    color = fields.Integer(string='Couleur', default=0)
     
     inventory_id = fields.Many2one(
         comodel_name='stockex.stock.inventory',

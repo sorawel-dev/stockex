@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue Pivot -->
+    <record id="view_stock_analysis_pivot" model="ir.ui.view">
+        <field name="name">stockex.stock.analysis.pivot</field>
+        <field name="model">stockex.stock.analysis</field>
+        <field name="arch" type="xml">
+            <pivot string="Analyse Pivot des Stocks" sample="1">
+                <field name="warehouse_id" type="row"/>
+                <field name="categ_id" type="row"/>
+                <field name="quantity_on_hand" type="measure"/>
+                <field name="value_on_hand" type="measure"/>
+                <field name="depreciated_value" type="measure"/>
+                <field name="inventory_difference_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Vue Graphique -->
+    <record id="view_stock_analysis_graph" model="ir.ui.view">
+        <field name="name">stockex.stock.analysis.graph</field>
+        <field name="model">stockex.stock.analysis</field>
+        <field name="arch" type="xml">
+            <graph string="Analyse Graphique des Stocks" type="bar" sample="1">
+                <field name="warehouse_id"/>
+                <field name="value_on_hand" type="measure"/>
+                <field name="depreciated_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Vue Liste -->
+    <record id="view_stock_analysis_tree" model="ir.ui.view">
+        <field name="name">stockex.stock.analysis.tree</field>
+        <field name="model">stockex.stock.analysis</field>
+        <field name="arch" type="xml">
+            <list string="Analyse des Stocks" sample="1" 
+                  decoration-danger="has_negative_stock or is_stockout"
+                  decoration-warning="rotation_status == 'slow'"
+                  decoration-muted="rotation_status == 'dead'">
+                <field name="date"/>
+                <field name="product_id"/>
+                <field name="default_code"/>
+                <field name="categ_id"/>
+                <field name="warehouse_id"/>
+                <field name="quantity_on_hand" sum="Total"/>
+                <field name="quantity_available" sum="Total"/>
+                <field name="quantity_reserved" sum="Total"/>
+                <field name="value_on_hand" sum="Total"/>
+                <field name="depreciated_value" sum="Total"/>
+                <field name="rotation_status"/>
+                <field name="days_since_last_move"/>
+                <field name="depreciation_rate"/>
+                <field name="is_stockout" column_invisible="1"/>
+                <field name="has_negative_stock" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue Formulaire -->
+    <record id="view_stock_analysis_form" model="ir.ui.view">
+        <field name="name">stockex.stock.analysis.form</field>
+        <field name="model">stockex.stock.analysis</field>
+        <field name="arch" type="xml">
+            <form string="Détail Analyse Stock" create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="product_id"/>
+                        </h1>
+                        <h3>
+                            <field name="default_code"/> - <field name="barcode"/>
+                        </h3>
+                    </div>
+                    
+                    <group>
+                        <group string="📦 Informations Produit">
+                            <field name="product_tmpl_id"/>
+                            <field name="categ_id"/>
+                            <field name="product_type"/>
+                            <field name="warehouse_id"/>
+                            <field name="location_id"/>
+                        </group>
+                        
+                        <group string="📊 Classification">
+                            <field name="abc_classification"/>
+                            <field name="rotation_status" 
+                                   decoration-success="rotation_status == 'active'"
+                                   decoration-warning="rotation_status == 'slow'"
+                                   decoration-danger="rotation_status == 'dead'"/>
+                            <field name="last_move_date"/>
+                            <field name="days_since_last_move"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="📈 Quantités" name="quantities">
+                            <group>
+                                <group string="Stock Actuel">
+                                    <field name="quantity_on_hand"/>
+                                    <field name="quantity_available"/>
+                                    <field name="quantity_reserved"/>
+                                </group>
+                                <group string="Mouvements Prévisionnels">
+                                    <field name="quantity_incoming"/>
+                                    <field name="quantity_outgoing"/>
+                                </group>
+                            </group>
+                        </page>
+                        
+                        <page string="💰 Valorisation" name="valuation">
+                            <group>
+                                <group string="Prix">
+                                    <field name="standard_price"/>
+                                    <field name="economic_price"/>
+                                </group>
+                                <group string="Valeurs Totales">
+                                    <field name="value_on_hand"/>
+                                    <field name="value_available"/>
+                                    <field name="value_reserved"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Décote">
+                                    <field name="depreciation_rate"/>
+                                    <field name="depreciated_value"/>
+                                </group>
+                            </group>
+                        </page>
+                        
+                        <page string="📋 Inventaire" name="inventory">
+                            <group>
+                                <group>
+                                    <field name="inventory_id"/>
+                                    <field name="inventory_date"/>
+                                    <field name="inventory_qty"/>
+                                    <field name="inventory_value"/>
+                                </group>
+                                <group string="Écarts">
+                                    <field name="inventory_difference"/>
+                                    <field name="inventory_difference_value"/>
+                                </group>
+                            </group>
+                        </page>
+                        
+                        <page string="⚡ Indicateurs" name="kpis">
+                            <group>
+                                <group string="Performance">
+                                    <field name="stock_coverage_days"/>
+                                    <field name="turnover_rate"/>
+                                </group>
+                                <group string="Alertes">
+                                    <field name="is_stockout"/>
+                                    <field name="is_overstock"/>
+                                    <field name="has_negative_stock"/>
+                                    <field name="needs_recount"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vue Recherche avec filtres multicritères -->
+    <record id="view_stock_analysis_search" model="ir.ui.view">
+        <field name="name">stockex.stock.analysis.search</field>
+        <field name="model">stockex.stock.analysis</field>
+        <field name="arch" type="xml">
+            <search string="Recherche Analyse Stocks">
+                <!-- Champs de recherche -->
+                <field name="product_id" string="Produit"/>
+                <field name="default_code" string="Référence"/>
+                <field name="barcode" string="Code-Barres"/>
+                <field name="categ_id" string="Catégorie"/>
+                <field name="warehouse_id" string="Entrepôt"/>
+                
+                <!-- Filtres prédéfinis -->
+                <separator/>
+                <filter string="🔴 Rupture de Stock" name="filter_stockout" 
+                        domain="[('is_stockout', '=', True)]"/>
+                <filter string="📉 Stock Négatif" name="filter_negative" 
+                        domain="[('has_negative_stock', '=', True)]"/>
+                <filter string="⚠️ Surstock" name="filter_overstock" 
+                        domain="[('is_overstock', '=', True)]"/>
+                <filter string="🔄 Recompte Nécessaire" name="filter_recount" 
+                        domain="[('needs_recount', '=', True)]"/>
+                
+                <separator/>
+                <filter string="🟢 Stock Actif" name="filter_active" 
+                        domain="[('rotation_status', '=', 'active')]"/>
+                <filter string="🟠 Rotation Lente" name="filter_slow" 
+                        domain="[('rotation_status', '=', 'slow')]"/>
+                <filter string="⚫ Stock Mort" name="filter_dead" 
+                        domain="[('rotation_status', '=', 'dead')]"/>
+                
+                <separator/>
+                <filter string="📊 Classe A" name="filter_abc_a" 
+                        domain="[('abc_classification', '=', 'A')]"/>
+                <filter string="📊 Classe B" name="filter_abc_b" 
+                        domain="[('abc_classification', '=', 'B')]"/>
+                <filter string="📊 Classe C" name="filter_abc_c" 
+                        domain="[('abc_classification', '=', 'C')]"/>
+                
+                <separator/>
+                <filter string="📦 Articles Stockables" name="filter_storable" 
+                        domain="[('product_type', '=', 'product')]"/>
+                <filter string="🔧 Consommables" name="filter_consu" 
+                        domain="[('product_type', '=', 'consu')]"/>
+                
+                <!-- Filtres de date -->
+                <separator/>
+                <filter string="📅 Ce Mois" name="filter_this_month" 
+                        domain="[('date', '&gt;=', (context_today() - relativedelta(months=1)).strftime('%Y-%m-01'))]"/>
+                <filter string="📅 Ce Trimestre" name="filter_this_quarter" 
+                        domain="[('date', '&gt;=', (context_today() - relativedelta(months=3)).strftime('%Y-%m-01'))]"/>
+                <filter string="📅 Cette Année" name="filter_this_year" 
+                        domain="[('date', '&gt;=', time.strftime('%Y-01-01'))]"/>
+                
+                <!-- Filtres de valeur -->
+                <separator/>
+                <filter string="💰 Valeur &gt; 1M FCFA" name="filter_high_value" 
+                        domain="[('value_on_hand', '&gt;', 1000000)]"/>
+                <filter string="💰 Valeur &gt; 100K FCFA" name="filter_medium_value" 
+                        domain="[('value_on_hand', '&gt;', 100000)]"/>
+                <filter string="💰 Valeur &lt; 10K FCFA" name="filter_low_value" 
+                        domain="[('value_on_hand', '&lt;', 10000)]"/>
+                
+                <!-- Groupements -->
+                <filter string="Entrepôt" name="group_by_warehouse" 
+                        context="{'group_by': 'warehouse_id'}"/>
+                <filter string="Catégorie" name="group_by_category" 
+                        context="{'group_by': 'categ_id'}"/>
+                <filter string="Statut Rotation" name="group_by_rotation" 
+                        context="{'group_by': 'rotation_status'}"/>
+                <filter string="Classification ABC" name="group_by_abc" 
+                        context="{'group_by': 'abc_classification'}"/>
+                <filter string="Type Produit" name="group_by_type" 
+                        context="{'group_by': 'product_type'}"/>
+                <filter string="Date" name="group_by_date" 
+                        context="{'group_by': 'date'}"/>
+                <filter string="Mois" name="group_by_month" 
+                        context="{'group_by': 'date:month'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action pour ouvrir l'analyse -->
+    <record id="action_stock_analysis" model="ir.actions.act_window">
+        <field name="name">📊 Analyse Complète des Stocks</field>
+        <field name="res_model">stockex.stock.analysis</field>
+       <field name="view_mode">pivot,graph,list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('view_stock_analysis_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('view_stock_analysis_graph')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_stock_analysis_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_stock_analysis_form')})]"/>
+        <field name="context">{
+            'search_default_group_by_warehouse': 1,
+            'pivot_measures': ['quantity_on_hand', 'value_on_hand', 'depreciated_value'],
+            'graph_type': 'bar'
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                📊 Analyse Puissante des Stocks
+            </p>
+            <p>
+                Explorez vos stocks avec des vues multidimensionnelles :
+                <ul>
+                    <li>📈 Pivot : Croisements et agrégations dynamiques</li>
+                    <li>📊 Graphiques : Visualisations interactives</li>
+                    <li>📋 Listes : Détails et alertes</li>
+                    <li>🔍 Filtres : Recherche multicritères avancée</li>
+                </ul>
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu déplacé vers menus.xml pour assurer que le parent existe -->
+</odoo>

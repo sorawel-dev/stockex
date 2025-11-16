@@ -16,6 +16,14 @@ class StockLocation(models.Model):
         store=False
     )
     
+    # Entrepôt associé (calculé)
+    warehouse_id = fields.Many2one(
+        'stock.warehouse',
+        string='Entrepôt',
+        compute='_compute_warehouse_id',
+        store=True
+    )
+    
     # Code-barres pour l'emplacement
     barcode = fields.Char(
         string='Code-barres',
@@ -62,6 +70,31 @@ class StockLocation(models.Model):
     email = fields.Char(
         string='Email',
         help='Email de contact pour l\'emplacement'
+    )
+    
+    # Champs pour Smart Buttons
+    currency_id = fields.Many2one(
+        'res.currency',
+        string='Devise',
+        related='company_id.currency_id',
+        store=True,
+        readonly=True
+    )
+    stock_value = fields.Monetary(
+        string='Valeur du stock',
+        currency_field='currency_id',
+        compute='_compute_stock_value',
+        store=False
+    )
+    move_count = fields.Integer(
+        string='Mouvements',
+        compute='_compute_move_count',
+        store=False
+    )
+    quant_count = fields.Integer(
+        string='Articles en stock',
+        compute='_compute_quant_count',
+        store=False
     )
     
     # Champ calculé pour afficher les coordonnées
@@ -182,11 +215,74 @@ class StockLocation(models.Model):
                 else:
                     location.complete_name = location.name
     
-    @api.depends('name', 'complete_name')
+    @api.depends('name', 'complete_name', 'location_id', 'location_id.name')
     def _compute_display_name(self):
-        """Calcule le nom d'affichage avec le complete_name formaté."""
+        """Calcule un libellé explicite: CODE_ENTREPÔT | Nom complet."""
         for record in self:
-            record.display_name = record.complete_name or record.name
+            # Trouver l'entrepôt via la racine view_location_id
+            warehouse = False
+            loc = record
+            try:
+                while loc:
+                    warehouse = self.env['stock.warehouse'].search([('view_location_id', '=', loc.id)], limit=1)
+                    if warehouse:
+                        break
+                    loc = loc.location_id
+            except Exception:
+                warehouse = False
+            base = record.complete_name or record.name
+            if warehouse and warehouse.code and base:
+                record.display_name = f"{warehouse.code} | {base}"
+            else:
+                record.display_name = base
+    
+    @api.depends('location_id', 'location_id.name')
+    def _compute_warehouse_id(self):
+        """Détermine l'entrepôt auquel appartient l'emplacement (via view_location_id)."""
+        for rec in self:
+            rec.warehouse_id = False
+            loc = rec
+            try:
+                while loc:
+                    wh = self.env['stock.warehouse'].search([('view_location_id', '=', loc.id)], limit=1)
+                    if wh:
+                        rec.warehouse_id = wh
+                        break
+                    loc = loc.location_id
+            except Exception:
+                rec.warehouse_id = False
+    
+    @api.onchange('warehouse_id')
+    def _onchange_warehouse_city(self):
+        """Met à jour automatiquement la ville de l'emplacement avec celle de l'entrepôt."""
+        if self.warehouse_id and self.warehouse_id.city and not self.city:
+            self.city = self.warehouse_id.city
+    
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Hérite la ville de l'entrepôt à la création si non spécifiée."""
+        for vals in vals_list:
+            # Si la ville n'est pas spécifiée, essayer de la récupérer de l'entrepôt
+            if not vals.get('city'):
+                # Chercher l'entrepôt via location_id
+                if vals.get('location_id'):
+                    location = self.browse(vals['location_id'])
+                    warehouse = False
+                    loc = location
+                    try:
+                        while loc:
+                            wh = self.env['stock.warehouse'].search([('view_location_id', '=', loc.id)], limit=1)
+                            if wh:
+                                warehouse = wh
+                                break
+                            loc = loc.location_id
+                    except Exception:
+                        warehouse = False
+                    
+                    if warehouse and warehouse.city:
+                        vals['city'] = warehouse.city
+        
+        return super(StockLocation, self).create(vals_list)
     
     @api.depends('latitude', 'longitude')
     def _compute_coordinates(self):
@@ -206,6 +302,66 @@ class StockLocation(models.Model):
             else:
                 record.google_maps_url = False
     
+    def _compute_quant_count(self):
+        for rec in self:
+            domain = [('location_id', 'child_of', rec.id), ('quantity', '>', 0)]
+            rec.quant_count = self.env['stock.quant'].search_count(domain)
+    
+    def _compute_move_count(self):
+        for rec in self:
+            domain = ['|', ('location_id', 'child_of', rec.id), ('location_dest_id', 'child_of', rec.id), ('state', '=', 'done')]
+            # Note: 'state' filter applies to moves; handled by concatenating domain properly
+            domain = ['|', ('location_id', 'child_of', rec.id), ('location_dest_id', 'child_of', rec.id)] + [('state', '=', 'done')]
+            rec.move_count = self.env['stock.move'].search_count(domain)
+    
+    def _compute_stock_value(self):
+        for rec in self:
+            total = 0.0
+            quants = self.env['stock.quant'].search([('location_id', 'child_of', rec.id), ('quantity', '>', 0)])
+            for q in quants:
+                total += (q.quantity or 0.0) * (q.product_id.standard_price or 0.0)
+            rec.stock_value = total
+    
+    def action_open_stock_value(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Valorisation du stock',
+            'res_model': 'product.product',
+            'view_mode': 'list,form',
+            'domain': [('qty_available', '!=', 0)],
+            'context': {
+                'search_default_real_stock_available': 1,
+                'location': self.id,
+            },
+        }
+    
+    def action_open_moves(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Mouvements de stock',
+            'res_model': 'stock.move',
+            'view_mode': 'list,form,pivot,graph',
+            'domain': ['|', ('location_id', 'child_of', self.id), ('location_dest_id', 'child_of', self.id)],
+            'context': {
+                'search_default_done': 1,
+            },
+        }
+    
+    def action_open_quants(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Articles en stock',
+            'res_model': 'stock.quant',
+            'view_mode': 'list,form',
+            'domain': [('location_id', 'child_of', self.id), ('quantity', '>', 0)],
+            'context': {
+                'search_default_productgroup': 1,
+                'search_default_locationgroup': 1,
+            },
+        }
     def action_open_map(self):
         """Ouvre Google Maps dans un nouvel onglet."""
         self.ensure_one()

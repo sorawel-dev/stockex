@@ -58,7 +58,7 @@
                                 </group>
                             </group>
                             
-                            <div class="alert alert-info">
+                            <div class="alert alert-info" role="status">
                                 <h5>💡 Comment définir le mapping ?</h5>
                                 <p>
                                     Entrez le nom exact des champs tels qu'ils apparaissent dans votre formulaire Kobo.
@@ -99,12 +99,12 @@
                                 </group>
                             </group>
                             
-                            <div class="alert alert-warning" invisible="not auto_import or cron_active">
+                            <div class="alert alert-warning" role="alert" invisible="not auto_import or cron_active">
                                 <strong>⚠️ Attention :</strong> L'import automatique est activé mais le CRON est désactivé.
                                 Activez le CRON ci-dessus pour que les imports automatiques fonctionnent.
                             </div>
                             
-                            <div class="alert alert-info">
+                            <div class="alert alert-info" role="status">
                                 <h5>💡 Recommandations d'intervalle :</h5>
                                 <ul>
                                     <li><strong>30 minutes</strong> : Pour inventaires très actifs (peut surcharger)</li>
@@ -125,7 +125,7 @@
                                     <field name="telegram_enabled" widget="boolean_toggle"/>
                                 </group>
                                 <group invisible="not telegram_enabled">
-                                    <div class="alert alert-info">
+                                    <div class="alert alert-info" role="status">
                                         <p>Les notifications Telegram utilisent les paramètres globaux configurés dans <strong>Paramètres → Configuration Stockex</strong>.</p>
                                         <p>Assurez-vous que le Token Bot et le Chat ID sont correctement configurés dans les paramètres généraux.</p>
                                     </div>
@@ -153,7 +153,7 @@
                         </page>
                         
                         <page string="📖 Guide Configuration" name="help">
-                            <div class="alert alert-info">
+                            <div class="alert alert-info" role="status">
                                 <h4>Comment configurer Kobo Collect ?</h4>
                                 
                                 <h5>1. Obtenir le Token API</h5>

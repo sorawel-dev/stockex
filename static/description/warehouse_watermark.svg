@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Icône d'entrepôt en style minimaliste pour filigrane -->
+  <g fill="#6c757d" opacity="0.3">
+    <!-- Toit principal -->
+    <path d="M256 32l224 128v32H32v-32L256 32z"/>
+    <!-- Corps du bâtiment -->
+    <rect x="64" y="192" width="384" height="288" rx="8"/>
+    <!-- Grande porte centrale -->
+    <rect x="196" y="280" width="120" height="160" fill="#fff" opacity="0.5"/>
+    <!-- Fenêtres gauches -->
+    <rect x="96" y="220" width="60" height="60" fill="#fff" opacity="0.5"/>
+    <rect x="96" y="300" width="60" height="60" fill="#fff" opacity="0.5"/>
+    <rect x="96" y="380" width="60" height="60" fill="#fff" opacity="0.5"/>
+    <!-- Fenêtres droites -->
+    <rect x="356" y="220" width="60" height="60" fill="#fff" opacity="0.5"/>
+    <rect x="356" y="300" width="60" height="60" fill="#fff" opacity="0.5"/>
+    <rect x="356" y="380" width="60" height="60" fill="#fff" opacity="0.5"/>
+  </g>
+</svg>

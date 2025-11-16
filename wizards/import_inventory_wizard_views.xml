@@ -51,14 +51,13 @@
                 </sheet>
                 
                 <footer>
-                    <button name="action_preview" string="Prévisualiser" 
-                            type="object" class="btn-secondary" 
-                            icon="fa-search"/>
-                    <button name="action_import" string="Importer" 
-                            type="object" class="oe_highlight" 
-                            icon="fa-upload"
-                            invisible="not preview_done"/>
-                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                    <div class="d-flex justify-content-between flex-wrap gap-2">
+                        <button string="Annuler" class="btn-secondary" special="cancel"/>
+                        <div>
+                            <button name="action_preview" string="Prévisualiser" type="object" class="btn-secondary me-2"/>
+                            <button name="action_import" string="Importer" type="object" class="btn-primary" invisible="not preview_done"/>
+                        </div>
+                    </div>
                 </footer>
             </form>
         </field>

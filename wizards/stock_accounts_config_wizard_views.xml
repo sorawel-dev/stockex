@@ -11,7 +11,7 @@
                 
                 <!-- Étape 1: Recherche -->
                 <group invisible="state != 'search'">
-                    <div class="alert alert-info" style="margin: 10px 0;">
+                    <div class="alert alert-info" role="status" style="margin: 10px 0;">
                         <h4>📊 Configuration des Comptes Comptables OHADA</h4>
                         <p>Cet assistant va rechercher automatiquement les comptes OHADA dans votre plan comptable et les affecter aux catégories de produits.</p>
                         <p><strong>Comptes recherchés :</strong></p>

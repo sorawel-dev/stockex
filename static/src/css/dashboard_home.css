@@ -291,8 +291,8 @@
 @media (min-width: 1200px) {
     .o_stockex_dashboard_main {
         padding: 20px;
-        max-width: 1400px;
-        margin: 0 auto;
+        width: 100%;
+        margin: 0;
     }
     
     .o_stockex_dashboard_main .o_kanban_card-header_title .o_primary h3, .o_stockex_dashboard_main .o_kanban_card_header_title .o_primary h3 {

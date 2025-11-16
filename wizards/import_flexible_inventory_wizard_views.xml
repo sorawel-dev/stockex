@@ -24,34 +24,16 @@
                         <field name="create_warehouses"/>
                         <field name="create_locations"/>
                         <field name="update_prices"/>
-                        <field name="default_price"/>
+
                     </group>
                 </group>
                 
                 <group string="Multi-Entrepôts" invisible="state != 'draft'">
                     <field name="multi_warehouse_mode" widget="radio"/>
-                    <div class="text-muted" style="margin-top: 10px;">
-                        <p><strong>Inventaire Global</strong> : Toutes les données dans un seul inventaire (recommandé pour analyse globale)</p>
-                        <p><strong>Inventaires Séparés</strong> : Un inventaire par entrepôt (recommandé pour validation séparée par magasin)</p>
-                    </div>
+
                 </group>
                 
-                <div class="alert alert-info" role="alert" invisible="state != 'draft'">
-                    <strong>📋 Format Flexible</strong><br/>
-                    Ce wizard détecte automatiquement vos colonnes :<br/>
-                    <ul style="margin-top: 10px;">
-                        <li><strong>CODE PRODUIT</strong> : Material, Code d'article, Code...</li>
-                        <li><strong>QUANTITE</strong> : Quantité, quantite, Quantity...</li>
-                        <li><strong>PRODUIT</strong> (optionnel) : Material Description, Nom du Materiel...</li>
-                        <li><strong>PRIX UNITAIRE</strong> (optionnel) : Prix, Price... (sinon utilise prix par défaut)</li>
-                        <li><strong>CATEGORIE</strong> (optionnel) : Type d'article, Category...</li>
-                        <li><strong>ENTREPOT</strong> (optionnel) : Magasin, Warehouse, Location...</li>
-                        <li><strong>SOUS-MAGASIN</strong> (optionnel) : Nom du Sous-magasin, Sub-location...</li>
-                        <li><strong>RANGER/RAYON</strong> (optionnel) : Ranger, Rayon, Aisle...</li>
-                        <li><strong>CASIER</strong> (optionnel) : Casier, Étagère, Rack, Shelf...</li>
-                    </ul>
-                    <p style="margin-top: 10px;"><em>Les emplacements enfants sont automatiquement créés sous l'entrepôt parent pour organiser votre stock (ex: Entrepôt → Sous-magasin → Ranger → Casier)</em></p>
-                </div>
+
                 
                 <!-- Étape 2: Prévisualisation -->
                 <group invisible="state != 'preview'">
@@ -59,15 +41,13 @@
                 </group>
                 
                 <footer>
-                    <!-- Boutons étape 1 -->
-                    <button name="action_preview" type="object" string="🔍 Prévisualiser" class="btn-primary" 
-                            invisible="state != 'draft'"/>
-                    
-                    <!-- Boutons étape 2 -->
-                    <button name="action_import" type="object" string="✅ Confirmer l'Import" class="btn-primary" 
-                            invisible="state != 'preview'"/>
-                    
-                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                    <div class="d-flex justify-content-between flex-wrap gap-2">
+                        <button string="Annuler" class="btn-secondary" special="cancel"/>
+                        <div>
+                            <button name="action_preview" type="object" string="Prévisualiser" class="btn-secondary me-2" invisible="state != 'draft'"/>
+                            <button name="action_import" type="object" string="Confirmer l'Import" class="btn-primary" invisible="state != 'preview'"/>
+                        </div>
+                    </div>
                 </footer>
             </form>
         </field>

@@ -157,6 +157,57 @@ class ResConfigSettings(models.TransientModel):
         help='Choix de la règle de valorisation pour les calculs de valeur de stock'
     )
     
+    @api.onchange('stockex_valuation_rule')
+    def _onchange_stockex_valuation_rule(self):
+        """Avertit l'utilisateur que les catégories seront mises à jour."""
+        if self.stockex_valuation_rule == 'economic':
+            return {
+                'warning': {
+                    'title': 'Mise à jour des catégories',
+                    'message': 'Les catégories de produits seront mises à jour avec la méthode "Coût économique réel" lors de la sauvegarde.'
+                }
+            }
+    
+    def set_values(self):
+        """Surcharge pour mettre à jour les catégories lors de la sauvegarde."""
+        super(ResConfigSettings, self).set_values()
+        
+        # Si la règle de valorisation est changée à 'economic', mettre à jour toutes les catégories
+        if self.stockex_valuation_rule == 'economic':
+            self._update_product_categories_cost_method('economic')
+        elif self.stockex_valuation_rule == 'standard':
+            self._update_product_categories_cost_method('standard')
+    
+    def _update_product_categories_cost_method(self, cost_method):
+        """Met à jour la méthode de coût de toutes les catégories de produits.
+        
+        Args:
+            cost_method (str): 'economic' ou 'standard'
+        """
+        ProductCategory = self.env['product.category']
+        
+        # Vérifier si le module stock_account est installé
+        if not hasattr(ProductCategory, 'property_cost_method'):
+            return
+        
+        # Récupérer toutes les catégories
+        categories = ProductCategory.search([])
+        
+        # Mettre à jour la méthode de coût pour chaque catégorie
+        # Utilisation de sudo() pour avoir les droits d'écriture
+        for category in categories.sudo():
+            try:
+                # Vérifier si la catégorie a déjà une méthode de coût personnalisée
+                # Si oui, on la met à jour, sinon on crée la propriété
+                category.property_cost_method = cost_method
+            except Exception as e:
+                # Logger l'erreur mais continuer avec les autres catégories
+                import logging
+                _logger = logging.getLogger(__name__)
+                _logger.warning(
+                    f"Impossible de mettre à jour la méthode de coût pour la catégorie {category.name}: {str(e)}"
+                )
+    
     # Décote selon rotation du stock
     stockex_apply_depreciation = fields.Boolean(
         string='Appliquer la décote selon rotation',
@@ -240,6 +291,16 @@ class ResConfigSettings(models.TransientModel):
             'type': 'ir.actions.act_window',
             'name': 'Configuration Kobo Collect',
             'res_model': 'stockex.kobo.config',
+            'view_mode': 'list,form',
+            'target': 'current',
+        }
+    
+    def action_open_eneo_regions(self):
+        """Ouvre la liste des régions électriques ENEO."""
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Régions Électriques ENEO',
+            'res_model': 'stockex.eneo.region',
             'view_mode': 'list,form',
             'target': 'current',
         }

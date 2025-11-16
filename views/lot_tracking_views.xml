@@ -16,7 +16,7 @@
                 <field name="lot_name"/>
                 <field name="expiration_date"/>
                 <field name="days_to_expiry" optional="show"/>
-                <field name="lot_state" widget="badge" 
+                <field name="lot_state"
                        decoration-success="lot_state == 'good'"
                        decoration-warning="lot_state == 'warning'"
                        decoration-danger="lot_state == 'expired'"
@@ -138,7 +138,7 @@
                                 <field name="lot_id" options="{'no_create': True}"/>
                                 <field name="expiration_date"/>
                                 <field name="days_to_expiry"/>
-                                <field name="lot_state" widget="badge"/>
+                                <field name="lot_state"/>
                                 <field name="theoretical_qty"/>
                                 <field name="real_qty"/>
                                 <field name="difference"/>
@@ -196,51 +196,55 @@
                 </button>
             </xpath>
             
-            <!-- Ajout onglet traçabilité -->
-            <xpath expr="//notebook" position="inside">
-                <page string="Traçabilité &amp; Conformité" name="traceability">
-                    <group>
-                        <group name="supplier_traceability">
-                            <label for="supplier_lot_number"/>
-                            <div>
-                                <field name="supplier_lot_number" class="oe_inline"/>
-                            </div>
-                            <label for="internal_lot_number"/>
-                            <div>
-                                <field name="internal_lot_number" class="oe_inline"/>
-                            </div>
+            <!-- Ajout onglet traçabilité après le groupe principal -->
+            <xpath expr="//field[@name='lot_properties']" position="after">
+                <notebook>
+                    <page string="Traçabilité &amp; Conformité" name="traceability">
+                        <group>
+                            <group name="supplier_traceability">
+                                <label for="supplier_lot_number"/>
+                                <div>
+                                    <field name="supplier_lot_number" class="oe_inline"/>
+                                </div>
+                                <label for="internal_lot_number"/>
+                                <div>
+                                    <field name="internal_lot_number" class="oe_inline"/>
+                                </div>
+                            </group>
+                            <group name="dates_manu">
+                                <field name="manufacturing_date"/>
+                                <field name="reception_date"/>
+                            </group>
                         </group>
-                        <group name="dates_manu">
-                            <field name="manufacturing_date"/>
-                            <field name="reception_date"/>
+                        
+                        <group>
+                            <group name="quality">
+                                <field name="quality_status"
+                                       decoration-success="quality_status == 'approved'"
+                                       decoration-danger="quality_status == 'rejected'"
+                                       decoration-warning="quality_status == 'quarantine'"/>
+                                <field name="certificate_of_analysis" filename="certificate_filename"/>
+                                <field name="certificate_filename" invisible="1"/>
+                            </group>
+                            <group name="alerts">
+                                <field name="alert_expiry_days"/>
+                                <field name="is_expiring_soon" readonly="1"/>
+                                <field name="is_expired" readonly="1"/>
+                            </group>
                         </group>
-                    </group>
-                    
-                    <group>
-                        <group name="quality">
-                            <field name="quality_status" widget="badge"
-                                   decoration-success="quality_status == 'approved'"
-                                   decoration-danger="quality_status == 'rejected'"
-                                   decoration-warning="quality_status == 'quarantine'"/>
-                            <field name="certificate_of_analysis" filename="certificate_filename"/>
-                            <field name="certificate_filename" invisible="1"/>
+                        
+                        <group>
+                            <field name="compliance_notes" placeholder="Notes pour audit et conformité réglementaire..."/>
                         </group>
-                        <group name="alerts">
-                            <field name="alert_expiry_days"/>
-                            <field name="is_expiring_soon" readonly="1"/>
-                            <field name="is_expired" readonly="1"/>
-                        </group>
-                    </group>
-                    
-                    <group>
-                        <field name="compliance_notes" placeholder="Notes pour audit et conformité réglementaire..."/>
-                    </group>
-                </page>
+                    </page>
+                </notebook>
             </xpath>
         </field>
     </record>
     
     <!-- Vue Tree Lot avec alertes -->
+    <!-- NOTE: Cette vue nécessite le module product_expiry pour le champ expiration_date/expiration_time -->
+    <!--
     <record id="view_stock_lot_tree_alerts" model="ir.ui.view">
         <field name="name">stock.lot.tree.alerts</field>
         <field name="model">stock.lot</field>
@@ -258,8 +262,11 @@
             </xpath>
         </field>
     </record>
+    -->
     
     <!-- Filtre Lots Expirants -->
+    <!-- NOTE: Cette vue nécessite le module product_expiry pour les champs d'expiration -->
+    <!--
     <record id="view_stock_lot_search_expiry" model="ir.ui.view">
         <field name="name">stock.lot.search.expiry</field>
         <field name="model">stock.lot</field>
@@ -279,8 +286,11 @@
             </xpath>
         </field>
     </record>
+    -->
     
     <!-- Menu Lots Expirants -->
+    <!-- NOTE: Cette action nécessite le module product_expiry -->
+    <!--
     <record id="action_stock_lot_expiring" model="ir.actions.act_window">
         <field name="name">Lots Expirant Bientôt</field>
         <field name="res_model">stock.lot</field>
@@ -297,11 +307,7 @@
             </p>
         </field>
     </record>
+    -->
     
-    <menuitem id="menu_stock_lot_expiring"
-              name="Lots Expirant"
-              parent="stockex.menu_stockex_reports"
-              action="action_stock_lot_expiring"
-              sequence="50"/>
-
+    <!-- Menu déplacé vers menus.xml pour garantir que le parent existe -->
 </odoo>

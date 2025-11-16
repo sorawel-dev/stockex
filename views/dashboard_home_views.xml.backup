@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Action pour la page d'accueil -->
+    <record id="action_stockex_dashboard_home" model="ir.actions.act_window">
+        <field name="name">Vue d'Ensemble</field>
+        <field name="res_model">stockex.inventory.summary</field>
+        <field name="view_mode">kanban</field>
+        <field name="res_id" ref="inventory_summary_default"/>
+        <field name="target">current</field>
+        <field name="context">{'form_view_initial_mode': 'readonly'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                👋 Bienvenue dans la Gestion d'Inventaire !
+            </p>
+            <p>
+                Créez votre premier inventaire pour commencer à gérer vos stocks.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Vue Kanban améliorée pour la page d'accueil avec Filtres -->
+    <record id="view_inventory_summary_kanban_dashboard" model="ir.ui.view">
+        <field name="name">stockex.inventory.summary.kanban.dashboard</field>
+        <field name="model">stockex.inventory.summary</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <kanban create="false" edit="false" delete="false" class="o_kanban_dashboard o_stockex_dashboard">
+                <field name="total_inventories"/>
+                <field name="total_inventories_done"/>
+                <field name="total_products_all"/>
+                <field name="total_quantity_all"/>
+                <field name="total_value_all"/>
+                <field name="total_value_all_fcfa"/>
+                <field name="current_stock_value"/>
+                <field name="current_stock_value_no_depreciation"/>
+                <field name="initial_stock_date"/>
+                <field name="company_currency_id"/>
+                <field name="is_economic_valuation"/>
+                <field name="stock_value_difference"/>
+                <field name="stock_value_difference_percent"/>
+                <field name="warehouse_valuation_html"/>
+                <field name="inventoried_warehouse_valuation_html"/>
+                <field name="last_inventory_id"/>
+                <field name="last_inventory_date"/>
+                <field name="last_inventory_products"/>
+                <field name="last_inventory_value"/>
+                <field name="top_categories_html"/>
+                <field name="top_warehouses_html"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click o_stockex_dashboard_main">
+                            
+                            <!-- Header avec titre -->
+                            <div class="o_kanban_card-header mb-4">
+                                <div class="o_kanban_card-header_title">
+                                    <div class="o_primary">
+                                        <h3>✨ Vue d'Ensemble - Gestion d'Inventaire</h3>
+                                    </div>
+                                    <div class="o_secondary">
+                                        📊 Stock actuel vs Stocks inventoriés - Tableau de bord en temps réel
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Section 1: ÉTAT DU STOCK ARRÊTÉ (Stock Initial) -->
+                            <div class="container o_kanban_card_content mt-4">
+                                <div class="row">
+                                    <div class="col-12 mb-4">
+                                        <div class="card border-success">
+                                            <div class="card-header bg-success text-white" style="overflow-x: auto;">
+                                                <h5 class="mb-0" style="white-space: nowrap; font-size: 1.1rem;">📊 STOCK ARRÊTÉ EN DATE DU <field name="initial_stock_date" widget="date"/></h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <!-- Valeur Stock Actuel - Cards avec et sans décote -->
+                                                    <!-- Pleine page si Coût standard, demi-page si Coût économique -->
+                                                    <div t-attf-class="col-12 mb-4 #{record.is_economic_valuation.raw_value and 'col-md-6' or ''}">
+                                                        <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                            <div class="card-body text-center py-5">
+                                                                <div class="mb-3">
+                                                                    <span class="display-1" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">💰</span>
+                                                                </div>
+                                                                <h5 class="text-white text-uppercase mb-3" style="letter-spacing: 2px; font-weight: 600;">Stock Initial (SANS Décote)</h5>
+                                                                <div class="display-3 fw-bold text-white mb-3" style="text-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 3.5rem;">
+                                                                    <field name="current_stock_value_no_depreciation" widget="monetary" options="{'currency_field': 'company_currency_id', 'no_symbol': True}"/> FCFA
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-3">
+                                                                    <span class="badge bg-white text-primary px-4 py-2 fs-6" style="border-radius: 50px;">📊 Valeur Théorique</span>
+                                                                    <span class="badge bg-white bg-opacity-25 text-white px-4 py-2 fs-6" style="border-radius: 50px;">✓ Prix de base</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Stock Initial (AVEC Décote) - Visible uniquement si règle = Coût économique -->
+                                                    <div class="col-12 col-md-6 mb-4" t-if="record.is_economic_valuation.raw_value">
+                                                        <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                                                            <div class="card-body text-center py-5">
+                                                                <div class="mb-3">
+                                                                    <span class="display-1" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">💵</span>
+                                                                </div>
+                                                                <h5 class="text-white text-uppercase mb-3" style="letter-spacing: 2px; font-weight: 600;">Stock Initial (AVEC Décote)</h5>
+                                                                <div class="display-3 fw-bold text-white mb-3" style="text-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 3.5rem;">
+                                                                    <field name="current_stock_value" widget="monetary" options="{'currency_field': 'company_currency_id', 'no_symbol': True}"/> FCFA
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-3">
+                                                                    <span class="badge bg-white text-success px-4 py-2 fs-6" style="border-radius: 50px;">📉 Valeur Réelle</span>
+                                                                    <span class="badge bg-white bg-opacity-25 text-white px-4 py-2 fs-6" style="border-radius: 50px;">✓ Selon rotation</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Valorisation par Entrepôt -->
+                                                    <div class="col-12">
+                                                        <div class="card border-success h-100 shadow">
+                                                            <div class="card-header bg-success text-white">
+                                                                <h5 class="mb-0"><i class="fa fa-warehouse"></i> 🏭 Valorisation Détaillée par Entrepôt</h5>
+                                                            </div>
+                                                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                                                <field name="warehouse_valuation_html" nolabel="1"/>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Section 2: ÉTAT DES STOCKS INVENTORIÉS -->
+                                <div class="row mt-4">
+                                    <div class="col-12 mb-4">
+                                        <div class="card border-primary">
+                                            <div class="card-header bg-primary text-white">
+                                                <h5 class="mb-0">📋 STOCKS INVENTORIÉS (Dernier Inventaire Validé)</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <!-- Card 1: Inventaires Validés CLIQUABLE -->
+                                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-3">
+                                                        <div class="card border-primary h-100" style="cursor: pointer;">
+                                                            <div class="card-body text-center">
+                                                                <div class="fs-3 mb-2">📋</div>
+                                                                <h6 class="card-subtitle mb-2 text-muted">Inventaires (Tous états)</h6>
+                                                                <h3 class="card-title mb-0 text-primary">
+                                                                    <field name="total_inventories"/>
+                                                                </h3>
+                                                                <div class="mt-3">
+                                                                    <button class="btn btn-outline-primary btn-sm w-100" 
+                                                                            name="action_view_inventories" 
+                                                                            type="object">
+                                                                        👁️ Voir tout
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Card 2: Produits Référencés CLIQUABLE -->
+                                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-3">
+                                                        <div class="card border-info h-100" style="cursor: pointer;">
+                                                            <div class="card-body text-center" 
+                                                                 data-oe-model="stockex.inventory.summary" 
+                                                                 t-attf-data-oe-id="#{record.id.raw_value}" 
+                                                                 data-oe-field="action_view_inventoried_products">
+                                                                <div class="fs-3 mb-2">📦</div>
+                                                                <h6 class="card-subtitle mb-2 text-muted">Produits Inventoriés</h6>
+                                                                <h3 class="card-title mb-0 text-info">
+                                                                    <field name="total_products_all" widget="integer"/>
+                                                                </h3>
+                                                                <small class="badge bg-info-subtle text-info mt-2">Références</small>
+                                                                <div class="mt-2">
+                                                                    <button class="btn btn-outline-info btn-sm w-100" 
+                                                                            name="action_view_inventoried_products" 
+                                                                            type="object">
+                                                                        👁️ Voir produits
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Card 3: Quantité NON CLIQUABLE -->
+                                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-3">
+                                                        <div class="card border-info h-100">
+                                                            <div class="card-body text-center">
+                                                                <div class="fs-3 mb-2">📊</div>
+                                                                <h6 class="card-subtitle mb-2 text-muted">Quantité Totale</h6>
+                                                                <h3 class="card-title mb-0 text-info">
+                                                                    <field name="total_quantity_all" widget="integer"/>
+                                                                </h3>
+                                                                <small class="badge bg-info-subtle text-info mt-2">Unités</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Card 4: Valeur Inventoriée NON CLIQUABLE -->
+                                                    <div class="col-12 col-sm-6 col-md-4 col-xl-3 mb-3">
+                                                        <div class="card border-warning h-100">
+                                                            <div class="card-body text-center">
+                                                                <div class="fs-3 mb-2">💵</div>
+                                                                <h6 class="card-subtitle mb-2 text-muted">Valeur Inventoriée</h6>
+                                                                <h3 class="card-title mb-0 text-warning">
+                                                                    <field name="total_value_all" widget="monetary" options="{'currency_field': 'company_currency_id', 'no_symbol': True}"/> FCFA
+                                                                </h3>
+                                                                <small class="badge bg-warning-subtle text-warning mt-2">Dernier inventaire</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Valorisation par Entrepôt NON CLIQUABLE -->
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <div class="card border-warning h-100 shadow">
+                                            <div class="card-header bg-warning text-dark">
+                                                <h5 class="mb-0"><i class="fa fa-warehouse"></i> 🏭 Valorisation Inventoriée par Entrepôt</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="max-height: 400px; overflow-y: auto;">
+                                                    <field name="inventoried_warehouse_valuation_html" nolabel="1"/>
+                                                </div>
+                                                <div class="mt-3 d-flex justify-content-between align-items-center">
+                                                    <button name="%(action_warehouse_valuation_export_wizard)d" type="action" class="btn btn-success btn-sm">📊 Export Excel</button>
+                                                    <button name="%(action_stock_analysis)d" type="action" class="btn btn-info btn-sm">📊 Analyse Complète</button>
+                                                    <button name="action_view_inventories" type="object" class="btn btn-outline-primary btn-sm">📋 Tous les Inventaires</button>
+                                                    <button name="action_view_warehouse_details" type="object" class="btn btn-outline-warning btn-sm">🏭 Voir Entrepôts</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
+    <!-- Action dédiée pour ouvrir cette vue sans remplacer la Vue d'Ensemble -->
+    <record id="action_stockex_dashboard_insights" model="ir.actions.act_window">
+        <field name="name">Dashboard Inventaire &amp; Valorisation</field>
+        <field name="res_model">stockex.inventory.summary</field>
+        <field name="view_mode">kanban</field>
+        <field name="target">current</field>
+        <field name="context">{'form_view_initial_mode': 'readonly'}</field>
+    </record>
+    
+    <!-- Vue Kanban pour Dashboard Insights -->
+    <record id="view_inventory_summary_kanban_insights" model="ir.ui.view">
+        <field name="name">stockex.inventory.summary.kanban.insights</field>
+        <field name="model">stockex.inventory.summary</field>
+        <field name="arch" type="xml">
+            <kanban create="false" edit="false" delete="false" class="o_kanban_dashboard o_stockex_dashboard">
+                <field name="id"/>
+                <field name="total_inventories"/>
+                <field name="total_inventories_done"/>
+                <field name="total_products_all"/>
+                <field name="total_quantity_all"/>
+                <field name="total_value_all"/>
+                <field name="total_value_all_fcfa"/>
+                <field name="current_stock_value"/>
+                <field name="current_stock_value_no_depreciation"/>
+                <field name="initial_stock_date"/>
+                <field name="company_currency_id"/>
+                <field name="is_economic_valuation"/>
+                <field name="stock_value_difference"/>
+                <field name="stock_value_difference_fcfa"/>
+                <field name="stock_value_difference_percent"/>
+                <field name="warehouse_valuation_html"/>
+                <field name="inventoried_warehouse_valuation_html"/>
+                <field name="last_inventory_id"/>
+                <field name="last_inventory_date"/>
+                <field name="last_inventory_products"/>
+                <field name="last_inventory_value"/>
+                <field name="top_categories_html"/>
+                <field name="top_warehouses_html"/>
+                <field name="warehouse_gaps_chart_data"/>
+                <field name="category_value_chart_data"/>
+                <field name="inventory_precision"/>
+                <field name="obsolescence_count"/>
+                <field name="obsolescence_value"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="o_kanban_global_click o_stockex_dashboard_main">
+                            <!-- Header avec titre -->
+                            <div class="o_kanban_card-header mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h2 class="text-white mb-2" style="font-weight: 700; font-size: 1.75rem;">📊 Dashboard Inventaire &amp; Valorisation</h2>
+                                        <p class="text-white text-opacity-75 mb-0" style="font-size: 0.95rem;">Analyse temps réel • Suivi des écarts • Optimisation des stocks</p>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="badge bg-white text-primary px-3 py-2" style="font-size: 0.9rem; border-radius: 50px;">
+                                            <i class="fa fa-clock-o"></i> Mis à jour maintenant
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="container-fluid">
+                                <!-- KPIs avec dimensions uniformes et style moderne -->
+                                <div class="row g-4 mb-4">
+                                    <!-- KPI 1: Valeur Stock -->
+                                    <div class="col-12 col-sm-6 col-lg-3">
+                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 28px rgba(102, 126, 234, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';">
+                                            <div class="card-body text-white p-4">
+                                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                                    <div>
+                                                        <p class="text-white text-opacity-75 mb-1" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Valeur Stock</p>
+                                                        <p class="text-white text-opacity-50 mb-0" style="font-size: 0.75rem;">Inventorié</p>
+                                                    </div>
+                                                    <div class="rounded-circle p-3" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+                                                        <span style="font-size: 1.5rem;">💰</span>
+                                                    </div>
+                                                </div>
+                                                <h2 class="text-white mb-2" style="font-weight: 700; font-size: 1.8rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                    <field name="total_value_all_fcfa" nolabel="1"/>
+                                                </h2>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-white bg-opacity-25 text-white" style="font-size: 0.75rem; border-radius: 6px; padding: 4px 8px;">Stock global</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- KPI 2: Écart Inventaire -->
+                                    <div class="col-12 col-sm-6 col-lg-3">
+                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 28px rgba(245, 87, 108, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';">
+                                            <div class="card-body text-white p-4">
+                                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                                    <div>
+                                                        <p class="text-white text-opacity-75 mb-1" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Écart</p>
+                                                        <p class="text-white text-opacity-50 mb-0" style="font-size: 0.75rem;">Inventaire</p>
+                                                    </div>
+                                                    <div class="rounded-circle p-3" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+                                                        <span style="font-size: 1.5rem;">⚠️</span>
+                                                    </div>
+                                                </div>
+                                                <h2 class="text-white mb-2" style="font-weight: 700; font-size: 1.8rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                    <field name="stock_value_difference_fcfa" nolabel="1"/>
+                                                </h2>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-white bg-opacity-25 text-white" style="font-size: 0.75rem; border-radius: 6px; padding: 4px 8px;">
+                                                        <field name="stock_value_difference_percent"/> %
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- KPI 3: Précision -->
+                                    <div class="col-12 col-sm-6 col-lg-3">
+                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 28px rgba(79, 172, 254, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';">
+                                            <div class="card-body text-white p-4">
+                                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                                    <div>
+                                                        <p class="text-white text-opacity-75 mb-1" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Précision</p>
+                                                        <p class="text-white text-opacity-50 mb-0" style="font-size: 0.75rem;">Objectif ≥ 90%</p>
+                                                    </div>
+                                                    <div class="rounded-circle p-3" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+                                                        <span style="font-size: 1.5rem;">🎯</span>
+                                                    </div>
+                                                </div>
+                                                <h2 class="text-white mb-2" style="font-weight: 700; font-size: 1.8rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                    <field name="inventory_precision" widget="float" options="{'precision': 1}"/>%
+                                                </h2>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-white bg-opacity-25 text-white" style="font-size: 0.75rem; border-radius: 6px; padding: 4px 8px;" t-if="record.inventory_precision.raw_value &gt;= 90">✓ Excellent</span>
+                                                    <span class="badge bg-white bg-opacity-25 text-white" style="font-size: 0.75rem; border-radius: 6px; padding: 4px 8px;" t-if="record.inventory_precision.raw_value &lt; 90 and record.inventory_precision.raw_value &gt;= 80">⚡ Bon</span>
+                                                    <span class="badge bg-white bg-opacity-25 text-white" style="font-size: 0.75rem; border-radius: 6px; padding: 4px 8px;" t-if="record.inventory_precision.raw_value &lt; 80">⚠ À améliorer</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- KPI 4: Obsolescence -->
+                                    <div class="col-12 col-sm-6 col-lg-3">
+                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 12px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 28px rgba(250, 112, 154, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';">
+                                            <div class="card-body text-white p-4">
+                                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                                    <div>
+                                                        <p class="text-white text-opacity-75 mb-1" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Obsolescence</p>
+                                                        <p class="text-white text-opacity-50 mb-0" style="font-size: 0.75rem;">Articles à risque</p>
+                                                    </div>
+                                                    <div class="rounded-circle p-3" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+                                                        <span style="font-size: 1.5rem;">📦</span>
+                                                    </div>
+                                                </div>
+                                                <h2 class="text-white mb-2" style="font-weight: 700; font-size: 1.8rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                    <field name="obsolescence_count"/>
+                                                </h2>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-white bg-opacity-25 text-white" style="font-size: 0.75rem; border-radius: 6px; padding: 4px 8px;">
+                                                        <field name="obsolescence_value" nolabel="1" widget="monetary" options="{'currency_field': 'company_currency_id', 'no_symbol': True}"/>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Graphiques avec style moderne -->
+                                <div class="row g-4 mb-4">
+                                    <!-- Graphique barres écarts -->
+                                    <div class="col-12 col-lg-6">
+                                        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow: hidden;">
+                                            <div class="card-header" style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); border: none; padding: 1rem 1.5rem;">
+                                                <div class="d-flex align-items-center">
+                                                    <span class="me-2" style="font-size: 1.25rem;">📊</span>
+                                                    <h6 class="mb-0 text-white" style="font-weight: 600; font-size: 0.95rem;">Écarts par entrepôt</h6>
+                                                </div>
+                                            </div>
+                                            <div class="card-body" style="padding: 1.5rem; background: #fafbfc;">
+                                                <canvas id="warehouseGapsChart" style="max-height: 320px;" t-att-data-chart="record.warehouse_gaps_chart_data.value"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Graphique donut valeur par famille -->
+                                    <div class="col-12 col-lg-6">
+                                        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow: hidden;">
+                                            <div class="card-header" style="background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border: none; padding: 1rem 1.5rem;">
+                                                <div class="d-flex align-items-center">
+                                                    <span class="me-2" style="font-size: 1.25rem;">🍩</span>
+                                                    <h6 class="mb-0 text-white" style="font-weight: 600; font-size: 0.95rem;">Répartition par famille</h6>
+                                                </div>
+                                            </div>
+                                            <div class="card-body" style="padding: 1.5rem; background: #fafbfc;">
+                                                <canvas id="categoryValueChart" style="max-height: 320px;" t-att-data-chart="record.category_value_chart_data.value"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- KPIs secondaires Stock initial avec style amélioré -->
+                                <div class="row g-4">
+                                    <div class="col-12 col-md-6">
+                                        <div class="card border-0 shadow-sm" style="border-radius: 12px; background: linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-start justify-content-between mb-3">
+                                                    <div>
+                                                        <p class="text-muted mb-1" style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Stock Initial</p>
+                                                        <p class="text-muted mb-0" style="font-size: 0.75rem;">Sans décote économique</p>
+                                                    </div>
+                                                    <span class="badge" style="background: rgba(103, 58, 183, 0.1); color: #673ab7; border-radius: 8px; padding: 6px 12px; font-size: 0.75rem;">Théorique</span>
+                                                </div>
+                                                <h2 class="text-primary fw-bold mb-0" style="font-size: 1.75rem;">
+                                                    <field name="current_stock_value_no_depreciation" widget="monetary" options="{'currency_field': 'company_currency_id', 'no_symbol': True}"/> FCFA
+                                                </h2>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <div class="card border-0 shadow-sm" style="border-radius: 12px; background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-start justify-content-between mb-3">
+                                                    <div>
+                                                        <p class="text-muted mb-1" style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Décote Économique</p>
+                                                        <p class="text-muted mb-0" style="font-size: 0.75rem;">Selon rotation stock</p>
+                                                    </div>
+                                                    <span class="badge" style="background: rgba(255, 152, 0, 0.1); color: #ff9800; border-radius: 8px; padding: 6px 12px; font-size: 0.75rem;">Réel</span>
+                                                </div>
+                                                <h2 class="fw-bold mb-0" style="font-size: 1.75rem; color: #f57c00;">
+                                                    <field name="current_stock_value" widget="monetary" options="{'currency_field': 'company_currency_id', 'no_symbol': True}"/> FCFA
+                                                </h2>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Sections Valorisation par Entrepôt -->
+                                <div class="row mt-4">
+                                    <div class="col-12 col-md-6">
+                                        <div class="card border-success h-100">
+                                            <div class="card-header bg-success text-white">🏭 Valorisation Détaillée par Entrepôt</div>
+                                            <div class="card-body" style="max-height: 360px; overflow-y: auto;">
+                                                <field name="warehouse_valuation_html" nolabel="1"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <div class="card border-warning h-100">
+                                            <div class="card-header bg-warning text-dark">🏭 Valorisation Inventoriée par Entrepôt</div>
+                                            <div class="card-body" style="max-height: 360px; overflow-y: auto;">
+                                                <field name="inventoried_warehouse_valuation_html" nolabel="1"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Script inline pour initialiser les graphiques -->
+                            <script type="text/javascript">
+                                (function() {
+                                    if (typeof Chart === 'undefined') {
+                                        const script = document.createElement('script');
+                                        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+                                        script.onload = initCharts;
+                                        document.head.appendChild(script);
+                                    } else {
+                                        setTimeout(initCharts, 100);
+                                    }
+                                    
+                                    function initCharts() {
+                                        const gapsCanvas = document.getElementById('warehouseGapsChart');
+                                        if (gapsCanvas &amp;&amp; gapsCanvas.getAttribute('data-chart')) {
+                                            const gapsData = JSON.parse(gapsCanvas.getAttribute('data-chart'));
+                                            new Chart(gapsCanvas.getContext('2d'), {
+                                                type: 'bar',
+                                                data: {
+                                                    labels: gapsData.labels || [],
+                                                    datasets: [{
+                                                        label: 'Écart (FCFA)',
+                                                        data: gapsData.values || [],
+                                                        backgroundColor: gapsData.colors || [],
+                                                        borderWidth: 0,
+                                                    }]
+                                                },
+                                                options: {
+                                                    responsive: true,
+                                                    maintainAspectRatio: false,
+                                                    plugins: {
+                                                        legend: { display: false },
+                                                        tooltip: {
+                                                            callbacks: {
+                                                                label: (ctx) => 'Écart: ' + ctx.parsed.y.toLocaleString('fr-FR') + ' FCFA'
+                                                            }
+                                                        }
+                                                    },
+                                                    scales: {
+                                                        y: {
+                                                            beginAtZero: true,
+                                                            ticks: { callback: (val) => val.toLocaleString('fr-FR') }
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                        }
+                                        
+                                        const catCanvas = document.getElementById('categoryValueChart');
+                                        if (catCanvas &amp;&amp; catCanvas.getAttribute('data-chart')) {
+                                            const catData = JSON.parse(catCanvas.getAttribute('data-chart'));
+                                            new Chart(catCanvas.getContext('2d'), {
+                                                type: 'doughnut',
+                                                data: {
+                                                    labels: catData.labels || [],
+                                                    datasets: [{
+                                                        data: catData.values || [],
+                                                        backgroundColor: catData.colors || [],
+                                                        borderWidth: 2,
+                                                        borderColor: '#fff',
+                                                    }]
+                                                },
+                                                options: {
+                                                    responsive: true,
+                                                    maintainAspectRatio: false,
+                                                    plugins: {
+                                                        legend: {
+                                                            position: 'bottom',
+                                                            labels: { boxWidth: 12, padding: 10 }
+                                                        },
+                                                        tooltip: {
+                                                            callbacks: {
+                                                                label: (ctx) => {
+                                                                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                                                    const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                                                                    return ctx.label + ': ' + ctx.parsed.toLocaleString('fr-FR') + ' FCFA (' + pct + '%)';
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                })();
+                            </script>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
+    <record id="action_stockex_dashboard_insights_view" model="ir.actions.act_window.view">
+        <field name="act_window_id" ref="action_stockex_dashboard_insights"/>
+        <field name="view_id" ref="view_inventory_summary_kanban_insights"/>
+        <field name="view_mode">kanban</field>
+        <field name="sequence">1</field>
+    </record>
+</odoo>

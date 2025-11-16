@@ -265,6 +265,32 @@ class InventorySummary(models.Model):
         store=False
     )
     
+    # Nouveaux champs pour graphiques dashboard
+    warehouse_gaps_chart_data = fields.Text(
+        string='Données graphique écarts par entrepôt',
+        compute='_compute_warehouse_gaps_chart',
+        help='Données JSON pour le graphique à barres des écarts par entrepôt'
+    )
+    category_value_chart_data = fields.Text(
+        string='Données graphique valeur par famille',
+        compute='_compute_category_value_chart',
+        help='Données JSON pour le graphique donut valeur par famille'
+    )
+    inventory_precision = fields.Float(
+        string='Précision inventaire (%)',
+        compute='_compute_inventory_precision',
+        help='Précision = 1 - (|Σ écarts quantités| / Σ quantités système)'
+    )
+    obsolescence_count = fields.Integer(
+        string='Articles obsolètes (nb)',
+        compute='_compute_obsolescence',
+        help='Nombre d\'articles obsolètes (rotation lente ou stock mort)'
+    )
+    obsolescence_value = fields.Float(
+        string='Valeur articles obsolètes',
+        compute='_compute_obsolescence'
+    )
+    
     def _get_cost_price(self, product, line_price=None):
         """Retourne le coût selon la règle de valorisation configurée."""
         rule = self.env['ir.config_parameter'].sudo().get_param('stockex.valuation_rule', 'standard')
@@ -1102,7 +1128,9 @@ class InventorySummary(models.Model):
                     
                     # Écart
                     diff_val = inv_value - rt_val
-                    diff_class = 'text-success' if diff_val > 0 else ('text-danger' if diff_val < 0 else 'text-muted')
+                    abs_exceed = abs(diff_val) >= 10000
+                    rel_exceed = (inv_value > 0) and ((abs(diff_val) / inv_value) * 100 >= 2.0)
+                    diff_class = ('text-danger fw-semibold') if (abs_exceed or rel_exceed) else ('text-success' if diff_val > 0 else ('text-danger' if diff_val < 0 else 'text-muted'))
                     diff_sign = '+' if diff_val > 0 else ''
                     
                     html += f"""
@@ -1125,7 +1153,10 @@ class InventorySummary(models.Model):
                 # Calculer le total des écarts
                 rt_total = sum(v['value'] for v in rt_totals.values())
                 total_ecart = total_value - rt_total
-                ecart_class = 'text-success' if total_ecart > 0 else ('text-danger' if total_ecart < 0 else 'text-muted')
+                abs_exceed_total = abs(total_ecart) >= 10000
+                base_total = rt_total if rt_total > 0 else total_value
+                rel_exceed_total = (base_total > 0) and ((abs(total_ecart) / base_total) * 100 >= 2.0)
+                ecart_class = ('text-danger fw-semibold') if (abs_exceed_total or rel_exceed_total) else ('text-success' if total_ecart > 0 else ('text-danger' if total_ecart < 0 else 'text-muted'))
                 ecart_sign = '+' if total_ecart > 0 else ''
                 
                 html += f"""
@@ -1795,3 +1826,151 @@ class InventorySummary(models.Model):
             'url': f'/web/content/{attachment.id}?download=true',
             'target': 'self',
         }
+    
+    @api.depends('company_id', 'warehouse_ids')
+    def _compute_warehouse_gaps_chart(self):
+        """Calcule les données pour le graphique à barres des écarts par entrepôt."""
+        import json
+        for record in self:
+            try:
+                warehouses = record.warehouse_ids or self.env['stock.warehouse'].search([('company_id', '=', record.company_id.id)])
+                labels = []
+                values = []
+                colors = []
+                
+                for wh in warehouses:
+                    # Calculer écart: valorisation inventoriée - stock temps réel
+                    locations = self.env['stock.location'].search([('warehouse_id', '=', wh.id), ('usage', '=', 'internal')])
+                    if not locations:
+                        continue
+                    
+                    # Stock temps réel
+                    quants = self.env['stock.quant'].search([('location_id', 'in', locations.ids), ('company_id', '=', record.company_id.id)])
+                    rt_value = sum(q.quantity * record._get_cost_price(q.product_id) for q in quants)
+                    
+                    # Valorisation inventoriée (dernier inventaire)
+                    last_inv = self.env['stockex.stock.inventory'].search([
+                        ('company_id', '=', record.company_id.id),
+                        ('state', 'in', ['draft','in_progress','pending_approval','approved','done']),
+                        ('is_initial_stock', '=', False),
+                    ], limit=1, order='date desc')
+                    
+                    inv_value = 0.0
+                    if last_inv:
+                        inv_lines = self.env['stockex.stock.inventory.line'].search([('inventory_id', '=', last_inv.id), ('location_id', 'in', locations.ids)])
+                        inv_value = sum(line.product_qty * record._get_cost_price(line.product_id, line.standard_price) for line in inv_lines)
+                    
+                    gap = inv_value - rt_value
+                    if abs(gap) < 1:
+                        continue
+                    
+                    labels.append(wh.name)
+                    values.append(gap)
+                    # Rouge si |gap| >= 10000 ou >=2%
+                    abs_exceed = abs(gap) >= 10000
+                    rel_exceed = (inv_value > 0) and ((abs(gap) / inv_value) * 100 >= 2.0)
+                    colors.append('#dc3545' if (abs_exceed or rel_exceed) else ('#198754' if gap > 0 else '#6c757d'))
+                
+                record.warehouse_gaps_chart_data = json.dumps({'labels': labels, 'values': values, 'colors': colors})
+            except Exception as e:
+                _logger.error(f"Erreur calcul graphique écarts: {e}")
+                record.warehouse_gaps_chart_data = json.dumps({'labels': [], 'values': [], 'colors': []})
+    
+    @api.depends('company_id', 'category_ids')
+    def _compute_category_value_chart(self):
+        """Calcule les données pour le graphique donut valeur par famille."""
+        import json
+        for record in self:
+            try:
+                last_inv = self.env['stockex.stock.inventory'].search([
+                    ('company_id', '=', record.company_id.id),
+                    ('state', 'in', ['draft','in_progress','pending_approval','approved','done']),
+                    ('is_initial_stock', '=', False),
+                ], limit=1, order='date desc')
+                
+                if not last_inv:
+                    record.category_value_chart_data = json.dumps({'labels': [], 'values': [], 'colors': []})
+                    continue
+                
+                # Agréger par catégorie
+                category_values = {}
+                for line in last_inv.line_ids:
+                    cat = line.product_id.categ_id
+                    cat_name = cat.name if cat else 'Sans catégorie'
+                    price = record._get_cost_price(line.product_id, line.standard_price)
+                    val = line.product_qty * price
+                    category_values[cat_name] = category_values.get(cat_name, 0.0) + val
+                
+                # Trier et limiter à top 5
+                sorted_cats = sorted(category_values.items(), key=lambda x: x[1], reverse=True)[:5]
+                labels = [c[0] for c in sorted_cats]
+                values = [c[1] for c in sorted_cats]
+                colors = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6c757d'][:len(labels)]
+                
+                record.category_value_chart_data = json.dumps({'labels': labels, 'values': values, 'colors': colors})
+            except Exception as e:
+                _logger.error(f"Erreur calcul graphique catégories: {e}")
+                record.category_value_chart_data = json.dumps({'labels': [], 'values': [], 'colors': []})
+    
+    @api.depends('company_id')
+    def _compute_inventory_precision(self):
+        """Calcule la précision inventaire = 1 - (|Σ écarts quantités| / Σ quantités système)."""
+        for record in self:
+            try:
+                last_inv = self.env['stockex.stock.inventory'].search([
+                    ('company_id', '=', record.company_id.id),
+                    ('state', 'in', ['draft','in_progress','pending_approval','approved','done']),
+                    ('is_initial_stock', '=', False),
+                ], limit=1, order='date desc')
+                
+                if not last_inv:
+                    record.inventory_precision = 0.0
+                    continue
+                
+                total_system_qty = sum(abs(line.theoretical_qty or 0.0) for line in last_inv.line_ids)
+                total_gap_qty = sum(abs(line.difference or 0.0) for line in last_inv.line_ids if not line.inventory_id.is_initial_stock)
+                
+                if total_system_qty > 0:
+                    record.inventory_precision = (1.0 - (total_gap_qty / total_system_qty)) * 100.0
+                else:
+                    record.inventory_precision = 0.0
+            except Exception as e:
+                _logger.error(f"Erreur calcul précision: {e}")
+                record.inventory_precision = 0.0
+    
+    @api.depends('company_id')
+    def _compute_obsolescence(self):
+        """Calcule le nombre et la valeur des articles obsolètes."""
+        for record in self:
+            try:
+                ICP = self.env['ir.config_parameter'].sudo()
+                slow_days = int(ICP.get_param('stockex.depreciation_slow_days', '1095'))
+                
+                # Tous les quants internes
+                locations = self.env['stock.location'].search([('company_id', '=', record.company_id.id), ('usage', '=', 'internal')])
+                quants = self.env['stock.quant'].search([('location_id', 'in', locations.ids), ('quantity', '>', 0)])
+                
+                count = 0
+                value = 0.0
+                from datetime import datetime
+                now = datetime.now().date()
+                
+                for quant in quants:
+                    # Chercher dernier mouvement
+                    last_move = self.env['stock.move'].search([('product_id', '=', quant.product_id.id), ('state', '=', 'done')], limit=1, order='date desc')
+                    if not last_move:
+                        days_since = 9999
+                    else:
+                        last_move_date = last_move.date.date() if isinstance(last_move.date, datetime) else last_move.date
+                        days_since = (now - last_move_date).days
+                    
+                    if days_since > slow_days:
+                        count += 1
+                        value += quant.quantity * record._get_cost_price(quant.product_id)
+                
+                record.obsolescence_count = count
+                record.obsolescence_value = value
+            except Exception as e:
+                _logger.error(f"Erreur calcul obsolescence: {e}")
+                record.obsolescence_count = 0
+                record.obsolescence_value = 0.0

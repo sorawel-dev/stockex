@@ -14,8 +14,6 @@
                 <field name="standard_price" readonly="1" optional="show"/>
                 <field name="difference" column_invisible="1"/>
                 <field name="difference_display" readonly="1"/>
-                <field name="image_1" widget="image" class="oe_avatar" optional="show"/>
-                <field name="image_2" widget="image" class="oe_avatar" optional="show"/>
                 <field name="note" optional="show"/>
             </list>
         </field>
@@ -34,10 +32,8 @@
                 <filter string="Écarts positifs" name="positive_diff" domain="[('difference', '&gt;', 0)]"/>
                 <filter string="Pas d'écart" name="no_diff" domain="[('difference', '=', 0)]"/>
                 <separator/>
-                <group expand="0" string="Grouper par">
-                    <filter string="Emplacement" name="group_location" context="{'group_by':'location_id'}"/>
-                    <filter string="Produit" name="group_product" context="{'group_by':'product_id'}"/>
-                </group>
+                <filter string="Emplacement" name="group_location" context="{'group_by':'location_id'}"/>
+                <filter string="Produit" name="group_product" context="{'group_by':'product_id'}"/>
             </search>
         </field>
     </record>
@@ -60,7 +56,7 @@
                 <field name="total_value_difference" string="Écart" widget="monetary" options="{'currency_field': 'company_currency_id'}" sum="Total Écart" decoration-danger="total_value_difference &lt; 0" decoration-success="total_value_difference &gt;= 0"/>
                 <field name="company_currency_id" column_invisible="1"/>
                 <field name="user_id" widget="many2one_avatar_user"/>
-                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-primary="state == 'in_progress'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'"/>
+                <field name="state" decoration-info="state == 'draft'" decoration-primary="state == 'in_progress'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'"/>
             </list>
         </field>
     </record>
@@ -98,7 +94,7 @@
                     </group>
                     <div class="row mb-2">
                         <div class="col-12 text-end">
-                            <field name="state" widget="badge"/>
+                            <field name="state"/>
                         </div>
                     </div>
                     <div class="container o_kanban_card_content mt-2">
@@ -208,12 +204,10 @@
                 <filter string="Mes inventaires" name="my_inventories" domain="[('user_id','=',uid)]"/>
                 <filter string="Ce mois" name="this_month" domain="[('date','&gt;=',context_today().strftime('%Y-%m-01'))]"/>
                 <separator/>
-                <group expand="0" string="Grouper par">
-                    <filter string="État" name="group_state" context="{'group_by':'state'}"/>
-                    <filter string="Date" name="group_date" context="{'group_by':'date'}"/>
-                    <filter string="Emplacement" name="group_location" context="{'group_by':'location_id'}"/>
-                    <filter string="Responsable" name="group_user" context="{'group_by':'user_id'}"/>
-                </group>
+                <filter string="État" name="group_state" context="{'group_by':'state'}"/>
+                <filter string="Date" name="group_date" context="{'group_by':'date'}"/>
+                <filter string="Emplacement" name="group_location" context="{'group_by':'location_id'}"/>
+                <filter string="Responsable" name="group_user" context="{'group_by':'user_id'}"/>
             </search>
         </field>
     </record>

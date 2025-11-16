@@ -51,11 +51,9 @@
                         domain="[('depreciation_rate', '=', 0)]"/>
                 
                 <separator/>
-                <group expand="0" string="Grouper par">
-                    <filter string="Catégorie" name="group_category" context="{'group_by': 'category_id'}"/>
-                    <filter string="Statut Décote" name="group_status" context="{'group_by': 'depreciation_category'}"/>
-                    <filter string="Taux Décote" name="group_rate" context="{'group_by': 'depreciation_rate'}"/>
-                </group>
+                <filter string="Catégorie" name="group_category" context="{'group_by': 'category_id'}"/>
+                <filter string="Statut Décote" name="group_status" context="{'group_by': 'depreciation_category'}"/>
+                <filter string="Taux Décote" name="group_rate" context="{'group_by': 'depreciation_rate'}"/>
             </search>
         </field>
     </record>
@@ -91,7 +89,7 @@
     <record id="action_depreciation_report" model="ir.actions.act_window">
         <field name="name">📉 Rapport de Décote du Stock</field>
         <field name="res_model">stockex.depreciation.report</field>
-        <field name="view_mode">tree,pivot,graph</field>
+        <field name="view_mode">list,pivot,graph</field>
         <field name="context">{'search_default_with_depreciation': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -108,12 +106,5 @@
         </field>
     </record>
 
-    <!-- Menu pour le Rapport de Décote -->
-    <menuitem
-        id="menu_depreciation_report"
-        name="Rapport de Décote"
-        parent="menu_stockex_reporting"
-        action="action_depreciation_report"
-        sequence="15"/>
-
+    <!-- Menu déplacé vers menus.xml pour garantir que le parent existe -->
 </odoo>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Données par défaut des Régions Électriques ENEO -->
+    <record id="stockex_eneo_region_douala" model="stockex.eneo.region">
+        <field name="name">Région Électrique de Douala</field>
+        <field name="code">DRD</field>
+        <field name="administrative_region">littoral</field>
+        <field name="active">1</field>
+        <field name="network">south</field>
+    </record>
+
+    <record id="stockex_eneo_region_yaounde" model="stockex.eneo.region">
+        <field name="name">Région Électrique de Yaoundé</field>
+        <field name="code">DRY</field>
+        <field name="administrative_region">centre</field>
+        <field name="active">1</field>
+        <field name="network">south</field>
+    </record>
+
+    <!-- Littoral & Sud-Ouest -->
+    <record id="stockex_eneo_region_littoral_sud_ouest" model="stockex.eneo.region">
+        <field name="name">Région Électrique Littoral &amp; Sud-Ouest</field>
+        <field name="code">LSO</field>
+        <field name="administrative_region">littoral</field>
+        <field name="active">1</field>
+        <field name="network">south</field>
+    </record>
+
+    <!-- Ouest & Nord-Ouest -->
+    <record id="stockex_eneo_region_ouest_nord_ouest" model="stockex.eneo.region">
+        <field name="name">Région Électrique Ouest &amp; Nord-Ouest</field>
+        <field name="code">ONO</field>
+        <field name="administrative_region">ouest</field>
+        <field name="active">1</field>
+        <field name="network">south</field>
+    </record>
+
+    <!-- Centre -->
+    <record id="stockex_eneo_region_centre" model="stockex.eneo.region">
+        <field name="name">Région Électrique du Centre</field>
+        <field name="code">CEN</field>
+        <field name="administrative_region">centre</field>
+        <field name="active">1</field>
+        <field name="network">south</field>
+    </record>
+
+    <!-- Sud -->
+    <record id="stockex_eneo_region_sud" model="stockex.eneo.region">
+        <field name="name">Région Électrique du Sud</field>
+        <field name="code">SUD</field>
+        <field name="administrative_region">sud</field>
+        <field name="active">1</field>
+        <field name="network">south</field>
+    </record>
+
+    <!-- Sanaga Océan -->
+    <record id="stockex_eneo_region_sanaga_ocean" model="stockex.eneo.region">
+        <field name="name">Région Électrique Sanaga Océan</field>
+        <field name="code">SOC</field>
+        <field name="administrative_region">centre</field>
+        <field name="active">1</field>
+        <field name="network">south</field>
+    </record>
+
+    <!-- Nord -->
+    <record id="stockex_eneo_region_nord" model="stockex.eneo.region">
+        <field name="name">Région Électrique du Nord</field>
+        <field name="code">NRD</field>
+        <field name="administrative_region">nord</field>
+        <field name="active">1</field>
+        <field name="network">north</field>
+    </record>
+
+    <!-- Est -->
+    <record id="stockex_eneo_region_est" model="stockex.eneo.region">
+        <field name="name">Région Électrique de l'Est</field>
+        <field name="code">EST</field>
+        <field name="administrative_region">est</field>
+        <field name="active">1</field>
+        <field name="network">south</field>
+    </record>
+</odoo>

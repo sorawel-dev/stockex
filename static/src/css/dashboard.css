@@ -258,7 +258,7 @@
 
 /* Container principal */
 .o_stockex_dashboard .container {
-    max-width: 1400px;
+    max-width: 100%;
 }
 
 /* Correction largeur Kanban pour dashboard Vue d'Ensemble */

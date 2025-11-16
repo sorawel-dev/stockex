@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1366" height="768" viewBox="0 0 1366 768">
+  <style>
+    .title{font:700 24px sans-serif;fill:#0d6efd}
+    .subtitle{font:400 14px sans-serif;fill:#6c757d}
+    .label{font:600 14px sans-serif;fill:#212529}
+    .text{font:400 12px sans-serif;fill:#212529}
+    .small{font:400 11px sans-serif;fill:#6c757d}
+    .box{stroke:#dee2e6;stroke-width:2;fill:#ffffff}
+    .badge{stroke:#ced4da;stroke-width:1}
+    .primary-subtle{fill:#e7f1ff;stroke:#0d6efd}
+    .success-subtle{fill:#eaf7ea;stroke:#198754}
+    .warning-subtle{fill:#fff3cd;stroke:#ffc107}
+    .danger-subtle{fill:#f8d7da;stroke:#dc3545}
+    .muted{fill:#f8f9fa;stroke:#adb5bd}
+  </style>
+
+  <!-- Filtres -->
+  <text x="24" y="36" class="title">Dashboard Inventaire — 15″</text>
+  <text x="24" y="56" class="subtitle">Disposition compacte</text>
+  <rect x="24" y="70" width="1318" height="56" class="box"/>
+  <text x="40" y="102" class="text">Filtres: Période • Entreprise • Entrepôt • Catégorie • Méthode</text>
+
+  <!-- KPIs (2 rangées: 3 + 2) -->
+  <rect x="24" y="140" width="280" height="90" class="badge primary-subtle"/>
+  <text x="40" y="168" class="label">Valeur stock</text>
+  <text x="40" y="194" class="text">Total (FCFA)</text>
+
+  <rect x="314" y="140" width="280" height="90" class="badge danger-subtle"/>
+  <text x="330" y="168" class="label">Écart inventaire</text>
+  <text x="330" y="194" class="text">Rouge si ≥ 10 000 ou ≥ 2%</text>
+
+  <rect x="604" y="140" width="280" height="90" class="badge success-subtle"/>
+  <text x="620" y="168" class="label">Précision</text>
+  <text x="620" y="194" class="text">Vert si ≥ objectif</text>
+
+  <rect x="894" y="140" width="220" height="90" class="badge warning-subtle"/>
+  <text x="910" y="168" class="label">Obsolescence</text>
+
+  <rect x="1124" y="140" width="218" height="90" class="badge danger-subtle"/>
+  <text x="1140" y="168" class="label">Écarts critiques</text>
+  <text x="1140" y="194" class="text">10 000 + 2%</text>
+
+  <!-- Graphiques empilés -->
+  <rect x="24" y="250" width="1318" height="170" class="box"/>
+  <text x="40" y="276" class="label">Écarts par entrepôt (barres)</text>
+  <rect x="60" y="300" width="120" height="110" class="danger-subtle"/>
+  <rect x="190" y="310" width="120" height="100" class="muted"/>
+  <rect x="320" y="320" width="120" height="90" class="muted"/>
+  <rect x="450" y="300" width="120" height="110" class="danger-subtle"/>
+  <rect x="580" y="330" width="120" height="80" class="muted"/>
+
+  <rect x="24" y="430" width="1318" height="170" class="box"/>
+  <text x="40" y="456" class="label">Valeur par famille (donut)</text>
+  <circle cx="140" cy="520" r="70" class="muted"/>
+  <path d="M140,520 m0,-70 a70,70 0 1,1 -46,120 L140,520 Z" class="primary-subtle"/>
+  <path d="M140,520 m-46,120 a70,70 0 0,1 -24,-50 L140,520 Z" class="warning-subtle"/>
+
+  <!-- Cartes conditionnelles -->
+  <rect x="24" y="610" width="674" height="130" class="box"/>
+  <rect x="24" y="610" width="674" height="34" class="success-subtle"/>
+  <text x="40" y="632" class="label">Stock initial (sans décote)</text>
+
+  <rect x="708" y="610" width="634" height="130" class="box"/>
+  <rect x="708" y="610" width="634" height="34" class="warning-subtle"/>
+  <text x="724" y="632" class="label">Décote économique</text>
+</svg>

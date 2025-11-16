@@ -11,3 +11,4 @@ from . import cancel_inventory_wizard
 from . import stock_data_cleanup_wizard
 from . import import_flexible_inventory_wizard
 from . import stock_accounts_config_wizard
+from . import warehouse_valuation_export_wizard

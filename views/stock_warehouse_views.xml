@@ -8,18 +8,51 @@
         <field name="inherit_id" ref="stock.view_warehouse"/>
         <field name="arch" type="xml">
             
-            <!-- Ajouter les champs après le code existant -->
+            <!-- Smart buttons intégrés dans le button_box -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_stock_value" type="object" class="oe_stat_button" icon="fa-money-bill-wave">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value" style="color: #28a745;">
+                            <field name="stock_value_fcfa" widget="integer"/> FCFA
+                        </span>
+                        <span class="o_stat_text">Valeur du stock</span>
+                    </div>
+                </button>
+                <button name="action_open_moves" type="object" class="oe_stat_button" icon="fa-exchange-alt">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value" style="color: #17a2b8;">
+                            <field name="move_count"/>
+                        </span>
+                        <span class="o_stat_text">Mouvements</span>
+                    </div>
+                </button>
+                <button name="action_open_quants" type="object" class="oe_stat_button" icon="fa-boxes">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value" style="color: #6c757d;">
+                            <field name="quant_count"/>
+                        </span>
+                        <span class="o_stat_text">Articles en stock</span>
+                    </div>
+                </button>
+            </xpath>
+            
+            <!-- Ajouter les champs répartis entre 2 colonnes -->
             <xpath expr="//field[@name='code']" position="after">
                 <field name="warehouse_code" 
                        placeholder="Ex: WH-ABJ-001"
                        help="Code unique de l'entrepôt (optionnel)"/>
-                <field name="warehouse_type"/>
                 <field name="parent_id" options="{'no_create': True}"/>
                 <field name="parent_name_upper" 
                        readonly="1"
                        invisible="not parent_id"
                        class="text-uppercase fw-bold"
                        style="font-weight: bold; font-size: 14px;"/>
+            </xpath>
+            
+            <!-- Ajouter champs dans la 2ème colonne -->
+            <xpath expr="//sheet/group/group[2]" position="inside">
+                <field name="warehouse_type"/>
+                <field name="eneo_region_id" options="{'no_create': True}"/>
             </xpath>
             
             <!-- Ajouter un onglet Géolocalisation -->
@@ -54,7 +87,7 @@
                             <field name="name"/>
                             <field name="code" string="Diminutif"/>
                             <field name="warehouse_code" optional="show"/>
-                            <field name="warehouse_type" optional="show" widget="badge"/>
+                            <field name="warehouse_type" optional="show"/>
                             <field name="city" optional="show"/>
                             <field name="coordinates" optional="show"/>
                         </list>
@@ -79,7 +112,8 @@
             <field name="name" position="after">
                 <field name="code" string="Diminutif" optional="show"/>
                 <field name="warehouse_code" optional="show" string="Code Entrepôt"/>
-                <field name="warehouse_type" optional="show" widget="badge"/>
+                <field name="warehouse_type" optional="show"/>
+                <field name="eneo_region_id" optional="show"/>
                 <field name="parent_name_upper" optional="show" string="Magasin Parent" class="fw-bold"/>
                 <field name="parent_id" optional="hide"/>
                 <field name="city" optional="show"/>
@@ -93,7 +127,7 @@
     <record id="action_warehouse_stockex" model="ir.actions.act_window">
         <field name="name">Entrepôts</field>
         <field name="res_model">stock.warehouse</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Créer un nouvel entrepôt
@@ -103,5 +137,91 @@
             </p>
         </field>
     </record>
+    
+    <!-- Vue recherche pour Entrepôts (standalone) -->
+    <record id="view_warehouse_kanban_stockex" model="ir.ui.view">
+        <field name="name">stock.warehouse.kanban.stockex</field>
+        <field name="model">stock.warehouse</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="stock_value_fcfa"/>
+                <field name="city"/>
+                <field name="warehouse_type"/>
+                <field name="eneo_region_id"/>
+                <field name="quant_count"/>
+                <field name="product_ref_count"/>
+                <field name="move_count"/>
+                <field name="color"/>
+                <field name="eneo_network"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card oe_kanban_global_click rounded" t-att-class="(record.eneo_network &amp;&amp; record.eneo_network.raw_value === 'south') ? 'bg-light border-start border-3 border-success' : 'bg-light border-start border-3 border-info'">
+                            <div class="o_dropdown_kanban dropdown">
+                                <a class="dropdown-toggle o-no-caret btn" role="button" data-bs-toggle="dropdown" href="#" aria-label="Dropdown menu" title="Menu">
+                                    <span class="fa fa-ellipsis-v"/>
+                                </a>
+                                <div class="dropdown-menu" role="menu">
+                                    <a role="menuitem" type="open" class="dropdown-item">Ouvrir</a>
+                                    <a role="menuitem" type="edit" class="dropdown-item">Modifier</a>
+                                </div>
+                            </div>
+                            <div class="oe_kanban_content px-3 py-1 position-relative">
+                                <!-- Image en filigrane -->
+                                <img src="/stockex/static/description/warehouse_watermark.svg" 
+                                     class="position-absolute opacity-25" 
+                                     style="width: 120px; height: 120px; right: -10px; top: 50%; transform: translateY(-50%); z-index: 0; object-fit: contain;"
+                                     alt="Entrepôt"/>
+                                <div class="oe_kanban_card_header position-relative" style="z-index: 1;">
+                                    <div class="oe_kanban_card_header_title mb-0">
+                                        <span class="fa fa-warehouse fa-lg text-primary me-1" title="Entrepôt"/> <strong><field name="code" string="Diminutif"/></strong> - <field name="name"/>
+                                    </div>
+                                </div>
+                                <div class="oe_kanban_card_body position-relative" style="z-index: 1;">
+                                    <!-- Ville avec icône colorée -->
+                                    <div class="mb-0">
+                                        <i class="fa fa-map-marked-alt fa-lg text-warning me-1" title="Ville"/> 
+                                        <span t-if="record.city.raw_value"><field name="city"/></span>
+                                        <span t-else="" class="text-muted">Non renseignée</span>
+                                    </div>
+                                    <!-- Valeur du stock avec libellé -->
+                                    <div class="mb-0">
+                                        <i class="fa fa-money-bill-wave fa-lg text-success me-1"/> 
+                                        <strong>Valeur stock:</strong> <span t-esc="((record.stock_value_fcfa &amp;&amp; record.stock_value_fcfa.raw_value) ? record.stock_value_fcfa.raw_value : 0).toFixed(0)"/> FCFA
+                                    </div>
+                                    <!-- Badges compacts: Références et Mouvements -->
+                                    <div class="d-flex gap-1 mb-0">
+                                        <span class="badge rounded-pill text-bg-primary" title="Nombre de références d'articles uniques">
+                                            <i class="fa fa-cubes me-1"/> <field name="product_ref_count"/> réf.
+                                        </span>
+                                        <span class="badge rounded-pill text-bg-info" title="Nombre total de mouvements">
+                                            <i class="fa fa-exchange-alt me-1"/> <field name="move_count"/>
+                                        </span>
+                                    </div>
+                                    <!-- Type de magasin -->
+                                    <div class="mb-0">
+                                        <i class="fa fa-warehouse text-muted me-1"/> <field name="warehouse_type"/>
+                                    </div>
+                                    <!-- Réseau électrique ENEO -->
+                                    <div class="mb-0">
+                                        <i class="fa fa-bolt text-primary me-1" title="Réseau électrique"/> 
+                                        <span t-if="record.eneo_network.raw_value == 'south'" class="badge bg-success">RIS</span>
+                                        <span t-if="record.eneo_network.raw_value == 'north'" class="badge bg-info">RIN</span>
+                                    </div>
+                                    <!-- Région électrique avec nouvelle icône -->
+                                    <div class="mb-0">
+                                        <i class="fa fa-plug text-warning me-1" title="Région électrique ENEO"/> <field name="eneo_region_id"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
     
 </odoo>

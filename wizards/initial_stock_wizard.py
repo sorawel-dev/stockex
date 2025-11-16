@@ -557,7 +557,14 @@ class InitialStockWizard(models.TransientModel):
         file_content = base64.b64decode(self.import_file)
         excel_file = BytesIO(file_content)
         wb = load_workbook(excel_file, read_only=True, data_only=True)
-        ws = wb.active
+        
+        # Charger la feuille 'Stock Initial' en priorité, sinon la première feuille active
+        if 'Stock Initial' in wb.sheetnames:
+            ws = wb['Stock Initial']
+            _logger.info("📄 Chargement de la feuille 'Stock Initial'")
+        else:
+            ws = wb.active
+            _logger.info(f"📄 Chargement de la feuille active '{ws.title}'")
         
         # Lire les en-têtes
         headers = [cell.value for cell in ws[1]]
@@ -726,6 +733,80 @@ Recherche ou crée un entrepôt.
         
         return category
     
+    def _get_uom_by_name(self, uom_name):
+        """Recherche une unité de mesure par son nom.
+        
+        Supporte les noms courants en anglais et français.
+        Retourne l'unité trouvée ou None.
+        """
+        if not uom_name:
+            return None
+        
+        uom_name_clean = str(uom_name).strip().upper()
+        
+        # Mapping des noms courants vers les noms Odoo standards
+        uom_mapping = {
+            'PC': 'Units',      # Pièce
+            'PIECE': 'Units',
+            'UNIT': 'Units',
+            'UNITS': 'Units',
+            'U': 'Units',
+            'PCS': 'Units',
+            'KG': 'kg',         # Kilogramme
+            'KILOGRAMME': 'kg',
+            'KILO': 'kg',
+            'G': 'g',           # Gramme
+            'GRAMME': 'g',
+            'L': 'L',           # Litre
+            'LITRE': 'L',
+            'M': 'm',           # Mètre
+            'METRE': 'm',
+            'METER': 'm',
+            'CM': 'cm',         # Centimètre
+            'M2': 'm²',        # Mètre carré
+            'M3': 'm³',        # Mètre cube
+            'H': 'Hour(s)',     # Heure
+            'HEURE': 'Hour(s)',
+            'HOUR': 'Hour(s)',
+            'DAY': 'Day(s)',    # Jour
+            'JOUR': 'Day(s)',
+            'BOX': 'Units',     # Boîte (traitée comme unité)
+            'BOITE': 'Units',
+            'CARTON': 'Units',
+        }
+        
+        # Utiliser le mapping si disponible
+        odoo_name = uom_mapping.get(uom_name_clean, uom_name_clean)
+        
+        # Rechercher l'unité dans Odoo
+        # 1. Recherche exacte par nom
+        uom = self.env['uom.uom'].search([
+            ('name', '=', odoo_name)
+        ], limit=1)
+        
+        if uom:
+            return uom
+        
+        # 2. Recherche insensible à la casse
+        uom = self.env['uom.uom'].search([
+            ('name', 'ilike', odoo_name)
+        ], limit=1)
+        
+        if uom:
+            return uom
+        
+        # 3. Recherche par nom original
+        uom = self.env['uom.uom'].search([
+            '|',
+            ('name', '=', uom_name),
+            ('name', 'ilike', uom_name)
+        ], limit=1)
+        
+        if not uom:
+            _logger.warning(f"⚠️ Unité de mesure '{uom_name}' non trouvée, utilisation de l'unité par défaut")
+        
+        return uom
+    
     def _create_initial_stock_quants(self, lines):
         """Crée les quants de stock initial directement (sans inventaire)."""
         created_count = 0
@@ -762,6 +843,7 @@ Recherche ou crée un entrepôt.
                 category_name = str(line_data.get('CATEGORIE', '')).strip() if line_data.get('CATEGORIE') else None
                 category_code = str(line_data.get('CODE CATEGORIE', '')).strip() if line_data.get('CODE CATEGORIE') else None
                 warehouse_name = str(line_data.get('ENTREPOT', '') or line_data.get('EMPLACEMENT', '')).strip() if line_data.get('ENTREPOT') or line_data.get('EMPLACEMENT') else None
+                uom_name = str(line_data.get('UDM', '') or line_data.get('UNITE', '') or line_data.get('UM', '')).strip() if (line_data.get('UDM') or line_data.get('UNITE') or line_data.get('UM')) else None
                 quantity = float(line_data.get('QUANTITE', 0))
                 price = float(line_data.get('PRIX UNITAIRE', 0))
                 
@@ -838,6 +920,13 @@ Recherche ou crée un entrepôt.
                     
                     if category:
                         product_vals['categ_id'] = category.id
+                    
+                    # Gérer l'unité de mesure si spécifiée
+                    if uom_name:
+                        uom = self._get_uom_by_name(uom_name)
+                        if uom:
+                            product_vals['uom_id'] = uom.id
+                            product_vals['uom_po_id'] = uom.id  # Même unité pour achats
                     
                     product = self.env['product.product'].create(product_vals)
                     product_cache[product_code] = product

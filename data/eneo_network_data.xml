@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="stockex_eneo_network_ris" model="stockex.eneo.network">
+        <field name="name">Réseau Interconnecté Sud</field>
+        <field name="code">RIS</field>
+        <field name="active">1</field>
+    </record>
+    <record id="stockex_eneo_network_rin" model="stockex.eneo.network">
+        <field name="name">Réseau Interconnecté Nord</field>
+        <field name="code">RIN</field>
+        <field name="active">1</field>
+    </record>
+</odoo>

@@ -23,23 +23,37 @@ class ProductCategory(models.Model):
         help='Indique si les comptes comptables de stock sont configurés pour cette catégorie'
     )
     
-    _sql_constraints = [
-        ('code_unique', 'UNIQUE(code)', 
-         'Le code de la catégorie doit être unique !')
-    ]
+    # Redéfinir property_cost_method pour ajouter la méthode "Coût économique réel"
+    property_cost_method = fields.Selection(
+        selection_add=[
+            ('economic', 'Coût économique réel'),
+        ],
+        ondelete={'economic': 'set standard'},
+        help="Coût Standard: Prix fixe défini manuellement\n"
+             "Coût Moyen (AVCO): Moyenne pondérée des achats\n"
+             "FIFO: Premier entré, premier sorti\n"
+             "Coût économique réel: Dernier prix d'achat réel (défini dans les paramètres Stockex)"
+    )
     
-    @api.depends('property_stock_account_input_categ_id', 
-                 'property_stock_account_output_categ_id',
-                 'property_stock_valuation_account_id')
+    _code_uniq = models.UniqueIndex("(code)")
+    
     def _compute_accounts_configured(self):
         """Vérifie si les comptes comptables de stock sont configurés."""
         for record in self:
-            # Vérifier si les 3 comptes principaux sont définis
-            record.accounts_configured = bool(
-                record.property_stock_account_input_categ_id and
-                record.property_stock_account_output_categ_id and
-                record.property_stock_valuation_account_id
-            )
+            # Vérifier si les champs existent (module stock_account installé)
+            has_input = hasattr(record, 'property_stock_account_input_categ_id')
+            has_output = hasattr(record, 'property_stock_account_output_categ_id')
+            has_valuation = hasattr(record, 'property_stock_valuation_account_id')
+            
+            if has_input and has_output and has_valuation:
+                # Vérifier si les 3 comptes principaux sont définis
+                record.accounts_configured = bool(
+                    record.property_stock_account_input_categ_id and
+                    record.property_stock_account_output_categ_id and
+                    record.property_stock_valuation_account_id
+                )
+            else:
+                record.accounts_configured = False
     
     @api.constrains('code')
     def _check_code_format(self):

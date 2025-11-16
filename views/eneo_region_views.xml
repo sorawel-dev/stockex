@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- ========== VUES RÉGIONS ÉLECTRIQUES ENEO ========== -->
+    
+    <!-- Vue Tree -->
+    <record id="view_eneo_region_tree" model="ir.ui.view">
+        <field name="name">stockex.eneo.region.tree</field>
+        <field name="model">stockex.eneo.region</field>
+        <field name="arch" type="xml">
+            <list string="Régions Électriques ENEO">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="administrative_region"/>
+                <field name="network"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Vue Form -->
+    <record id="view_eneo_region_form" model="ir.ui.view">
+        <field name="name">stockex.eneo.region.form</field>
+        <field name="model">stockex.eneo.region</field>
+        <field name="arch" type="xml">
+            <form string="Région Électrique ENEO">
+                <header>
+                    <button name="action_view_warehouses" 
+                            type="object" 
+                            string="Voir les Entrepôts" 
+                            class="oe_highlight"
+                            invisible="warehouse_count == 0"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_warehouses" 
+                                type="object" 
+                                class="oe_stat_button" 
+                                icon="fa-warehouse">
+                            <field name="warehouse_count" widget="statinfo" string="Entrepôts"/>
+                        </button>
+                    </div>
+                    
+                    <widget name="web_ribbon" title="Archivé" bg_color="text-bg-danger" invisible="active"/>
+                    
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1>
+                            <field name="code" placeholder="DRD" class="oe_inline" style="width: 80px; margin-right: 10px;"/>
+                            <field name="name" placeholder="Région Électrique de..." class="oe_inline"/>
+                        </h1>
+                    </div>
+                    
+                    <group>
+                        <group name="main_info">
+                            <field name="administrative_region"/>
+                            <field name="network"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group name="stats">
+                            <field name="color" widget="color_picker"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Entrepôts" name="warehouses">
+                            <field name="warehouse_ids" mode="tree">
+                                <tree>
+                                    <field name="code"/>
+                                    <field name="name"/>
+                                </tree>
+                            </field>
+                        </page>
+                        
+                        <page string="Notes" name="notes">
+                            <field name="notes" placeholder="Notes sur cette région électrique..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Vue Kanban -->
+    <record id="view_eneo_region_kanban" model="ir.ui.view">
+        <field name="name">stockex.eneo.region.kanban</field>
+        <field name="model">stockex.eneo.region</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="id"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="administrative_region"/>
+                <field name="warehouse_count"/>
+                <field name="color"/>
+                <field name="network"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card oe_kanban_global_click rounded" t-att-class="(record.network &amp;&amp; record.network.raw_value === 'south') ? 'bg-light border-start border-3 border-success' : 'bg-light border-start border-3 border-info'">
+                            <div class="o_dropdown_kanban dropdown">
+                                <a class="dropdown-toggle o-no-caret btn" role="button" data-bs-toggle="dropdown" href="#" aria-label="Dropdown menu" title="Dropdown menu">
+                                    <span class="fa fa-ellipsis-v"/>
+                                </a>
+                                <div class="dropdown-menu" role="menu">
+                                    <a role="menuitem" type="open" class="dropdown-item">Ouvrir</a>
+                                    <a role="menuitem" type="edit" class="dropdown-item">Modifier</a>
+                                    <a role="menuitem" type="delete" class="dropdown-item">Supprimer</a>
+                                    <a role="menuitem" name="action_view_warehouses" type="object" class="dropdown-item">Voir Entrepôts</a>
+                                </div>
+                            </div>
+                            
+                            <div class="oe_kanban_content p-3">
+                                <div class="oe_kanban_card_header">
+                                    <div class="oe_kanban_card_header_title mb-0">
+                                        <span class="fa fa-bolt fa-lg text-warning me-1" title="ENEO"/> <strong><field name="code"/></strong> - <field name="name"/>
+                                    </div>
+                                </div>
+                                
+                                <div class="oe_kanban_card_body mt-2">
+                                    <div>
+                                        <i class="fa fa-map-marker fa-lg text-secondary me-1"/> <field name="administrative_region"/>
+                                    </div>
+                                    <div>
+                                        <i class="fa fa-warehouse fa-lg text-primary me-1"/> <field name="warehouse_count"/> entrepôt(s)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
+    <!-- Vue Search -->
+    <record id="view_eneo_region_search" model="ir.ui.view">
+        <field name="name">stockex.eneo.region.search</field>
+        <field name="model">stockex.eneo.region</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher Régions ENEO">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="administrative_region"/>
+                
+                <filter string="Actives" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archivées" name="inactive" domain="[('active', '=', False)]"/>
+                
+                <separator/>
+                <filter string="Avec Entrepôts" name="with_warehouses" domain="[('warehouse_count', '>', 0)]"/>
+                <filter string="Sans Entrepôts" name="without_warehouses" domain="[('warehouse_count', '=', 0)]"/>
+                
+                <separator/>
+                <filter string="Réseau Sud (RIS)" name="network_south" domain="[('network', '=', 'south')]"/>
+                <filter string="Réseau Nord (RIN)" name="network_north" domain="[('network', '=', 'north')]"/>
+                <separator/>
+                <!-- Filtres rapides par Région Administrative -->
+                <filter string="Centre" name="admin_centre" domain="[('administrative_region', '=', 'centre')]"/>
+                <filter string="Littoral" name="admin_littoral" domain="[('administrative_region', '=', 'littoral')]"/>
+                <filter string="Ouest" name="admin_ouest" domain="[('administrative_region', '=', 'ouest')]"/>
+                <filter string="Nord" name="admin_nord" domain="[('administrative_region', '=', 'nord')]"/>
+                <filter string="Est" name="admin_est" domain="[('administrative_region', '=', 'est')]"/>
+                <filter string="Sud" name="admin_sud" domain="[('administrative_region', '=', 'sud')]"/>
+                <filter string="Sud-Ouest" name="admin_sud_ouest" domain="[('administrative_region', '=', 'sud_ouest')]"/>
+                <filter string="Nord-Ouest" name="admin_nord_ouest" domain="[('administrative_region', '=', 'nord_ouest')]"/>
+                <filter string="Extrême-Nord" name="admin_extreme_nord" domain="[('administrative_region', '=', 'extreme_nord')]"/>
+                <filter string="Adamaoua" name="admin_adamaoua" domain="[('administrative_region', '=', 'adamaoua')]"/>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_eneo_region" model="ir.actions.act_window">
+        <field name="name">Régions Électriques ENEO</field>
+        <field name="res_model">stockex.eneo.region</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer une région électrique ENEO
+            </p>
+            <p>
+                Les 9 régions électriques de ENEO permettent d'organiser les entrepôts
+                selon la répartition électrique du Cameroun.
+            </p>
+        </field>
+    </record>
+    
+</odoo>

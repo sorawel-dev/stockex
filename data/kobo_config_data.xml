@@ -10,7 +10,7 @@
             <!-- API Configuration -->
             <field name="kobo_url">https://kf.kesafrica.com</field>
             <field name="api_token">KOBO_API_TOKEN_TO_CONFIGURE</field>
-            <field name="form_id">aQJVWdSP4xyzhru6Ztfo4Q</field>
+            <field name="form_id">adfJY2GpEdSoXHWpU2shnW</field>
             <field name="form_name">001_Bassa_Distribution_Central_Warehouse</field>
             
             <!-- Mapping Configuration - Structure réelle de Kobo -->

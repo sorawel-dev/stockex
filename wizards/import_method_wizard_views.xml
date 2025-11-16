@@ -30,7 +30,7 @@
                     
                     <notebook>
                         <page string="📊 Excel/CSV" name="excel_info" invisible="import_method != 'excel'">
-                            <div class="alert alert-success">
+                            <div class="alert alert-success" role="status">
                                 <h5>✅ Import depuis Fichier Excel ou CSV</h5>
                                 <ul>
                                     <li><strong>Avantages</strong>:
@@ -58,7 +58,7 @@
                                 </p>
                             </div>
                             
-                            <div class="alert alert-success" invisible="not kobo_config_exists">
+                            <div class="alert alert-success" role="status" invisible="not kobo_config_exists">
                                 <h5>✅ Import depuis Kobo Collect</h5>
                                 <ul>
                                     <li><strong>Avantages</strong>:

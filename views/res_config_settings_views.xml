@@ -5,7 +5,7 @@
         <field name="name">Paramètres Gestion d'Inventaire</field>
         <field name="res_model">res.config.settings</field>
         <field name="view_mode">form</field>
-        <field name="target">inline</field>
+        <field name="target">new</field>
         <field name="context">{'module': 'stockex', 'bin_size': False}</field>
     </record>
     
@@ -17,7 +17,7 @@
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
-                <app name="stockex" string="Gestion d'Inventaire" groups="stockex.group_stockex_manager">
+                <app name="stockex" string="Gestion d'Inventaire" groups="base.group_user">
                     
                     
                     <!-- Méthode d'Import -->
@@ -32,6 +32,27 @@
                         </setting>
                     </block>
                     
+                    <!-- Configuration Réseaux ENEO -->
+                    <block title="⚡ Réseaux Électriques ENEO" name="stockex_eneo_networks">
+                        <setting string="Gérer les Régions Électriques">
+                            <div class="text-muted">
+                                Configurer les régions électriques et les réseaux ENEO (Nord/Sud)
+                            </div>
+                            <div class="content-group mt-2">
+                                <button name="action_open_eneo_regions" 
+                                        string="🗺️ Gérer les Régions Électriques" 
+                                        type="object" 
+                                        class="btn-primary"
+                                        icon="fa-bolt"/>
+                                
+                                <div class="alert alert-info mt-3 mb-0 py-2" role="status">
+                                    <strong>💡 Info :</strong> 
+                                    <span class="text-muted">Les régions électriques permettent de classifier les entrepôts selon le réseau ENEO (Nord ou Sud)</span>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    
                     <!-- Règle de valorisation -->
                     <block title="💰 Règle de valorisation" name="stockex_valuation_rule">
                         <setting help="Choisir la méthode de valorisation">
@@ -39,6 +60,10 @@
                             <div class="alert alert-info mt-2 mb-0 py-2" role="status">
                                 <strong>💡 Explication :</strong> 
                                 <span class="text-muted">Standard = prix fixe • Économique = dernier prix d'achat réel</span>
+                            </div>
+                            <div class="alert alert-warning mt-2 mb-0 py-2" role="status">
+                                <strong>⚠️ Attention :</strong> 
+                                <span class="text-muted">Toutes les catégories de produits seront automatiquement mises à jour avec la méthode sélectionnée lors de la sauvegarde des paramètres.</span>
                             </div>
                         </setting>
                         

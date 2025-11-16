@@ -1,4 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_stockex_eneo_network_user,Access ENEO Network - User,model_stockex_eneo_network,base.group_user,1,0,0,0
 access_stockex_stock_inventory_user,Access Stock Inventory - User,model_stockex_stock_inventory,stockex.group_stockex_user,1,1,1,0
 access_stockex_stock_inventory_manager,Access Stock Inventory - Manager,model_stockex_stock_inventory,stockex.group_stockex_manager,1,1,1,1
 access_stockex_stock_inventory_line_user,Access Stock Inventory Line - User,model_stockex_stock_inventory_line,stockex.group_stockex_user,1,1,1,0
@@ -24,3 +25,20 @@ access_stockex_stock_data_cleanup_wizard_admin,Access Stock Data Cleanup Wizard 
 access_stockex_stock_accounts_config_wizard_manager,Access Stock Accounts Config Wizard - Manager,model_stockex_stock_accounts_config_wizard,stockex.group_stockex_manager,1,1,1,1
 access_stockex_depreciation_report_user,Access Depreciation Report - User,model_stockex_depreciation_report,stockex.group_stockex_user,1,0,0,0
 access_stockex_depreciation_report_manager,Access Depreciation Report - Manager,model_stockex_depreciation_report,stockex.group_stockex_manager,1,0,0,0
+access_stockex_stock_analysis_user,Access Stock Analysis - User,model_stockex_stock_analysis,stockex.group_stockex_user,1,0,0,0
+access_stockex_stock_analysis_manager,Access Stock Analysis - Manager,model_stockex_stock_analysis,stockex.group_stockex_manager,1,0,0,0
+access_stockex_warehouse_valuation_export_wizard_user,Access Warehouse Valuation Export Wizard - User,model_stockex_warehouse_valuation_export_wizard,stockex.group_stockex_user,1,1,1,1
+access_stockex_cycle_count_config_user,Access Cycle Count Config - User,model_stockex_cycle_count_config,stockex.group_stockex_user,1,1,1,0
+access_stockex_cycle_count_config_manager,Access Cycle Count Config - Manager,model_stockex_cycle_count_config,stockex.group_stockex_manager,1,1,1,1
+access_stockex_cycle_count_scheduler_user,Access Cycle Count Scheduler - User,model_stockex_cycle_count_scheduler,stockex.group_stockex_user,1,0,0,0
+access_stockex_cycle_count_scheduler_manager,Access Cycle Count Scheduler - Manager,model_stockex_cycle_count_scheduler,stockex.group_stockex_manager,1,1,1,1
+access_stockex_inventory_lot_line_user,Access Inventory Lot Line - User,model_stockex_inventory_lot_line,stockex.group_stockex_user,1,1,1,0
+access_stockex_inventory_lot_line_manager,Access Inventory Lot Line - Manager,model_stockex_inventory_lot_line,stockex.group_stockex_manager,1,1,1,1
+access_stockex_inventory_comparison_user,Access Inventory Comparison - User,model_stockex_inventory_comparison,stockex.group_stockex_user,1,1,1,1
+access_stockex_inventory_comparison_result_user,Access Inventory Comparison Result - User,model_stockex_inventory_comparison_result,stockex.group_stockex_user,1,1,1,1
+access_stockex_stock_variance_report_user,Access Stock Variance Report - User,model_stockex_stock_variance_report,stockex.group_stockex_user,1,0,0,0
+access_stockex_stock_variance_report_manager,Access Stock Variance Report - Manager,model_stockex_stock_variance_report,stockex.group_stockex_manager,1,0,0,0
+access_stockex_variance_analysis_wizard_user,Access Variance Analysis Wizard - User,model_stockex_variance_analysis_wizard,stockex.group_stockex_user,1,1,1,1
+access_stockex_eneo_region_user,Access ENEO Region - User,model_stockex_eneo_region,stockex.group_stockex_user,1,0,0,0
+access_stockex_eneo_region_manager,Access ENEO Region - Manager,model_stockex_eneo_region,stockex.group_stockex_manager,1,1,1,1
+access_stockex_eneo_region_all,Access ENEO Region - All Users,model_stockex_eneo_region,base.group_user,1,0,0,0

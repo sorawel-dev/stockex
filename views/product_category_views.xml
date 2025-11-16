@@ -17,47 +17,6 @@
                        readonly="1"
                        string="✓ Comptes Comptables Configurés"/>
             </field>
-            
-            <!-- Ajouter section Comptes Comptables après le champ parent_id -->
-            <field name="parent_id" position="after">
-                <group name="stockex_account_stock" string="📊 Comptes Comptables de Stock (OHADA)" colspan="4">
-                    <group>
-                        <field name="property_cost_method" 
-                               string="Méthode de Coût"
-                               help="Méthode de valorisation des stocks"/>
-                        <field name="property_valuation" 
-                               string="Valorisation des Stocks"
-                               help="Manuelle ou Automatique (temps réel)"/>
-                    </group>
-                    <group>
-                        <field name="property_stock_valuation_account_id" 
-                               string="Compte de Valorisation (31)"
-                               help="Compte OHADA pour la valorisation des stocks (ex: 31 - Marchandises)"
-                               options="{'no_create': True}"
-                               domain="[('deprecated', '=', False)]"/>
-                        <field name="property_stock_account_input_categ_id" 
-                               string="Compte Variation Entrée (603)"
-                               help="Compte OHADA pour les variations de stocks - Entrées (ex: 603 - Variation de stocks)"
-                               options="{'no_create': True}"
-                               domain="[('deprecated', '=', False)]"/>
-                        <field name="property_stock_account_output_categ_id" 
-                               string="Compte Variation Sortie (603)"
-                               help="Compte OHADA pour les variations de stocks - Sorties (ex: 603 - Variation de stocks)"
-                               options="{'no_create': True}"
-                               domain="[('deprecated', '=', False)]"/>
-                    </group>
-                    <group colspan="2">
-                        <div class="alert alert-info" role="status" style="margin-bottom: 0;">
-                            <strong>💡 Plan Comptable OHADA :</strong>
-                            <ul class="mb-0">
-                                <li><strong>Classe 3</strong> : Comptes de stocks (31 - Marchandises, 32 - Matières premières, etc.)</li>
-                                <li><strong>Compte 603</strong> : Variation des stocks de biens achetés</li>
-                                <li>Les comptes sont hérités de la catégorie parente si non définis</li>
-                            </ul>
-                        </div>
-                    </group>
-                </group>
-            </field>
         </field>
     </record>
     
@@ -74,6 +33,123 @@
                        optional="show"
                        readonly="1"/>
             </field>
+        </field>
+    </record>
+    
+    <!-- Vue Kanban moderne pour Catégories d'articles -->
+    <record id="product_category_kanban_stockex" model="ir.ui.view">
+        <field name="name">product.category.kanban.stockex</field>
+        <field name="model">product.category</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="parent_id"/>
+                <field name="accounts_configured"/>
+                <field name="product_count"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 28px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';">
+                            <!-- Dropdown menu -->
+                            <div class="o_dropdown_kanban dropdown position-absolute" style="top: 10px; right: 10px; z-index: 10;">
+                                <a class="dropdown-toggle o-no-caret btn btn-sm" role="button" data-bs-toggle="dropdown" href="#" aria-label="Menu" title="Menu">
+                                    <span class="fa fa-ellipsis-v"/>
+                                </a>
+                                <div class="dropdown-menu" role="menu">
+                                    <a role="menuitem" type="open" class="dropdown-item">Ouvrir</a>
+                                    <a role="menuitem" type="edit" class="dropdown-item">Modifier</a>
+                                </div>
+                            </div>
+                            
+                            <!-- Header avec gradient -->
+                            <div class="card-header border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem;">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle p-3 me-3" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+                                            <span style="font-size: 1.5rem;">📋</span>
+                                        </div>
+                                        <div>
+                                            <h5 class="text-white mb-1" style="font-weight: 700; font-size: 1.1rem;">
+                                                <field name="name"/>
+                                            </h5>
+                                            <p class="text-white text-opacity-75 mb-0" style="font-size: 0.85rem;" t-if="record.code.raw_value">
+                                                Code: <field name="code"/>
+                                            </p>
+                                            <p class="text-white text-opacity-50 mb-0" style="font-size: 0.75rem;" t-else="">
+                                                Aucun code
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Body avec infos -->
+                            <div class="card-body p-4">
+                                <!-- Catégorie parente -->
+                                <div class="mb-3" t-if="record.parent_id.raw_value">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-sitemap text-primary me-2" style="font-size: 1.1rem;" title="Catégorie parente"/>
+                                        <div>
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Catégorie parente</small>
+                                            <strong style="font-size: 0.9rem;"><field name="parent_id"/></strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3" t-else="">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-layer-group text-warning me-2" style="font-size: 1.1rem;" title="Catégorie racine"/>
+                                        <span class="badge" style="background: rgba(255, 193, 7, 0.1); color: #ffc107; border-radius: 8px; padding: 6px 12px; font-size: 0.8rem;">
+                                            Catégorie racine
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Nombre de produits -->
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-center justify-content-between p-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px;">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fa fa-box-open text-primary me-2" style="font-size: 1.3rem;" title="Articles"/>
+                                            <div>
+                                                <small class="text-muted d-block" style="font-size: 0.75rem;">Articles</small>
+                                                <strong class="text-primary" style="font-size: 1.2rem;">
+                                                    <field name="product_count"/> produits
+                                                </strong>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-primary" style="border-radius: 50px; padding: 8px 16px;">
+                                            <i class="fa fa-cubes me-1" title="Lots"/>
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Comptes comptables -->
+                                <div class="mb-2">
+                                    <div class="d-flex align-items-center justify-content-between p-3" t-attf-style="background: linear-gradient(135deg, {{record.accounts_configured.raw_value ? '#e8f5e9' : '#ffebee'}} 0%, {{record.accounts_configured.raw_value ? '#c8e6c9' : '#ffcdd2'}} 100%); border-radius: 8px;">
+                                        <div class="d-flex align-items-center">
+                                            <i t-attf-class="fa {{record.accounts_configured.raw_value ? 'fa-check-circle text-success' : 'fa-exclamation-circle text-danger'}} me-2" style="font-size: 1.3rem;" title="État des comptes"/>
+                                            <div>
+                                                <small class="text-muted d-block" style="font-size: 0.75rem;">Comptes comptables</small>
+                                                <strong t-attf-class="{{record.accounts_configured.raw_value ? 'text-success' : 'text-danger'}}" style="font-size: 0.95rem;">
+                                                    <span t-if="record.accounts_configured.raw_value">✓ Configurés</span>
+                                                    <span t-else="">⚠ Non configurés</span>
+                                                </strong>
+                                            </div>
+                                        </div>
+                                        <span t-if="record.accounts_configured.raw_value" class="badge bg-success" style="border-radius: 50px; padding: 8px 16px;">
+                                            <i class="fa fa-check" title="OK"/>
+                                        </span>
+                                        <span t-else="" class="badge bg-danger" style="border-radius: 50px; padding: 8px 16px;">
+                                            <i class="fa fa-times" title="Non configuré"/>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
         </field>
     </record>
     

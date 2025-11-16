@@ -37,6 +37,9 @@ class StockInventoryLine(models.Model):
     # Support lots/séries
     lot_ids = fields.Many2many(
         'stock.lot',
+        'stockex_inv_line_lot_rel',
+        'inventory_line_id',
+        'lot_id',
         string='Lots/Séries',
         help='Lots ou numéros de série associés à cette ligne'
     )
@@ -148,6 +151,9 @@ class InventoryLotLine(models.Model):
     _name = 'stockex.inventory.lot.line'
     _description = 'Inventaire par Lot/Série'
     _order = 'expiration_date, lot_name'
+    
+    # Champ requis pour le widget badge
+    color = fields.Integer(string='Couleur', default=0)
     
     # Relations
     inventory_line_id = fields.Many2one(

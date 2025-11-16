@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pyright: reportUnusedExpression=false
 {
     'name': "StockInv",
     'summary': "Gestion avancée des inventaires de stock (Odoo 18/19)",
@@ -42,8 +43,7 @@ Ce module permet de gérer les inventaires de stock avec :
         'python': ['openpyxl'],
     },
     'category': 'Inventory/Inventory',
-    'version': '18.0.7.38.0',
-    # Compatible avec Odoo 18.0 et 19.0
+    'version': '19.0.7.87.0',
     'data': [
         'security/stockex_security.xml',
         'security/ir.model.access.csv',
@@ -54,11 +54,15 @@ Ce module permet de gérer les inventaires de stock avec :
         'data/auto_configure_categories.xml',
         'data/cron_jobs.xml',
         'data/kobo_config_data.xml',  # Configuration Kobo Collect par défaut
+        'data/eneo_region_data.xml',
+        'data/eneo_network_data.xml',
         'views/res_config_settings_views.xml',
         'views/stock_warehouse_views.xml',
         'views/stock_location_views.xml',
-        'views/product_category_config_views.xml',
+        'views/eneo_network_views.xml',
         'views/product_category_views.xml',
+        'views/product_category_config_views.xml',
+        'views/product_views.xml',  # Hérite vue liste produits pour masquer colonnes
         'views/kobo_config_views.xml',
         # Wizards (DOIVENT être chargés EN PREMIER - définissent les actions)
         'wizards/import_method_wizard_views.xml',  # Définit action_import_method_wizard
@@ -70,14 +74,17 @@ Ce module permet de gérer les inventaires de stock avec :
         'wizards/cancel_inventory_wizard_views.xml',
         'wizards/import_flexible_inventory_wizard_views.xml',
         'wizards/stock_accounts_config_wizard_views.xml',
+        'wizards/warehouse_valuation_export_wizard_views.xml',
         # Vues de base (utilisent les actions wizards)
         'views/stock_inventory_views.xml',  # Utilise action_import_inventory_wizard
         # Wizards qui héritent des vues de base
         'wizards/initial_stock_wizard_views.xml',  # Hérite de stock_inventory_views
         # Actions dashboard et reports (utilisent les actions wizards)
-        'views/dashboard_home_views.xml',  # Utilise action_import_method_wizard
         'views/stock_reports_views.xml',
+        'views/stock_analysis_views.xml',
         'views/depreciation_report_views.xml',
+        'views/lot_tracking_views.xml',  # Définit action_stock_lot_expiring
+        'views/dashboard_simple.xml',  # Dashboard simplifié compatible Odoo 19
         'reports/inventory_report.xml',
         # Menus (utilisent toutes les actions - DOIVENT être EN DERNIER)
         'views/menus.xml',
@@ -88,7 +95,9 @@ Ce module permet de gérer les inventaires de stock avec :
         'web.assets_backend': [
             'stockex/static/src/css/dashboard.css',
             'stockex/static/src/css/dashboard_home.css',
+            'stockex/static/src/css/dashboard_insights.css',
             'stockex/static/src/css/cleanup_wizard.css',
+            # 'stockex/static/src/js/dashboard_charts.js',  # Désactivé : utilise script inline dans XML
         ],
         'web.assets_frontend': [
             'stockex/static/src/css/mobile.css',
@@ -100,6 +109,5 @@ Ce module permet de gérer les inventaires de stock avec :
     'application': True,
     'auto_install': False,
     'license': 'LGPL-3',
-    'web_icon': 'stockex/static/description/icon.png'
+    'web_icon': 'stockex/static/description/icon.png',
 }
-

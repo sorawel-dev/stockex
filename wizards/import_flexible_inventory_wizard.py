@@ -432,7 +432,7 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
             return {
                 'type': 'ir.actions.act_window',
                 'res_model': 'stockex.stock.inventory',
-                'view_mode': 'tree,form',
+                'view_mode': 'list,form',
                 'domain': [('id', 'in', [inv.id for inv in created_inventories])],
                 'target': 'current',
             }

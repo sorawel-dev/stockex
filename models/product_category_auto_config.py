@@ -49,6 +49,17 @@ class ProductCategoryAutoConfig(models.Model):
         skipped_count = 0
         
         for category in all_categories:
+            # Vérifier si les champs existent (module stock_account installé)
+            has_stock_account_fields = (
+                hasattr(category, 'property_stock_valuation_account_id') and
+                hasattr(category, 'property_stock_account_input_categ_id') and
+                hasattr(category, 'property_stock_account_output_categ_id')
+            )
+            
+            if not has_stock_account_fields:
+                _logger.warning("❌ Module stock_account non installé. Impossible de configurer les comptes.")
+                break
+            
             # Vérifier si la catégorie a déjà une configuration complète
             if (category.property_stock_valuation_account_id and 
                 category.property_stock_account_input_categ_id and 
@@ -96,6 +107,21 @@ class ProductCategoryAutoConfig(models.Model):
     def create(self, vals_list):
         """Override create pour auto-configurer les nouvelles catégories."""
         categories = super(ProductCategoryAutoConfig, self).create(vals_list)
+        
+        # Vérifier si les champs stock_account existent
+        if not categories:
+            return categories
+            
+        sample = categories[0]
+        has_stock_account_fields = (
+            hasattr(sample, 'property_stock_valuation_account_id') and
+            hasattr(sample, 'property_stock_account_input_categ_id') and
+            hasattr(sample, 'property_stock_account_output_categ_id')
+        )
+        
+        if not has_stock_account_fields:
+            _logger.warning("❌ Module stock_account non installé. Auto-configuration ignorée.")
+            return categories
         
         # Traiter chaque catégorie créée
         for category in categories:

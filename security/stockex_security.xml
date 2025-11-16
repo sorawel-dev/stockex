@@ -10,7 +10,6 @@
     <!-- Groupe Utilisateur : Accès de base -->
     <record id="group_stockex_user" model="res.groups">
         <field name="name">Utilisateur Inventaire</field>
-        <field name="category_id" ref="module_category_stockex"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         <field name="comment">Peut créer et gérer ses propres inventaires</field>
     </record>
@@ -18,7 +17,6 @@
     <!-- Groupe Manager : Accès complet -->
     <record id="group_stockex_manager" model="res.groups">
         <field name="name">Responsable Inventaire</field>
-        <field name="category_id" ref="module_category_stockex"/>
         <field name="implied_ids" eval="[(4, ref('group_stockex_user'))]"/>
         <field name="comment">Peut gérer tous les inventaires et configurations</field>
     </record>

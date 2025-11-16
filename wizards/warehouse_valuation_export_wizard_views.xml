@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire du wizard -->
+    <record id="view_warehouse_valuation_export_wizard_form" model="ir.ui.view">
+        <field name="name">stockex.warehouse.valuation.export.wizard.form</field>
+        <field name="model">stockex.warehouse.valuation.export.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Export Valorisation par Entrepôt">
+                <header>
+                    <button name="action_export" string="Générer Excel" type="object" 
+                            class="btn-primary" invisible="state == 'done'"/>
+                    <button name="action_download" string="Télécharger" type="object" 
+                            class="btn-success" invisible="state != 'done'"/>
+                    <button name="action_back" string="Nouvelle Export" type="object" 
+                            class="btn-secondary" invisible="state != 'done'"/>
+                    <button string="Annuler" special="cancel" class="btn-secondary"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,done"/>
+                </header>
+                
+                <sheet>
+                    <!-- Configuration -->
+                    <div invisible="state == 'done'">
+                        <div class="oe_title">
+                            <h1>
+                                <i class="fa fa-file-excel-o text-success"/> Export Excel - Valorisation par Entrepôt
+                            </h1>
+                        </div>
+                        
+                        <group>
+                            <group string="🔍 Filtres">
+                                <field name="warehouse_ids" widget="many2many_tags" 
+                                       placeholder="Tous les entrepôts"
+                                       options="{'color_field': 'color', 'no_create': True}"/>
+                                <field name="date_from"/>
+                                <field name="date_to"/>
+                                <field name="category_ids" widget="many2many_tags"
+                                       placeholder="Toutes les catégories"
+                                       options="{'color_field': 'color', 'no_create': True}"/>
+                            </group>
+                            
+                            <group string="📊 Options d'Export">
+                                <field name="export_type" widget="radio"/>
+                                <field name="include_vsd"/>
+                                <field name="include_ecarts"/>
+                            </group>
+                        </group>
+                        
+                        <div class="alert alert-info mt-3" role="status">
+                            <strong><i class="fa fa-info-circle"/> Types d'export :</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>Résumé par Entrepôt</strong> : Vue synthétique avec totaux par entrepôt</li>
+                                <li><strong>Détaillé par Produit</strong> : Une feuille par entrepôt avec détail produit par produit</li>
+                                <li><strong>Les Deux</strong> : Résumé + détails dans un seul fichier Excel</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Résultat -->
+                    <div invisible="state != 'done'">
+                        <div class="alert alert-success" role="status">
+                            <h3 class="mb-3">
+                                <i class="fa fa-check-circle"/> Export Généré avec Succès !
+                            </h3>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-2">
+                                        <strong>Fichier :</strong> 
+                                        <field name="export_filename" readonly="1" class="oe_inline"/>
+                                    </p>
+                                    <p class="mb-2">
+                                        <strong>Type :</strong> 
+                                        <field name="export_type" readonly="1" class="oe_inline"/>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-2">
+                                        <strong>Entrepôts :</strong> 
+                                        <field name="warehouse_ids" readonly="1" widget="many2many_tags" class="oe_inline"/>
+                                    </p>
+                                    <p class="mb-2" invisible="not date_from and not date_to">
+                                        <strong>Période :</strong> 
+                                        <field name="date_from" readonly="1" class="oe_inline"/> → 
+                                        <field name="date_to" readonly="1" class="oe_inline"/>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <field name="export_file" filename="export_filename" invisible="1"/>
+                            <i class="fa fa-file-excel-o fa-5x text-success mb-3" title="Exporter Excel"/>
+                            <h4>Votre fichier Excel est prêt !</h4>
+                            <p class="text-muted">Cliquez sur "Télécharger" pour l'enregistrer</p>
+                        </div>
+                    </div>
+                </sheet>
+                
+                <footer invisible="state == 'done'">
+                    <span class="text-muted">
+                        <i class="fa fa-lightbulb-o"/> Astuce : Laissez les filtres vides pour exporter tous les entrepôts
+                    </span>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action pour ouvrir le wizard -->
+    <record id="action_warehouse_valuation_export_wizard" model="ir.actions.act_window">
+        <field name="name">Export Excel - Valorisation Entrepôts</field>
+        <field name="res_model">stockex.warehouse.valuation.export.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_stockex_inventory_summary"/>
+    </record>
+</odoo>

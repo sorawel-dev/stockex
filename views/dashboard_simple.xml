@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Vue Kanban enrichie pour le dashboard -->
+        <record id="view_inventory_dashboard_simple" model="ir.ui.view">
+            <field name="name">stockex.dashboard.simple</field>
+            <field name="model">stockex.inventory.summary</field>
+            <field name="priority">1</field>
+            <field name="arch" type="xml">
+                <kanban create="false" edit="false" delete="false" class="o_kanban_dashboard o_stockex_dashboard">
+                    <field name="total_inventories"/>
+                    <field name="total_inventories_done"/>
+                    <field name="total_products_all"/>
+                    <field name="total_quantity_all"/>
+                    <field name="total_value_all"/>
+                    <field name="current_stock_value"/>
+                    <field name="company_currency_id"/>
+                    <templates>
+                        <t t-name="card">
+                            <div class="container-fluid p-3">
+                                <!-- Filtres -->
+                                <div class="row mb-3 o_stockex_filters p-3 rounded">
+                                    <div class="col-12">
+                                        <small class="text-muted">
+                                            <strong>Filtres:</strong> Période • Entreprise • Entrepôt • Catégorie • Méthode de coût
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <!-- KPIs supérieurs -->
+                                <div class="row mb-4">
+                                    <!-- Valeur du stock -->
+                                    <div class="col mb-3">
+                                        <div class="card h-100 text-white bg-primary border-0 shadow-sm">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div>
+                                                        <h6 class="card-title mb-1" style="font-size: 0.9rem; font-weight: bold;">Valeur du stock</h6>
+                                                        <small class="opacity-75">Total (FCFA)</small>
+                                                    </div>
+                                                    <div class="rounded-circle p-2" style="background: rgba(255,255,255,0.2);">
+                                                        <i class="fa fa-wallet fs-1"></i>
+                                                    </div>
+                                                </div>
+                                                <h4 class="mb-0 mt-1 card-title">
+                                                    <field name="current_stock_value" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                                                </h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Écart inventaire -->
+                                    <div class="col mb-3">
+                                        <div class="card h-100 text-white bg-warning border-0 shadow-sm">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div>
+                                                        <h6 class="card-title mb-1" style="font-size: 0.9rem; font-weight: bold;">Écart inventaire</h6>
+                                                        <small class="opacity-75">Rouge si ≥ 10 000 ou ≥ 2%</small>
+                                                    </div>
+                                                    <div class="rounded-circle p-2" style="background: rgba(255,255,255,0.2);">
+                                                        <i class="fa fa-exclamation-triangle fs-1"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Précision -->
+                                    <div class="col mb-3">
+                                        <div class="card h-100 text-white bg-success border-0 shadow-sm">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div>
+                                                        <h6 class="card-title mb-1" style="font-size: 0.9rem; font-weight: bold;">Précision</h6>
+                                                        <small class="opacity-75">Vert si ≥ objectif</small>
+                                                    </div>
+                                                    <div class="rounded-circle p-2" style="background: rgba(255,255,255,0.2);">
+                                                        <i class="fa fa-bullseye fs-1"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Obsolescence -->
+                                    <div class="col mb-3">
+                                        <div class="card h-100 text-white bg-info border-0 shadow-sm">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div>
+                                                        <h6 class="card-title mb-1" style="font-size: 0.9rem; font-weight: bold;">Obsolescence</h6>
+                                                        <small class="opacity-75">Rotation lente / stock mort</small>
+                                                    </div>
+                                                    <div class="rounded-circle p-2" style="background: rgba(255,255,255,0.2);">
+                                                        <i class="fa fa-hourglass-half fs-1"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Écarts critiques -->
+                                    <div class="col mb-3">
+                                        <div class="card h-100 text-white bg-danger border-0 shadow-sm">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div>
+                                                        <h6 class="card-title mb-1" style="font-size: 0.9rem; font-weight: bold;">Écarts critiques</h6>
+                                                        <small class="opacity-75">Seuil: 10 000 + 2%</small>
+                                                    </div>
+                                                    <div class="rounded-circle p-2" style="background: rgba(255,255,255,0.2);">
+                                                        <i class="fa fa-bolt fs-1"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Graphiques -->
+                                <div class="row mb-4">
+                                    <!-- Écarts par entrepôt -->
+                                    <div class="col-lg-8 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-primary text-white">
+                                                <h5 class="mb-0">Écarts par entrepôt (barres)</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="warehouseChart" style="height: 320px; max-height: 320px;"></canvas>
+                                                <div class="mt-3 d-flex justify-content-around">
+                                                    <div class="text-center p-2" style="background-color: #f8d7da; min-width: 100px; border-radius: 5px;">
+                                                        <small>Entrepôt 1</small>
+                                                    </div>
+                                                    <div class="text-center p-2" style="background-color: #e8e8e8; min-width: 100px; border-radius: 5px;">
+                                                        <small>Entrepôt 2</small>
+                                                    </div>
+                                                    <div class="text-center p-2" style="background-color: #e8e8e8; min-width: 100px; border-radius: 5px;">
+                                                        <small>Entrepôt 3</small>
+                                                    </div>
+                                                    <div class="text-center p-2" style="background-color: #f8d7da; min-width: 100px; border-radius: 5px;">
+                                                        <small>Entrepôt 4</small>
+                                                    </div>
+                                                    <div class="text-center p-2" style="background-color: #e8e8e8; min-width: 100px; border-radius: 5px;">
+                                                        <small>Entrepôt 5</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Valeur par famille -->
+                                    <div class="col-lg-4 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-info text-white">
+                                                <h5 class="mb-0">Valeur par famille (donut)</h5>
+                                            </div>
+                                            <div class="card-body text-center">
+                                                <canvas id="familyChart" style="height: 320px; max-height: 320px;"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Sections conditionnelles -->
+                                <div class="row">
+                                    <!-- Stock initial -->
+                                    <div class="col-lg-6 mb-3">
+                                        <div class="card h-100" style="background-color: #d5f4e6; border: 2px solid #27ae60;">
+                                            <div class="card-header" style="background-color: #d5f4e6; border-bottom: 2px solid #27ae60;">
+                                                <h5 class="mb-0">Stock initial (sans décote)</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="mb-0">Affiché en pleine largeur si valorisation standard</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Décote économique -->
+                                    <div class="col-lg-6 mb-3">
+                                        <div class="card h-100" style="background-color: #fff3cd; border: 2px solid #f39c12;">
+                                            <div class="card-header" style="background-color: #fff3cd; border-bottom: 2px solid #f39c12;">
+                                                <h5 class="mb-0">Décote économique</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="mb-0">Affiché en parallèle si valorisation économique</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Boutons d'action -->
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <button class="btn btn-primary" name="action_view_inventories" type="object">
+                                            📋 Voir tous les inventaires
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Script Chart.js simplifié -->
+                            <script>
+                                // Graphique des écarts par entrepôt (simulation)
+                                if (document.getElementById('warehouseChart')) {
+                                    var ctx1 = document.getElementById('warehouseChart').getContext('2d');
+                                    // Le graphique sera initialisé via JavaScript externe
+                                }
+                                
+                                // Graphique circulaire par famille (simulation)
+                                if (document.getElementById('familyChart')) {
+                                    var ctx2 = document.getElementById('familyChart').getContext('2d');
+                                    // Le graphique sera initialisé via JavaScript externe
+                                }
+                            </script>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+        
+        <!-- Action pour le dashboard simplifié -->
+        <record id="action_stockex_dashboard_simple" model="ir.actions.act_window">
+            <field name="name">Vue d'Ensemble</field>
+            <field name="res_model">stockex.inventory.summary</field>
+            <field name="view_mode">kanban</field>
+            <field name="view_id" ref="view_inventory_dashboard_simple"/>
+            <field name="context">{'form_view_initial_mode': 'readonly'}</field>
+        </record>
+    </data>
+</odoo>

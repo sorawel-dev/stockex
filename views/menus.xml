@@ -5,15 +5,14 @@
     <menuitem id="menu_stockex_root"
               name="Gestion d'Inventaire"
               web_icon="stockex,static/description/icon.png"
-              action="action_stockex_dashboard_home"
               sequence="45"
               groups="base.group_user"/>
     
-    <!-- Sous-menu : Vue d'ensemble (page d'accueil) -->
+    <!-- Sous-menu : Vue d'ensemble (dashboard simplifié) -->
     <menuitem id="menu_stockex_home"
               name="🏠 Vue d'Ensemble"
               parent="menu_stockex_root"
-              action="action_stockex_dashboard_home"
+              action="action_stockex_dashboard_simple"
               sequence="1"
               groups="base.group_user"/>
     
@@ -64,7 +63,7 @@
               parent="menu_stockex_config"
               action="action_stockex_config_settings"
               sequence="5"
-              groups="stockex.group_stockex_manager"/>
+              groups="base.group_user"/>
     
     <!-- Menu vers les Entrepôts Odoo -->
     <menuitem id="menu_stockex_warehouses"
@@ -72,6 +71,38 @@
               parent="menu_stockex_config"
               action="action_warehouse_stockex"
               sequence="10"
+              groups="base.group_user"/>
+    
+    <!-- Action Réseaux Interconnectés ENEO -->
+    <record id="action_eneo_network_menu" model="ir.actions.act_window">
+        <field name="name">Réseaux Interconnectés</field>
+        <field name="res_model">stockex.eneo.network</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+    </record>
+    
+    <!-- Menu Réseaux Interconnectés ENEO -->
+    <menuitem id="menu_stockex_eneo_regions"
+              name="⚡ Réseaux Interconnectés"
+              parent="menu_stockex_config"
+              action="action_eneo_network_menu"
+              sequence="12"
+              groups="base.group_user"/>
+    
+    <!-- Action Régions Électriques ENEO -->
+    <record id="action_eneo_region_menu" model="ir.actions.act_window">
+        <field name="name">Régions Électriques ENEO</field>
+        <field name="res_model">stockex.eneo.region</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+    </record>
+    
+    <!-- Menu Régions Électriques ENEO -->
+    <menuitem id="menu_stockex_eneo_regions_list"
+              name="🗺️ Régions Électriques ENEO"
+              parent="menu_stockex_config"
+              action="action_eneo_region_menu"
+              sequence="11"
               groups="base.group_user"/>
     
     <!-- Menu vers les Emplacements Odoo -->
@@ -86,7 +117,7 @@
     <menuitem id="menu_stockex_products"
               name="📦 Produits"
               parent="menu_stockex_config"
-              action="product.product_normal_action_sell"
+              action="stockex.action_product_config_stockex"
               sequence="30"
               groups="base.group_user"/>
     
@@ -142,15 +173,6 @@
               sequence="50"
               groups="base.group_user"/>
     
-    <!-- Sous-menu : Dashboard -->
-
-    
-
-    
-
-    
-
-    
     <!-- Sous-menu : Analyse (utilise les menus natifs d'Odoo) -->
     <menuitem id="menu_stockex_reporting"
               name="📈 Analyse"
@@ -158,17 +180,52 @@
               sequence="80"/>
     
     <!-- Menus Analyse -->
+    
+    <!-- Action personnalisée pour les quants en stock -->
+    <record id="action_stockex_stock_quants" model="ir.actions.act_window">
+        <field name="name">Stock par Emplacement</field>
+        <field name="res_model">stock.quant</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('quantity', '!=', 0)]</field>
+        <field name="context">{
+            'search_default_productgroup': 1,
+            'search_default_locationgroup': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucun stock disponible
+            </p>
+        </field>
+    </record>
+    
     <menuitem id="menu_stockex_stock_analysis"
               name="📦 Stock"
               parent="menu_stockex_reporting"
-              action="stock.dashboard_open_quants"
+              action="action_stockex_stock_quants"
               sequence="5"
               groups="stock.group_stock_user"/>
+    
+    <!-- Action pour Analyse des mouvements -->
+    <record id="action_stock_move_analysis" model="ir.actions.act_window">
+        <field name="name">Analyse des mouvements</field>
+        <field name="res_model">stock.move</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="domain">[('state', '=', 'done')]</field>
+        <field name="context">{
+            'search_default_done': 1,
+            'search_default_groupby_product': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucun mouvement de stock
+            </p>
+        </field>
+    </record>
     
     <menuitem id="menu_stockex_moves_analysis"
               name="📊 Analyse des mouvements"
               parent="menu_stockex_reporting"
-              action="stock.stock_move_action"
+              action="action_stock_move_analysis"
               sequence="7"
               groups="stock.group_stock_user"/>
     
@@ -178,6 +235,27 @@
               action="action_stockex_inventory"
               sequence="10"
               groups="base.group_user"/>
+    
+    <menuitem id="menu_stock_analysis"
+              name="Analyse des Stocks"
+              parent="menu_stockex_reporting"
+              action="action_stock_analysis"
+              sequence="12"/>
+    
+    <menuitem id="menu_depreciation_report"
+              name="Rapport de Décote"
+              parent="menu_stockex_reporting"
+              action="action_depreciation_report"
+              sequence="15"/>
+    
+    <!-- Menu lots expirants : action commentée car nécessite module product_expiry -->
+    <!--
+    <menuitem id="menu_stock_lot_expiring"
+              name="Lots Expirant"
+              parent="menu_stockex_reporting"
+              action="action_stock_lot_expiring"
+              sequence="50"/>
+    -->
     
     <!-- Séparateur -->
     <menuitem id="menu_stockex_reports_separator"
@@ -209,5 +287,7 @@
               action="action_product_stock_view_filtered"
               sequence="65"
               groups="stock.group_stock_user"/>
+    
+    <!-- DÉSACTIVÉ - dashboard_home_views.xml incompatible avec Odoo 19 -->
     
 </odoo>

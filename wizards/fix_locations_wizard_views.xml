@@ -25,7 +25,7 @@
                         </page>
                         
                         <page string="💡 Solution" name="solution">
-                            <div class="alert alert-info">
+                            <div class="alert alert-info" role="status">
                                 <h4>Comment corriger ?</h4>
                                 <ol>
                                     <li><strong>Automatique</strong> : Cliquer sur "Corriger et Revalider" pour convertir automatiquement tous les emplacements</li>

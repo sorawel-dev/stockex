@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <style>
+    .title{font:700 28px sans-serif;fill:#0d6efd}
+    .subtitle{font:400 16px sans-serif;fill:#6c757d}
+    .label{font:600 16px sans-serif;fill:#212529}
+    .text{font:400 14px sans-serif;fill:#212529}
+    .small{font:400 12px sans-serif;fill:#6c757d}
+    .box{stroke:#dee2e6;stroke-width:2;fill:#ffffff}
+    .badge{stroke:#ced4da;stroke-width:1}
+    .primary-subtle{fill:#e7f1ff;stroke:#0d6efd}
+    .success-subtle{fill:#eaf7ea;stroke:#198754}
+    .warning-subtle{fill:#fff3cd;stroke:#ffc107}
+    .danger-subtle{fill:#f8d7da;stroke:#dc3545}
+    .danger{fill:#dc3545;stroke:#dc3545}
+    .muted{fill:#f8f9fa;stroke:#adb5bd}
+  </style>
+
+  <!-- Header / Title -->
+  <text x="40" y="60" class="title">Vue d'Ensemble — Inventaire des Stocks</text>
+  <text x="40" y="86" class="subtitle">Thème clair natif Odoo, accents couleur ciblés</text>
+
+  <!-- Filtres -->
+  <rect x="40" y="110" width="1840" height="70" class="box"/>
+  <text x="60" y="155" class="text">Filtres: Période • Entreprise • Entrepôt • Catégorie • Méthode de coût</text>
+
+  <!-- KPIs row (5 tiles) -->
+  <rect x="40" y="200" width="350" height="110" class="badge primary-subtle"/>
+  <text x="60" y="230" class="label">Valeur du stock</text>
+  <text x="60" y="260" class="text">Total (FCFA)</text>
+
+  <rect x="400" y="200" width="350" height="110" class="badge danger-subtle"/>
+  <text x="420" y="230" class="label">Écart inventaire</text>
+  <text x="420" y="260" class="text">Rouge si ≥ 10 000 ou ≥ 2%</text>
+
+  <rect x="760" y="200" width="350" height="110" class="badge success-subtle"/>
+  <text x="780" y="230" class="label">Précision</text>
+  <text x="780" y="260" class="text">Vert si ≥ objectif</text>
+
+  <rect x="1120" y="200" width="350" height="110" class="badge warning-subtle"/>
+  <text x="1140" y="230" class="label">Obsolescence</text>
+  <text x="1140" y="260" class="text">Rotation lente / stock mort</text>
+
+  <rect x="1480" y="200" width="400" height="110" class="badge danger-subtle"/>
+  <text x="1500" y="230" class="label">Écarts critiques</text>
+  <text x="1500" y="260" class="text">Seuil: 10 000 + 2%</text>
+
+  <!-- Graphs row -->
+  <rect x="40" y="330" width="900" height="260" class="box"/>
+  <text x="60" y="360" class="label">Écarts par entrepôt (barres)</text>
+  <rect x="80" y="390" width="140" height="160" class="danger-subtle"/>
+  <rect x="240" y="410" width="140" height="140" class="muted"/>
+  <rect x="400" y="430" width="140" height="120" class="muted"/>
+  <rect x="560" y="390" width="140" height="160" class="danger-subtle"/>
+  <rect x="720" y="440" width="140" height="110" class="muted"/>
+
+  <rect x="980" y="330" width="900" height="260" class="box"/>
+  <text x="1000" y="360" class="label">Valeur par famille (donut)</text>
+  <circle cx="1240" cy="460" r="90" class="muted"/>
+  <path d="M1240,460 m0,-90 a90,90 0 1,1 -60,155 L1240,460 Z" class="primary-subtle"/>
+  <path d="M1240,460 m-60,155 a90,90 0 0,1 -30,-65 L1240,460 Z" class="warning-subtle"/>
+
+  <!-- Cards: Stock initial & Décote -->
+  <rect x="40" y="610" width="920" height="170" class="box"/>
+  <rect x="40" y="610" width="920" height="40" class="success-subtle"/>
+  <text x="60" y="635" class="label">Stock initial (sans décote)</text>
+  <text x="60" y="675" class="text">Affiché en pleine largeur si valorisation standard</text>
+
+  <rect x="980" y="610" width="900" height="170" class="box"/>
+  <rect x="980" y="610" width="900" height="40" class="warning-subtle"/>
+  <text x="1000" y="635" class="label">Décote économique</text>
+  <text x="1000" y="675" class="text">Affichée en parallèle si valorisation économique</text>
+
+  <!-- Table: À traiter (20 lignes) -->
+  <rect x="40" y="800" width="1840" height="240" class="box"/>
+  <text x="60" y="830" class="label">À traiter (20 lignes)</text>
+  <text x="60" y="855" class="small">Produit • Entrepôt • Écart (valeur) • Priorité • Actions</text>
+  <!-- header -->
+  <rect x="40" y="860" width="1840" height="30" class="muted"/>
+  <!-- rows sample -->
+  <rect x="40" y="895" width="1840" height="30" class="danger-subtle"/>
+  <text x="60" y="915" class="text">Ligne ≥ 10 000 ou ≥ 2% (mise en évidence)</text>
+  <rect x="40" y="930" width="1840" height="30" class="box"/>
+  <rect x="40" y="965" width="1840" height="30" class="box"/>
+  <rect x="40" y="1000" width="1840" height="30" class="box"/>
+
+  <!-- Footer note -->
+  <text x="40" y="1050" class="small">Palette native: primary, success, warning, danger; accents uniquement sur dépassement de seuils.</text>
+</svg>
