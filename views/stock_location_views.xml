@@ -74,11 +74,17 @@
             </field>
             <filter name="usage" position="after">
                 <separator/>
-                <filter string="Ville" name="group_by_city" 
+                <filter string="🏠 Interne" name="usage_internal" domain="[('usage','=','internal')]"/>
+                <filter string="👁️ Vue" name="usage_view" domain="[('usage','=','view')]"/>
+                <separator/>
+                <filter string="🏙️ Ville" name="group_by_city" 
                         domain="[]" context="{'group_by': 'city'}"/>
-                <filter string="Pays" name="group_by_country" 
+                <filter string="🌍 Pays" name="group_by_country" 
                         domain="[]" context="{'group_by': 'country_id'}"/>
-                <filter string="Entrepôt" name="group_by_warehouse" domain="[]" context="{'group_by': 'warehouse_id'}"/>
+                <filter string="🏢 Entrepôt" name="group_by_warehouse" domain="[]" context="{'group_by': 'warehouse_id'}"/>
+                <separator/>
+                <filter string="⚡ Réseau Sud (RIS)" name="network_south" domain="[('warehouse_id.eneo_region_id.network','=','south')]"/>
+                <filter string="⚡ Réseau Nord (RIN)" name="network_north" domain="[('warehouse_id.eneo_region_id.network','=','north')]"/>
             </filter>
         </field>
     </record>

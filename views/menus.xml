@@ -10,7 +10,7 @@
     
     <!-- Sous-menu : Vue d'ensemble (dashboard simplifié) -->
     <menuitem id="menu_stockex_home"
-              name="🏠 Vue d'Ensemble"
+              name="📊 Tableau de bord"
               parent="menu_stockex_root"
               action="action_stockex_dashboard_simple"
               sequence="1"
@@ -135,7 +135,7 @@
               parent="menu_stockex_config"
               action="action_kobo_config"
               sequence="40"
-              groups="base.group_user"/>
+              groups="stockex.group_stockex_user,stockex.group_stockex_manager"/>
     
     <!-- Menu Corriger Types Produits (wizard) -->
     <menuitem id="menu_fix_product_types"
@@ -203,7 +203,7 @@
               parent="menu_stockex_reporting"
               action="action_stockex_stock_quants"
               sequence="5"
-              groups="stock.group_stock_user"/>
+              groups="stock.group_stock_user,stockex.group_stockex_user,stockex.group_stockex_manager"/>
     
     <!-- Action pour Analyse des mouvements -->
     <record id="action_stock_move_analysis" model="ir.actions.act_window">
@@ -227,7 +227,7 @@
               parent="menu_stockex_reporting"
               action="action_stock_move_analysis"
               sequence="7"
-              groups="stock.group_stock_user"/>
+              groups="stock.group_stock_user,stockex.group_stockex_user,stockex.group_stockex_manager"/>
     
     <menuitem id="menu_stockex_inventory_report"
               name="📋 Liste des Inventaires"
@@ -237,13 +237,13 @@
               groups="base.group_user"/>
     
     <menuitem id="menu_stock_analysis"
-              name="Analyse des Stocks"
+              name="📈 Analyse des Stocks"
               parent="menu_stockex_reporting"
               action="action_stock_analysis"
               sequence="12"/>
     
     <menuitem id="menu_depreciation_report"
-              name="Rapport de Décote"
+              name="📉 Rapport de Décote"
               parent="menu_stockex_reporting"
               action="action_depreciation_report"
               sequence="15"/>
@@ -286,7 +286,7 @@
               parent="menu_stockex_reporting"
               action="action_product_stock_view_filtered"
               sequence="65"
-              groups="stock.group_stock_user"/>
+              groups="stock.group_stock_user,stockex.group_stockex_user,stockex.group_stockex_manager"/>
     
     <!-- DÉSACTIVÉ - dashboard_home_views.xml incompatible avec Odoo 19 -->
     

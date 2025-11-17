@@ -291,6 +291,34 @@ class InventorySummary(models.Model):
         compute='_compute_obsolescence'
     )
     
+    # Analyse stock initial (pour import Excel)
+    initial_stock_analysis_html = fields.Html(
+        string='Analyse Stock Initial',
+        compute='_compute_initial_stock_analysis',
+        help='Analyse détaillée du stock initial (entrepôts, catégories, concentration)'
+    )
+    initial_stock_total_value = fields.Float(
+        string='Valeur totale stock initial',
+        compute='_compute_initial_stock_analysis'
+    )
+    initial_stock_products_count = fields.Integer(
+        string='Nombre produits stock initial',
+        compute='_compute_initial_stock_analysis'
+    )
+    initial_stock_no_price_count = fields.Integer(
+        string='Articles sans prix',
+        compute='_compute_initial_stock_analysis'
+    )
+    initial_stock_top3_concentration = fields.Float(
+        string='Concentration TOP 3 entrepôts (%)',
+        compute='_compute_initial_stock_analysis',
+        help='% de valeur concentrée dans les 3 premiers entrepôts'
+    )
+    initial_stock_top_category_pct = fields.Float(
+        string='% catégorie dominante',
+        compute='_compute_initial_stock_analysis'
+    )
+    
     def _get_cost_price(self, product, line_price=None):
         """Retourne le coût selon la règle de valorisation configurée."""
         rule = self.env['ir.config_parameter'].sudo().get_param('stockex.valuation_rule', 'standard')
@@ -364,6 +392,314 @@ class InventorySummary(models.Model):
             return base_price * depreciation_coef
         
         return base_price
+    
+    @api.depends('company_id')
+    def _compute_initial_stock_analysis(self):
+        """Analyse du stock initial (premier inventaire marqué is_initial_stock)."""
+        for record in self:
+            try:
+                # Chercher les inventaires de stock initial
+                initial_inventories = self.env['stockex.stock.inventory'].search([
+                    ('company_id', '=', record.company_id.id),
+                    ('is_initial_stock', '=', True),
+                ])
+                
+                if not initial_inventories:
+                    record.initial_stock_analysis_html = "<p class='text-muted'>Aucun stock initial trouvé</p>"
+                    record.initial_stock_total_value = 0
+                    record.initial_stock_products_count = 0
+                    record.initial_stock_no_price_count = 0
+                    continue
+                
+                # Récupérer toutes les lignes
+                lines = self.env['stockex.stock.inventory.line'].search([
+                    ('inventory_id', 'in', initial_inventories.ids)
+                ])
+                
+                if not lines:
+                    record.initial_stock_analysis_html = "<p class='text-muted'>Aucune ligne de stock initial</p>"
+                    record.initial_stock_total_value = 0
+                    record.initial_stock_products_count = 0
+                    record.initial_stock_no_price_count = 0
+                    continue
+                
+                # Statistiques globales
+                total_value = 0.0
+                products_set = set()
+                no_price_count = 0
+                
+                # Agrégations par entrepôt
+                by_warehouse = {}
+                # Agrégations par catégorie
+                by_category = {}
+                
+                for line in lines:
+                    product = line.product_id
+                    products_set.add(product.id)
+                    
+                    qty = line.product_qty or 0.0
+                    price = record._get_cost_price(product, line.standard_price)
+                    
+                    if price == 0:
+                        no_price_count += 1
+                    
+                    value = qty * price
+                    total_value += value
+                    
+                    # Par entrepôt
+                    warehouse = line.location_id.warehouse_id
+                    wh_name = warehouse.name if warehouse else 'Sans entrepôt'
+                    if wh_name not in by_warehouse:
+                        by_warehouse[wh_name] = {'value': 0.0, 'lines': 0}
+                    by_warehouse[wh_name]['value'] += value
+                    by_warehouse[wh_name]['lines'] += 1
+                    
+                    # Par catégorie
+                    category = product.categ_id
+                    cat_name = category.name if category else 'Sans catégorie'
+                    if cat_name not in by_category:
+                        by_category[cat_name] = {'value': 0.0, 'lines': 0}
+                    by_category[cat_name]['value'] += value
+                    by_category[cat_name]['lines'] += 1
+                
+                # Stocker les stats
+                record.initial_stock_total_value = total_value
+                record.initial_stock_products_count = len(products_set)
+                record.initial_stock_no_price_count = no_price_count
+                
+                # Calcul concentration TOP 3 entrepôts
+                sorted_warehouses = sorted(by_warehouse.items(), key=lambda x: x[1]['value'], reverse=True)
+                top3_value = sum(wh[1]['value'] for wh in sorted_warehouses[:3])
+                top3_concentration = (top3_value / total_value * 100) if total_value > 0 else 0
+                record.initial_stock_top3_concentration = top3_concentration
+                
+                # Calcul % catégorie dominante
+                sorted_categories = sorted(by_category.items(), key=lambda x: x[1]['value'], reverse=True)
+                top_category_pct = (sorted_categories[0][1]['value'] / total_value * 100) if sorted_categories and total_value > 0 else 0
+                record.initial_stock_top_category_pct = top_category_pct
+                
+                # Construire HTML
+                html = f"""
+                <div class="p-3">
+                    <!-- Points d'attention -->
+                    <div class="row mb-4">
+                        <div class="col-12 mb-3">
+                            <h5 class="mb-0 fw-bold">⚠️ Points d'Attention</h5>
+                            <hr class="mt-2 mb-3"/>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-{'warning' if no_price_count > 0 else 'success'} shadow-sm h-100">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <i class="fa fa-tags fa-3x text-{'warning' if no_price_count > 0 else 'success'}"></i>
+                                    </div>
+                                    <p class="text-muted mb-1 small">Articles sans prix</p>
+                                    <h2 class="mb-0 fw-bold text-{'warning' if no_price_count > 0 else 'success'}">{no_price_count}</h2>
+                                    <small class="text-muted">{int(no_price_count/len(lines)*100)}% des lignes</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-{'danger' if top3_concentration > 80 else 'warning' if top3_concentration > 60 else 'success'} shadow-sm h-100">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <i class="fa fa-chart-pie fa-3x text-{'danger' if top3_concentration > 80 else 'warning' if top3_concentration > 60 else 'success'}"></i>
+                                    </div>
+                                    <p class="text-muted mb-1 small">Concentration TOP 3</p>
+                                    <h2 class="mb-0 fw-bold text-{'danger' if top3_concentration > 80 else 'warning' if top3_concentration > 60 else 'success'}">{int(top3_concentration)}%</h2>
+                                    <small class="text-muted">{'Très concentré' if top3_concentration > 80 else 'Concentré' if top3_concentration > 60 else 'Équilibré'}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-{'warning' if top_category_pct > 40 else 'success'} shadow-sm h-100">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <i class="fa fa-folder fa-3x text-{'warning' if top_category_pct > 40 else 'success'}"></i>
+                                    </div>
+                                    <p class="text-muted mb-1 small">Catégorie dominante</p>
+                                    <h2 class="mb-0 fw-bold text-{'warning' if top_category_pct > 40 else 'success'}">{int(top_category_pct)}%</h2>
+                                    <small class="text-muted text-truncate d-block">{sorted_categories[0][0] if sorted_categories else 'N/A'}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-info shadow-sm h-100">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-2">
+                                        <i class="fa fa-warehouse fa-3x text-info"></i>
+                                    </div>
+                                    <p class="text-muted mb-1 small">Entrepôts actifs</p>
+                                    <h2 class="mb-0 fw-bold text-info">{len(by_warehouse)}</h2>
+                                    <small class="text-muted">{len(by_category)} catégories</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- KPIs principaux -->
+                    <div class="row mb-4">
+                        <div class="col-12 mb-3">
+                            <h5 class="mb-0 fw-bold">📊 Indicateurs Clés</h5>
+                            <hr class="mt-2 mb-3"/>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-gradient text-white shadow h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1 small opacity-75">Valeur Totale</p>
+                                            <h3 class="mb-0 fw-bold">{int(total_value):,}</h3>
+                                            <small class="opacity-75">FCFA</small>
+                                        </div>
+                                        <div class="ms-2">
+                                            <i class="fa fa-wallet fa-3x opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-gradient text-white shadow h-100" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1 small opacity-75">Nbre de références</p>
+                                            <h3 class="mb-0 fw-bold">{len(products_set):,}</h3>
+                                            <small class="opacity-75">produits</small>
+                                        </div>
+                                        <div class="ms-2">
+                                            <i class="fa fa-box fa-3x opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-gradient text-white shadow h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1 small opacity-75">Sans Prix</p>
+                                            <h3 class="mb-0 fw-bold">{no_price_count}</h3>
+                                            <small class="opacity-75">à valoriser</small>
+                                        </div>
+                                        <div class="ms-2">
+                                            <i class="fa fa-exclamation-triangle fa-3x opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-gradient text-white shadow h-100" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1 small opacity-75">Lignes</p>
+                                            <h3 class="mb-0 fw-bold">{len(lines):,}</h3>
+                                            <small class="opacity-75">entrées</small>
+                                        </div>
+                                        <div class="ms-2">
+                                            <i class="fa fa-list fa-3x opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tableaux -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom">
+                                    <h6 class="mb-0 fw-bold">🏢 Top 10 Entrepôts</h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="border-0">Entrepôt</th>
+                                                    <th class="text-end border-0">Valeur (FCFA)</th>
+                                                    <th class="text-end border-0">% Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                """
+                
+                # Trier par valeur décroissante
+                sorted_warehouses = sorted(by_warehouse.items(), key=lambda x: x[1]['value'], reverse=True)
+                for wh_name, wh_data in sorted_warehouses[:10]:  # Top 10
+                    pct = int((wh_data['value'] / total_value * 100)) if total_value > 0 else 0
+                    html += f"""
+                                                <tr>
+                                                    <td class="fw-medium">{wh_name}</td>
+                                                    <td class="text-end">{int(wh_data['value']):,}</td>
+                                                    <td class="text-end"><span class="badge bg-primary">{pct}%</span></td>
+                                                </tr>
+                    """
+                
+                html += """
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom">
+                                    <h6 class="mb-0 fw-bold">📁 Top 10 Catégories</h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="border-0">Catégorie</th>
+                                                    <th class="text-end border-0">Valeur (FCFA)</th>
+                                                    <th class="text-end border-0">% Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                """
+                
+                # Trier par valeur décroissante
+                sorted_categories = sorted(by_category.items(), key=lambda x: x[1]['value'], reverse=True)
+                for cat_name, cat_data in sorted_categories[:10]:  # Top 10
+                    pct = int((cat_data['value'] / total_value * 100)) if total_value > 0 else 0
+                    html += f"""
+                                                <tr>
+                                                    <td class="fw-medium">{cat_name}</td>
+                                                    <td class="text-end">{int(cat_data['value']):,}</td>
+                                                    <td class="text-end"><span class="badge bg-success">{pct}%</span></td>
+                                                </tr>
+                    """
+                
+                html += """
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """
+                
+                record.initial_stock_analysis_html = html
+                
+            except Exception as e:
+                _logger.error(f"Erreur lors de l'analyse du stock initial: {e}")
+                import traceback
+                _logger.error(traceback.format_exc())
+                record.initial_stock_analysis_html = f"<p class='text-danger'>Erreur: {str(e)}</p>"
+                record.initial_stock_total_value = 0
+                record.initial_stock_products_count = 0
+                record.initial_stock_no_price_count = 0
     
     def _get_depreciation_coefficient(self, product):
         """Retourne le coefficient de décote selon la rotation du produit.

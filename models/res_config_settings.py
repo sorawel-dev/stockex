@@ -148,41 +148,55 @@ class ResConfigSettings(models.TransientModel):
     # Règle de valorisation
     stockex_valuation_rule = fields.Selection(
         selection=[
-            ('standard', 'Regle-1: Cout standard'),
-            ('economic', 'Regle-2: Cout économique réel'),
+            ('standard', 'Coût Standard'),
+            ('average', 'Coût Moyen (AVCO)'),
+            ('fifo', 'Premier Entré Premier Sorti (FIFO)'),
+            ('economic', 'Coût économique réel'),
         ],
-        string='Règle de valorisation',
+        string='Méthode de valorisation',
         default='standard',
         config_parameter='stockex.valuation_rule',
-        help='Choix de la règle de valorisation pour les calculs de valeur de stock'
+        help="Coût Standard: Prix fixe défini manuellement\n"
+             "Coût Moyen (AVCO): Moyenne pondérée des achats\n"
+             "FIFO: Premier entré, premier sorti\n"
+             "Coût économique réel: Dernier prix d'achat réel (défini dans les paramètres Stockex)"
     )
     
     @api.onchange('stockex_valuation_rule')
     def _onchange_stockex_valuation_rule(self):
         """Avertit l'utilisateur que les catégories seront mises à jour."""
-        if self.stockex_valuation_rule == 'economic':
+        if self.stockex_valuation_rule:
+            method_labels = {
+                'standard': 'Coût Standard',
+                'average': 'Coût Moyen (AVCO)',
+                'fifo': 'Premier Entré Premier Sorti (FIFO)',
+                'economic': 'Coût économique réel'
+            }
+            method_name = method_labels.get(self.stockex_valuation_rule, self.stockex_valuation_rule)
             return {
                 'warning': {
                     'title': 'Mise à jour des catégories',
-                    'message': 'Les catégories de produits seront mises à jour avec la méthode "Coût économique réel" lors de la sauvegarde.'
+                    'message': f'Les catégories de produits seront mises à jour avec la méthode "{method_name}" lors de la sauvegarde.'
                 }
             }
     
     def set_values(self):
-        """Surcharge pour mettre à jour les catégories lors de la sauvegarde."""
+        """Surcharge pour mettre à jour les catégories lors de la sauvegarde
+        et ajuster la visibilité du menu Rapport de Décote selon la règle."""
         super(ResConfigSettings, self).set_values()
-        
-        # Si la règle de valorisation est changée à 'economic', mettre à jour toutes les catégories
-        if self.stockex_valuation_rule == 'economic':
-            self._update_product_categories_cost_method('economic')
-        elif self.stockex_valuation_rule == 'standard':
-            self._update_product_categories_cost_method('standard')
+        # Mise à jour des catégories selon la règle choisie
+        if self.stockex_valuation_rule:
+            self._update_product_categories_cost_method(self.stockex_valuation_rule)
+        # Activer/Désactiver le menu Rapport de Décote dynamiquement
+        menu = self.env.ref('stockex.menu_depreciation_report', raise_if_not_found=False)
+        if menu:
+            menu.sudo().write({'active': self.stockex_valuation_rule == 'economic'})
     
     def _update_product_categories_cost_method(self, cost_method):
         """Met à jour la méthode de coût de toutes les catégories de produits.
         
         Args:
-            cost_method (str): 'economic' ou 'standard'
+            cost_method (str): 'standard', 'average', 'fifo' ou 'economic'
         """
         ProductCategory = self.env['product.category']
         

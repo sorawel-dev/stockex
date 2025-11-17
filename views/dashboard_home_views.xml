@@ -4,7 +4,7 @@
         <field name="model">stockex.inventory.summary</field>
         <field name="priority">1</field>
         <field name="arch" type="xml">
-            <kanban create="false" edit="false" delete="false" class="o_kanban_dashboard o_stockex_dashboard">
+            <kanban create="false" edit="true" delete="false" class="o_kanban_dashboard o_stockex_dashboard">
                 <field name="total_inventories"/>
                 <field name="total_inventories_done"/>
                 <field name="total_products_all"/>
@@ -38,6 +38,27 @@
                                     <div class="o_secondary">
                                         📊 Stock actuel vs Stocks inventoriés - Tableau de bord en temps réel
                                     </div>
+                                </div>
+                            </div>
+                            <div class="o_stockex_filters p-3 mb-3 rounded">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-md-5">
+                                        <label class="form-label mb-1">Entrepôts</label>
+                                        <field name="warehouse_ids" widget="many2many_tags"/>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label mb-1">Emplacements</label>
+                                        <field name="location_ids" widget="many2many_tags"/>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <button type="object" name="action_reset_filters" class="btn btn-outline-secondary me-2" title="Réinitialiser" aria-label="Réinitialiser">
+                                            <i class="fa fa-rotate-right"></i>
+                                        </button>
+                                        <button type="object" name="action_view_warehouse_details" class="btn btn-light w-100">Voir Entrepôts</button>
+                                    </div>
+                                </div>
+                                <div class="border-top mt-2 pt-2">
+                                    <small>Filtres actifs: <field name="filters_info" nolabel="1"/></small>
                                 </div>
                             </div>
                             
@@ -268,7 +289,7 @@
         <field name="name">stockex.inventory.summary.kanban.insights</field>
         <field name="model">stockex.inventory.summary</field>
         <field name="arch" type="xml">
-            <kanban create="false" edit="false" delete="false" class="o_kanban_dashboard o_stockex_dashboard">
+            <kanban create="false" edit="true" delete="false" class="o_kanban_dashboard o_stockex_dashboard">
                 <field name="total_value_all"/>
                 <field name="total_value_all_fcfa"/>
                 <field name="stock_value_difference_fcfa"/>
@@ -300,6 +321,27 @@
                                             <i class="fa fa-clock-o"></i> Mis à jour maintenant
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                            <div class="o_stockex_filters p-3 mb-3 rounded">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-md-5">
+                                        <label class="form-label mb-1">Entrepôts</label>
+                                        <field name="warehouse_ids" widget="many2many_tags"/>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label mb-1">Emplacements</label>
+                                        <field name="location_ids" widget="many2many_tags"/>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <button type="object" name="action_reset_filters" class="btn btn-outline-secondary me-2" title="Réinitialiser" aria-label="Réinitialiser">
+                                            <i class="fa fa-rotate-right"></i>
+                                        </button>
+                                        <button type="object" name="action_view_warehouse_details" class="btn btn-light w-100">Voir Entrepôts</button>
+                                    </div>
+                                </div>
+                                <div class="border-top mt-2 pt-2">
+                                    <small>Filtres actifs: <field name="filters_info" nolabel="1"/></small>
                                 </div>
                             </div>
                             

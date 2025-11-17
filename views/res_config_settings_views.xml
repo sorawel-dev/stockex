@@ -56,10 +56,16 @@
                     <!-- Règle de valorisation -->
                     <block title="💰 Règle de valorisation" name="stockex_valuation_rule">
                         <setting help="Choisir la méthode de valorisation">
-                            <field name="stockex_valuation_rule" widget="radio"/>
+                            <label for="stockex_valuation_rule" string="Méthode de valorisation"/>
+                            <field name="stockex_valuation_rule"/>
                             <div class="alert alert-info mt-2 mb-0 py-2" role="status">
                                 <strong>💡 Explication :</strong> 
-                                <span class="text-muted">Standard = prix fixe • Économique = dernier prix d'achat réel</span>
+                                <span class="text-muted">
+                                    <strong>Standard</strong> : Prix fixe défini manuellement • 
+                                    <strong>AVCO</strong> : Moyenne pondérée des achats • 
+                                    <strong>FIFO</strong> : Premier entré, premier sorti • 
+                                    <strong>Économique</strong> : Dernier prix d'achat réel
+                                </span>
                             </div>
                             <div class="alert alert-warning mt-2 mb-0 py-2" role="status">
                                 <strong>⚠️ Attention :</strong> 
@@ -69,6 +75,9 @@
                         
                         <!-- Décote selon rotation -->
                         <setting string="Décote selon Rotation">
+                            <div class="text-muted">
+                                Appliquer une décote sur la valorisation selon la rotation du stock
+                            </div>
                             <div class="content-group mt-2">
                                 <field name="stockex_apply_depreciation"/>
                                 <label for="stockex_apply_depreciation"/>
@@ -82,26 +91,29 @@
                         
                         <!-- Paramètres de décote -->
                         <setting string="Paramètres de Décote" invisible="not stockex_apply_depreciation">
+                            <div class="text-muted">
+                                Configuration des seuils et taux de décote
+                            </div>
                             <div class="content-group mt-2">
                                 <div class="row">
-                                    <label for="stockex_depreciation_active_days" class="col-lg-5 o_light_label"/>
-                                    <field name="stockex_depreciation_active_days" class="col-lg-3"/>
-                                    <div class="col-lg-4 text-muted"><small>→ Décote 0%</small></div>
-                                </div>
-                                <div class="row mt-1">
-                                    <label for="stockex_depreciation_slow_days" class="col-lg-5 o_light_label"/>
-                                    <field name="stockex_depreciation_slow_days" class="col-lg-3"/>
-                                    <div class="col-lg-4 text-muted"><small>Au-delà = mort</small></div>
-                                </div>
-                                <div class="row mt-1">
-                                    <label for="stockex_depreciation_slow_rate" class="col-lg-5 o_light_label"/>
-                                    <field name="stockex_depreciation_slow_rate" class="col-lg-3"/>
-                                    <div class="col-lg-4 text-muted"><small>0-100%</small></div>
-                                </div>
-                                <div class="row mt-1">
-                                    <label for="stockex_depreciation_dead_rate" class="col-lg-5 o_light_label"/>
-                                    <field name="stockex_depreciation_dead_rate" class="col-lg-3"/>
-                                    <div class="col-lg-4 text-muted"><small>Gén. 100%</small></div>
+                                    <div class="col-lg-6">
+                                        <label for="stockex_depreciation_active_days" string="Période stock actif (jours)" class="o_light_label"/>
+                                        <field name="stockex_depreciation_active_days" class="mb-2"/>
+                                        <small class="text-muted d-block mb-3">→ Décote 0%</small>
+                                        
+                                        <label for="stockex_depreciation_slow_days" string="Période rotation lente (jours)" class="o_light_label"/>
+                                        <field name="stockex_depreciation_slow_days" class="mb-2"/>
+                                        <small class="text-muted d-block">→ Au-delà = stock mort</small>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <label for="stockex_depreciation_slow_rate" string="Taux décote rotation lente (%)" class="o_light_label"/>
+                                        <field name="stockex_depreciation_slow_rate" class="mb-2"/>
+                                        <small class="text-muted d-block mb-3">→ Généralement 40%</small>
+                                        
+                                        <label for="stockex_depreciation_dead_rate" string="Taux décote stock mort (%)" class="o_light_label"/>
+                                        <field name="stockex_depreciation_dead_rate" class="mb-2"/>
+                                        <small class="text-muted d-block">→ Généralement 100%</small>
+                                    </div>
                                 </div>
                             </div>
                         </setting>

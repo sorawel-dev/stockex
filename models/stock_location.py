@@ -23,6 +23,13 @@ class StockLocation(models.Model):
         compute='_compute_warehouse_id',
         store=True
     )
+
+    eneo_region_id = fields.Many2one(
+        'stockex.eneo.region',
+        string='Région Électrique ENEO',
+        compute='_compute_eneo_region_id',
+        store=True
+    )
     
     # Code-barres pour l'emplacement
     barcode = fields.Char(
@@ -252,6 +259,11 @@ class StockLocation(models.Model):
             except Exception:
                 rec.warehouse_id = False
     
+    @api.depends('warehouse_id', 'warehouse_id.eneo_region_id')
+    def _compute_eneo_region_id(self):
+        for rec in self:
+            rec.eneo_region_id = rec.warehouse_id.eneo_region_id if rec.warehouse_id else False
+
     @api.onchange('warehouse_id')
     def _onchange_warehouse_city(self):
         """Met à jour automatiquement la ville de l'emplacement avec celle de l'entrepôt."""
