@@ -9,6 +9,10 @@
                 <field name="warehouse_id" type="row"/>
                 <field name="categ_id" type="row"/>
                 <field name="quantity_on_hand" type="measure"/>
+                <field name="quantity_available" type="measure"/>
+                <field name="quantity_reserved" type="measure"/>
+                <field name="inventory_qty" type="measure"/>
+                <field name="inventory_difference" type="measure"/>
                 <field name="value_on_hand" type="measure"/>
                 <field name="depreciated_value" type="measure"/>
                 <field name="inventory_difference_value" type="measure"/>
@@ -25,6 +29,44 @@
                 <field name="warehouse_id"/>
                 <field name="value_on_hand" type="measure"/>
                 <field name="depreciated_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Graphique Donut par Catégorie -->
+    <record id="view_stock_analysis_graph_category" model="ir.ui.view">
+        <field name="name">stockex.stock.analysis.graph.category</field>
+        <field name="model">stockex.stock.analysis</field>
+        <field name="arch" type="xml">
+            <graph string="Valeur par catégorie (donut)" type="pie" sample="1">
+                <field name="categ_id"/>
+                <field name="value_on_hand" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Graphique Évolution mensuelle (ligne) -->
+    <record id="view_stock_analysis_graph_evolution" model="ir.ui.view">
+        <field name="name">stockex.stock.analysis.graph.evolution</field>
+        <field name="model">stockex.stock.analysis</field>
+        <field name="arch" type="xml">
+            <graph string="Évolution mensuelle des valeurs" type="line" sample="1">
+                <field name="date"/>
+                <field name="value_on_hand" type="measure"/>
+                <field name="depreciated_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Graphique Évolution des quantités (ligne) -->
+    <record id="view_stock_analysis_graph_qty_evolution" model="ir.ui.view">
+        <field name="name">stockex.stock.analysis.graph.qty.evolution</field>
+        <field name="model">stockex.stock.analysis</field>
+        <field name="arch" type="xml">
+            <graph string="Évolution mensuelle des quantités" type="line" sample="1">
+                <field name="date"/>
+                <field name="quantity_on_hand" type="measure"/>
+                <field name="inventory_qty" type="measure"/>
             </graph>
         </field>
     </record>
@@ -192,8 +234,8 @@
                         domain="[('rotation_status', '=', 'active')]"/>
                 <filter string="🟠 Rotation Lente" name="filter_slow" 
                         domain="[('rotation_status', '=', 'slow')]"/>
-                <filter string="⚫ Stock Mort" name="filter_dead" 
-                        domain="[('rotation_status', '=', 'dead')]"/>
+                <filter string="⏳ Rotation > 60 jours" name="filter_rotation_gt_60" 
+                        domain="[('days_since_last_move', '>', 60)]"/>
                 
                 <separator/>
                 <filter string="📊 Classe A" name="filter_abc_a" 
@@ -255,12 +297,14 @@
             (0, 0, {'view_mode': 'pivot', 'view_id': ref('view_stock_analysis_pivot')}),
             (0, 0, {'view_mode': 'graph', 'view_id': ref('view_stock_analysis_graph')}),
             (0, 0, {'view_mode': 'list', 'view_id': ref('view_stock_analysis_tree')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('view_stock_analysis_form')})]"/>
-        <field name="context">{
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_stock_analysis_form')})]/>
+        <field name="context"><![CDATA[{
             'search_default_group_by_warehouse': 1,
-            'pivot_measures': ['quantity_on_hand', 'value_on_hand', 'depreciated_value'],
+            'search_default_group_by_category': 1,
+            'search_default_group_by_month': 1,
+            'pivot_measures': ['quantity_on_hand', 'quantity_reserved', 'inventory_qty', 'inventory_difference', 'value_on_hand', 'depreciated_value', 'inventory_difference_value'],
             'graph_type': 'bar'
-        }</field>
+        }]]></field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 📊 Analyse Puissante des Stocks

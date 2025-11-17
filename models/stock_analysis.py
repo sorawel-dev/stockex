@@ -85,13 +85,15 @@ class StockAnalysis(models.Model):
         # Vérifier la présence des tables nécessaires (module Stock installé)
         self.env.cr.execute("SELECT to_regclass('stock_valuation_layer'), to_regclass('stock_move')")
         svl_reg, sm_reg = self.env.cr.fetchone()
-        if not svl_reg or not sm_reg:
-            _logger.warning("Stock non installé ou tables manquantes. Vue %s non créée.", self._table)
+        svl_present = bool(svl_reg)
+        if not sm_reg:
+            _logger.warning("Stock non installé ou tables manquantes (stock_move). Vue %s non créée.", self._table)
             tools.drop_view_if_exists(self.env.cr, self._table)
             return
         tools.drop_view_if_exists(self.env.cr, self._table)
         
-        query = """
+        if svl_present:
+            query = """
         CREATE OR REPLACE VIEW %s AS (
             SELECT 
                 ROW_NUMBER() OVER (ORDER BY sq.id, inv.id) as id,
@@ -116,163 +118,43 @@ class StockAnalysis(models.Model):
                 COALESCE(sq.quantity, 0.0) as quantity_on_hand,
                 COALESCE(sq.quantity, 0.0) - COALESCE(sq.reserved_quantity, 0.0) as quantity_available,
                 COALESCE(sq.reserved_quantity, 0.0) as quantity_reserved,
-                0.0 as quantity_incoming,  -- À calculer via stock.move
-                0.0 as quantity_outgoing,  -- À calculer via stock.move
+                0.0 as quantity_incoming,
+                0.0 as quantity_outgoing,
                 
-                -- Valorisation
-                COALESCE(
-                    (SELECT unit_cost 
-                     FROM stock_valuation_layer svl 
-                     WHERE svl.product_id = sq.product_id 
-                     ORDER BY create_date DESC LIMIT 1),
-                    0.0
-                ) as standard_price,
-                COALESCE(
-                    (SELECT unit_cost 
-                     FROM stock_valuation_layer svl 
-                     WHERE svl.product_id = sq.product_id 
-                     ORDER BY create_date DESC LIMIT 1),
-                    0.0
-                ) as economic_price,
-                COALESCE(sq.quantity, 0.0) * COALESCE(
-                    (SELECT unit_cost 
-                     FROM stock_valuation_layer svl 
-                     WHERE svl.product_id = sq.product_id 
-                     ORDER BY create_date DESC LIMIT 1),
-                    0.0
-                ) as value_on_hand,
-                (COALESCE(sq.quantity, 0.0) - COALESCE(sq.reserved_quantity, 0.0)) * COALESCE(
-                    (SELECT unit_cost 
-                     FROM stock_valuation_layer svl 
-                     WHERE svl.product_id = sq.product_id 
-                     ORDER BY create_date DESC LIMIT 1),
-                    0.0
-                ) as value_available,
-                COALESCE(sq.reserved_quantity, 0.0) * COALESCE(
-                    (SELECT unit_cost 
-                     FROM stock_valuation_layer svl 
-                     WHERE svl.product_id = sq.product_id 
-                     ORDER BY create_date DESC LIMIT 1),
-                    0.0
-                ) as value_reserved,
+                -- Valorisation (via SVL)
+                COALESCE((SELECT unit_cost FROM stock_valuation_layer svl WHERE svl.product_id = sq.product_id ORDER BY create_date DESC LIMIT 1), 0.0) as standard_price,
+                COALESCE((SELECT unit_cost FROM stock_valuation_layer svl WHERE svl.product_id = sq.product_id ORDER BY create_date DESC LIMIT 1), 0.0) as economic_price,
+                COALESCE(sq.quantity, 0.0) * COALESCE((SELECT unit_cost FROM stock_valuation_layer svl WHERE svl.product_id = sq.product_id ORDER BY create_date DESC LIMIT 1), 0.0) as value_on_hand,
+                (COALESCE(sq.quantity, 0.0) - COALESCE(sq.reserved_quantity, 0.0)) * COALESCE((SELECT unit_cost FROM stock_valuation_layer svl WHERE svl.product_id = sq.product_id ORDER BY create_date DESC LIMIT 1), 0.0) as value_available,
+                COALESCE(sq.reserved_quantity, 0.0) * COALESCE((SELECT unit_cost FROM stock_valuation_layer svl WHERE svl.product_id = sq.product_id ORDER BY create_date DESC LIMIT 1), 0.0) as value_reserved,
                 
                 -- Rotation et décote
-                (SELECT MAX(sm.date) 
-                 FROM stock_move sm 
-                 WHERE sm.product_id = sq.product_id 
-                   AND sm.state = 'done'
-                ) as last_move_date,
-                COALESCE(
-                    CURRENT_DATE - (
-                        SELECT MAX(sm.date)::date 
-                        FROM stock_move sm 
-                        WHERE sm.product_id = sq.product_id 
-                          AND sm.state = 'done'
-                    ),
-                    9999
-                ) as days_since_last_move,
-                CASE 
-                    WHEN COALESCE(
-                        CURRENT_DATE - (
-                            SELECT MAX(sm.date)::date 
-                            FROM stock_move sm 
-                            WHERE sm.product_id = sq.product_id 
-                              AND sm.state = 'done'
-                        ),
-                        9999
-                    ) < 365 THEN 'active'
-                    WHEN COALESCE(
-                        CURRENT_DATE - (
-                            SELECT MAX(sm.date)::date 
-                            FROM stock_move sm 
-                            WHERE sm.product_id = sq.product_id 
-                              AND sm.state = 'done'
-                        ),
-                        9999
-                    ) BETWEEN 365 AND 1095 THEN 'slow'
-                    ELSE 'dead'
-                END as rotation_status,
-                CASE 
-                    WHEN COALESCE(
-                        CURRENT_DATE - (
-                            SELECT MAX(sm.date)::date 
-                            FROM stock_move sm 
-                            WHERE sm.product_id = sq.product_id 
-                              AND sm.state = 'done'
-                        ),
-                        9999
-                    ) < 365 THEN 0.0
-                    WHEN COALESCE(
-                        CURRENT_DATE - (
-                            SELECT MAX(sm.date)::date 
-                            FROM stock_move sm 
-                            WHERE sm.product_id = sq.product_id 
-                              AND sm.state = 'done'
-                        ),
-                        9999
-                    ) BETWEEN 365 AND 1095 THEN 40.0
-                    ELSE 100.0
-                END as depreciation_rate,
-                COALESCE(sq.quantity, 0.0) * COALESCE(
-                    (SELECT unit_cost 
-                     FROM stock_valuation_layer svl 
-                     WHERE svl.product_id = sq.product_id 
-                     ORDER BY create_date DESC LIMIT 1),
-                    0.0
-                ) * (
-                    1 - (
-                        CASE 
-                            WHEN COALESCE(
-                                CURRENT_DATE - (
-                                    SELECT MAX(sm.date)::date 
-                                    FROM stock_move sm 
-                                    WHERE sm.product_id = sq.product_id 
-                                      AND sm.state = 'done'
-                                ),
-                                9999
-                            ) < 365 THEN 0.0
-                            WHEN COALESCE(
-                                CURRENT_DATE - (
-                                    SELECT MAX(sm.date)::date 
-                                    FROM stock_move sm 
-                                    WHERE sm.product_id = sq.product_id 
-                                      AND sm.state = 'done'
-                                ),
-                                9999
-                            ) BETWEEN 365 AND 1095 THEN 0.4
-                            ELSE 1.0
-                        END
-                    )
-                ) as depreciated_value,
+                (SELECT MAX(sm.date) FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done') as last_move_date,
+                COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) as days_since_last_move,
+                CASE WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) < 365 THEN 'active'
+                     WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) BETWEEN 365 AND 1095 THEN 'slow'
+                     ELSE 'dead' END as rotation_status,
+                CASE WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) < 365 THEN 0.0
+                     WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) BETWEEN 365 AND 1095 THEN 40.0
+                     ELSE 100.0 END as depreciation_rate,
+                COALESCE(sq.quantity, 0.0) * COALESCE((SELECT unit_cost FROM stock_valuation_layer svl WHERE svl.product_id = sq.product_id ORDER BY create_date DESC LIMIT 1), 0.0) * (1 - (CASE WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) < 365 THEN 0.0 WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) BETWEEN 365 AND 1095 THEN 0.4 ELSE 1.0 END)) as depreciated_value,
                 
                 -- Inventaire
                 inv.id as inventory_id,
                 inv.date as inventory_date,
                 invl.product_qty as inventory_qty,
-                invl.product_qty * COALESCE(
-                    (SELECT unit_cost 
-                     FROM stock_valuation_layer svl 
-                     WHERE svl.product_id = sq.product_id 
-                     ORDER BY create_date DESC LIMIT 1),
-                    0.0
-                ) as inventory_value,
+                invl.product_qty * COALESCE((SELECT unit_cost FROM stock_valuation_layer svl WHERE svl.product_id = sq.product_id ORDER BY create_date DESC LIMIT 1), 0.0) as inventory_value,
                 COALESCE(invl.difference, 0.0) as inventory_difference,
-                COALESCE(invl.difference, 0.0) * COALESCE(
-                    (SELECT unit_cost 
-                     FROM stock_valuation_layer svl 
-                     WHERE svl.product_id = sq.product_id 
-                     ORDER BY create_date DESC LIMIT 1),
-                    0.0
-                ) as inventory_difference_value,
+                COALESCE(invl.difference, 0.0) * COALESCE((SELECT unit_cost FROM stock_valuation_layer svl WHERE svl.product_id = sq.product_id ORDER BY create_date DESC LIMIT 1), 0.0) as inventory_difference_value,
                 
                 -- Indicateurs
-                30 as stock_coverage_days,  -- À calculer
-                0.0 as turnover_rate,  -- À calculer
-                'B' as abc_classification,  -- À calculer
+                30 as stock_coverage_days,
+                0.0 as turnover_rate,
+                'B' as abc_classification,
                 
                 -- Alertes
                 CASE WHEN COALESCE(sq.quantity, 0.0) <= 0 THEN TRUE ELSE FALSE END as is_stockout,
-                FALSE as is_overstock,  -- À définir selon règles métier
+                FALSE as is_overstock,
                 CASE WHEN COALESCE(sq.quantity, 0.0) < 0 THEN TRUE ELSE FALSE END as has_negative_stock,
                 CASE WHEN ABS(COALESCE(invl.difference, 0.0)) > COALESCE(sq.quantity, 0.0) * 0.1 THEN TRUE ELSE FALSE END as needs_recount
                 
@@ -280,15 +162,79 @@ class StockAnalysis(models.Model):
             JOIN product_product pp ON pp.id = sq.product_id
             JOIN product_template pt ON pt.id = pp.product_tmpl_id
             LEFT JOIN stock_location sl ON sl.id = sq.location_id
-            LEFT JOIN stockex_stock_inventory_line invl ON invl.product_id = sq.product_id 
-                AND invl.location_id = sq.location_id
+            LEFT JOIN stockex_stock_inventory_line invl ON invl.product_id = sq.product_id AND invl.location_id = sq.location_id
+            LEFT JOIN stockex_stock_inventory inv ON inv.id = invl.inventory_id
+            WHERE sl.usage = 'internal'
+              AND pt.type = 'product'
+        )
+        """ % (self._table,)
+        else:
+            # Fallback sans SVL: utiliser le coût standard du template
+            query = """
+        CREATE OR REPLACE VIEW %s AS (
+            SELECT 
+                ROW_NUMBER() OVER (ORDER BY sq.id, inv.id) as id,
+                
+                COALESCE(inv.date, CURRENT_DATE) as date,
+                sq.product_id,
+                pp.product_tmpl_id,
+                pt.categ_id,
+                sl.warehouse_id,
+                sq.location_id,
+                sq.company_id,
+                pp.default_code,
+                pp.barcode,
+                pt.type as product_type,
+                COALESCE(sq.quantity, 0.0) as quantity_on_hand,
+                COALESCE(sq.quantity, 0.0) - COALESCE(sq.reserved_quantity, 0.0) as quantity_available,
+                COALESCE(sq.reserved_quantity, 0.0) as quantity_reserved,
+                0.0 as quantity_incoming,
+                0.0 as quantity_outgoing,
+                
+                -- Valorisation (fallback)
+                COALESCE((pp.standard_price)::numeric, 0.0) as standard_price,
+                COALESCE((pp.standard_price)::numeric, 0.0) as economic_price,
+                COALESCE(sq.quantity, 0.0) * COALESCE((pp.standard_price)::numeric, 0.0) as value_on_hand,
+                (COALESCE(sq.quantity, 0.0) - COALESCE(sq.reserved_quantity, 0.0)) * COALESCE((pp.standard_price)::numeric, 0.0) as value_available,
+                COALESCE(sq.reserved_quantity, 0.0) * COALESCE((pp.standard_price)::numeric, 0.0) as value_reserved,
+                
+                (SELECT MAX(sm.date) FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done') as last_move_date,
+                COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) as days_since_last_move,
+                CASE WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) < 365 THEN 'active'
+                     WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) BETWEEN 365 AND 1095 THEN 'slow'
+                     ELSE 'dead' END as rotation_status,
+                CASE WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) < 365 THEN 0.0
+                     WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) BETWEEN 365 AND 1095 THEN 40.0
+                     ELSE 100.0 END as depreciation_rate,
+                COALESCE(sq.quantity, 0.0) * COALESCE((pp.standard_price)::numeric, 0.0) * (1 - (CASE WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) < 365 THEN 0.0 WHEN COALESCE(CURRENT_DATE - (SELECT MAX(sm.date)::date FROM stock_move sm WHERE sm.product_id = sq.product_id AND sm.state = 'done'), 9999) BETWEEN 365 AND 1095 THEN 0.4 ELSE 1.0 END)) as depreciated_value,
+                
+                inv.id as inventory_id,
+                inv.date as inventory_date,
+                invl.product_qty as inventory_qty,
+                invl.product_qty * COALESCE((pp.standard_price)::numeric, 0.0) as inventory_value,
+                COALESCE(invl.difference, 0.0) as inventory_difference,
+                COALESCE(invl.difference, 0.0) * COALESCE((pp.standard_price)::numeric, 0.0) as inventory_difference_value,
+                
+                30 as stock_coverage_days,
+                0.0 as turnover_rate,
+                'B' as abc_classification,
+                CASE WHEN COALESCE(sq.quantity, 0.0) <= 0 THEN TRUE ELSE FALSE END as is_stockout,
+                FALSE as is_overstock,
+                CASE WHEN COALESCE(sq.quantity, 0.0) < 0 THEN TRUE ELSE FALSE END as has_negative_stock,
+                CASE WHEN ABS(COALESCE(invl.difference, 0.0)) > COALESCE(sq.quantity, 0.0) * 0.1 THEN TRUE ELSE FALSE END as needs_recount
+                
+            FROM stock_quant sq
+            JOIN product_product pp ON pp.id = sq.product_id
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            LEFT JOIN stock_location sl ON sl.id = sq.location_id
+            LEFT JOIN stockex_stock_inventory_line invl ON invl.product_id = sq.product_id AND invl.location_id = sq.location_id
             LEFT JOIN stockex_stock_inventory inv ON inv.id = invl.inventory_id
             WHERE sl.usage = 'internal'
               AND pt.type = 'product'
         )
         """ % (self._table,)
         
-        self.env.cr.execute(query)
+        self.env.cr.execute(query)                
 
     @api.model
     def action_open_analysis(self):
@@ -307,7 +253,7 @@ class StockAnalysis(models.Model):
             'context': {
                 'search_default_group_by_warehouse': 1,
                 'search_default_group_by_category': 1,
-                'pivot_measures': ['quantity_on_hand', 'value_on_hand', 'depreciated_value'],
+                'pivot_measures': ['quantity_on_hand', 'quantity_available', 'quantity_reserved', 'inventory_qty', 'inventory_difference', 'value_on_hand', 'depreciated_value', 'inventory_difference_value'],
                 'graph_type': 'bar',
             },
             'target': 'current',

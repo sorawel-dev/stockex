@@ -183,7 +183,7 @@
                                 <div class="oe_kanban_card_body position-relative" style="z-index: 1;">
                                     <!-- Ville avec icône colorée -->
                                     <div class="mb-0">
-                                        <i class="fa fa-map-marked-alt fa-lg text-warning me-1" title="Ville"/> 
+                                        <i class="fa fa-map-marker-alt fa-lg text-warning me-1" title="Localisation"/> 
                                         <span t-if="record.city.raw_value"><field name="city"/></span>
                                         <span t-else="" class="text-muted">Non renseignée</span>
                                     </div>
@@ -192,13 +192,13 @@
                                         <i class="fa fa-money-bill-wave fa-lg text-success me-1"/> 
                                         <strong>Valeur stock:</strong> <span t-esc="((record.stock_value_fcfa &amp;&amp; record.stock_value_fcfa.raw_value) ? record.stock_value_fcfa.raw_value : 0).toFixed(0)"/> FCFA
                                     </div>
-                                    <!-- Badges compacts: Références et Mouvements -->
+                                    <!-- Badges compacts: Articles en stock, Mouvements -->
                                     <div class="d-flex gap-1 mb-0">
-                                        <span class="badge rounded-pill text-bg-primary" title="Nombre de références d'articles uniques">
-                                            <i class="fa fa-cubes me-1"/> <field name="product_ref_count"/> réf.
+                                        <span class="badge rounded-pill text-bg-primary" title="Articles en stock (quantités > 0)">
+                                            <i class="fa fa-boxes me-1" title="Articles en stock"/> <field name="quant_count"/> art.
                                         </span>
                                         <span class="badge rounded-pill text-bg-info" title="Nombre total de mouvements">
-                                            <i class="fa fa-exchange-alt me-1"/> <field name="move_count"/>
+                                            <i class="fa fa-exchange-alt me-1" title="Mouvements"/> <field name="move_count"/>
                                         </span>
                                     </div>
                                     <!-- Type de magasin -->
