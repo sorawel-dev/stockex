@@ -239,7 +239,6 @@
     <menuitem id="menu_stock_analysis"
               name="📈 Analyse des Stocks"
               parent="menu_stockex_reporting"
-              action="action_stock_analysis"
               sequence="12"/>
     
     <menuitem id="menu_depreciation_report"
