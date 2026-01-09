@@ -281,47 +281,47 @@ class InventoryDashboard(models.Model):
     
     @api.model
     def _chart_warehouse_performance(self, inventories, valuation_method, price_cache):
-        """🚀 Graphique : Taux d'écart par entrepôt (optimisé)."""
+        """🚀 Graphique : Écarts par entrepôt avec distinction positif/négatif (optimisé)."""
         warehouse_data = {}
         for inv in inventories:
             wh_name = inv.warehouse_id.name if inv.warehouse_id else 'Non défini'
             if wh_name not in warehouse_data:
-                warehouse_data[wh_name] = {'theo': 0, 'real': 0, 'lines': 0, 'lines_variance': 0}
+                warehouse_data[wh_name] = {'variance_positive': 0, 'variance_negative': 0}
             
             for line in inv.line_ids:
                 price = price_cache.get(line.product_id.id, 0.0)
+                variance_value = line.difference * price
                 
-                warehouse_data[wh_name]['theo'] += line.theoretical_qty * price
-                warehouse_data[wh_name]['real'] += line.product_qty * price
-                warehouse_data[wh_name]['lines'] += 1
-                if line.difference != 0:
-                    warehouse_data[wh_name]['lines_variance'] += 1
-        
-        labels = []
-        variance_rates = []
-        colors = []
-        
-        for wh_name, data in sorted(warehouse_data.items(), key=lambda x: x[1]['lines'], reverse=True):
-            if data['lines'] > 0:
-                variance_rate = (data['lines_variance'] / data['lines']) * 100
-                labels.append(wh_name)
-                variance_rates.append(round(variance_rate, 2))
-                
-                # Couleur selon taux
-                if variance_rate < 5:
-                    colors.append('#10b981')  # Vert
-                elif variance_rate < 15:
-                    colors.append('#f59e0b')  # Orange
+                if variance_value > 0:
+                    warehouse_data[wh_name]['variance_positive'] += variance_value
                 else:
-                    colors.append('#ef4444')  # Rouge
+                    warehouse_data[wh_name]['variance_negative'] += abs(variance_value)
+        
+        # Trier par écart total (positif + négatif)
+        sorted_warehouses = sorted(
+            warehouse_data.items(),
+            key=lambda x: x[1]['variance_positive'] + x[1]['variance_negative'],
+            reverse=True
+        )
+        
+        labels = [wh[0] for wh in sorted_warehouses]
+        variance_positive = [wh[1]['variance_positive'] for wh in sorted_warehouses]
+        variance_negative = [wh[1]['variance_negative'] for wh in sorted_warehouses]
         
         return {
             'labels': labels,
-            'datasets': [{
-                'label': 'Taux d\'écart (%)',
-                'data': variance_rates,
-                'backgroundColor': colors,
-            }]
+            'datasets': [
+                {
+                    'label': '✅ Surplus (Écarts Positifs)',
+                    'data': variance_positive,
+                    'backgroundColor': '#10b981',  # Vert
+                },
+                {
+                    'label': '⚠️ Manques (Écarts Négatifs)',
+                    'data': variance_negative,
+                    'backgroundColor': '#ef4444',  # Rouge
+                }
+            ]
         }
     
     @api.model
@@ -361,7 +361,7 @@ class InventoryDashboard(models.Model):
     
     @api.model
     def _chart_region_heatmap(self, inventories, valuation_method, price_cache):
-        """🚀 Graphique : Carte de chaleur par région électrique (optimisé)."""
+        """🔥 Graphique : Heatmap par région électrique avec dégradé de couleurs (optimisé)."""
         region_data = {}
         for inv in inventories:
             region_name = inv.warehouse_id.eneo_region_id.name if inv.warehouse_id and inv.warehouse_id.eneo_region_id else 'Non défini'
@@ -378,25 +378,63 @@ class InventoryDashboard(models.Model):
         values = [data['variance'] for data in region_data.values()]
         counts = [data['count'] for data in region_data.values()]
         
+        # 🌈 Générer un dégradé de couleurs selon l'intensité des écarts
+        if values:
+            max_variance = max(values) if values else 1
+            min_variance = min(values) if values else 0
+            
+            colors = []
+            for value in values:
+                # Normaliser entre 0 et 1
+                if max_variance > min_variance:
+                    intensity = (value - min_variance) / (max_variance - min_variance)
+                else:
+                    intensity = 0.5
+                
+                # Dégradé du vert (faible écart) au rouge (fort écart)
+                if intensity < 0.33:
+                    # Vert à jaune
+                    r = int(76 + (255 - 76) * (intensity / 0.33))
+                    g = int(175 + (235 - 175) * (intensity / 0.33))
+                    b = int(80 + (59 - 80) * (intensity / 0.33))
+                elif intensity < 0.66:
+                    # Jaune à orange
+                    adj_intensity = (intensity - 0.33) / 0.33
+                    r = int(255)
+                    g = int(235 - (68 * adj_intensity))
+                    b = int(59 - (59 * adj_intensity))
+                else:
+                    # Orange à rouge
+                    adj_intensity = (intensity - 0.66) / 0.34
+                    r = int(255 - (22 * adj_intensity))
+                    g = int(167 - (99 * adj_intensity))
+                    b = int(0)
+                
+                colors.append(f'rgb({r}, {g}, {b})')
+        else:
+            colors = ['#4caf50']  # Vert par défaut si pas de données
+        
         return {
             'labels': labels,
             'datasets': [{
                 'label': 'Écart Total (FCFA)',
                 'data': values,
-                'backgroundColor': '#ef4444',
+                'backgroundColor': colors,  # 🌈 Heatmap colors
             }],
             'counts': counts,
         }
     
     @api.model
     def _chart_warehouse_distribution(self, inventories, valuation_method, price_cache):
-        """🚀 Graphique : Répartition quantité/valeur/écart par entrepôt (optimisé)."""
+        """🚀 Graphique : Répartition valeur par entrepôt (optimisé)."""
         warehouse_data = {}
         for inv in inventories:
+            wh_id = inv.warehouse_id.id if inv.warehouse_id else False
             wh_name = inv.warehouse_id.name if inv.warehouse_id else 'Non défini'
-            if wh_name not in warehouse_data:
-                warehouse_data[wh_name] = {
-                    'qty_inventoried': 0,
+            if wh_id not in warehouse_data:
+                warehouse_data[wh_id] = {
+                    'name': wh_name,
+                    'value_theoretical': 0,
                     'value_inventoried': 0,
                     'variance_value': 0
                 }
@@ -404,35 +442,34 @@ class InventoryDashboard(models.Model):
             for line in inv.line_ids:
                 price = price_cache.get(line.product_id.id, 0.0)
                 
-                warehouse_data[wh_name]['qty_inventoried'] += line.product_qty
-                warehouse_data[wh_name]['value_inventoried'] += line.product_qty * price
-                warehouse_data[wh_name]['variance_value'] += line.difference * price
+                warehouse_data[wh_id]['value_theoretical'] += line.theoretical_qty * price
+                warehouse_data[wh_id]['value_inventoried'] += line.product_qty * price
+                warehouse_data[wh_id]['variance_value'] += line.difference * price
         
-        labels = list(warehouse_data.keys())
-        qty_data = [data['qty_inventoried'] for data in warehouse_data.values()]
-        value_data = [data['value_inventoried'] for data in warehouse_data.values()]
-        variance_data = [abs(data['variance_value']) for data in warehouse_data.values()]
+        labels = [data['name'] for data in warehouse_data.values()]
+        warehouse_ids = list(warehouse_data.keys())
+        value_theo_data = [data['value_theoretical'] for data in warehouse_data.values()]
+        value_real_data = [data['value_inventoried'] for data in warehouse_data.values()]
+        value_variance_data = [abs(data['variance_value']) for data in warehouse_data.values()]
         
         return {
             'labels': labels,
+            'warehouse_ids': warehouse_ids,  # 🎯 Ajouter les IDs pour le clic
             'datasets': [
                 {
-                    'label': 'Quantité Inventoriée',
-                    'data': qty_data,
-                    'backgroundColor': '#3b82f6',
-                    'yAxisID': 'y',
+                    'label': 'Valeur Théorique (FCFA)',
+                    'data': value_theo_data,
+                    'backgroundColor': '#8b5cf6',
                 },
                 {
                     'label': 'Valeur Inventoriée (FCFA)',
-                    'data': value_data,
+                    'data': value_real_data,
                     'backgroundColor': '#10b981',
-                    'yAxisID': 'y1',
                 },
                 {
                     'label': 'Écart Valeur (FCFA)',
-                    'data': variance_data,
+                    'data': value_variance_data,
                     'backgroundColor': '#ef4444',
-                    'yAxisID': 'y1',
                 }
             ]
         }

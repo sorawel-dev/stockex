@@ -81,19 +81,24 @@
                     <div class="row g-3 mb-4">
                         <!-- KPI 1: Valeur Inventoriée -->
                         <div class="col-md-3 col-sm-6 col-12">
-                            <div class="card shadow-sm border-0 h-100">
+                            <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #667eea !important;">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="text-muted mb-2">Valeur Inventoriée</h6>
-                                            <h3 class="mb-0 fw-bold text-primary" t-esc="formatCurrency(state.data.kpis.value_inventoried)"/>
+                                        <div class="flex-grow-1">
+                                            <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                                <i class="fa fa-cube me-1"/> Valeur Inventoriée
+                                            </h6>
+                                            <h3 class="mb-1 fw-bold text-primary" style="font-size: 1.75rem;" t-esc="formatCurrency(state.data.kpis.value_inventoried)"/>
+                                            <div class="progress mt-2" style="height: 4px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: 100%"/>
+                                            </div>
                                         </div>
-                                        <div class="icon-box bg-primary bg-opacity-10 rounded">
-                                            <i class="fa fa-archive fa-2x text-primary"/>
+                                        <div style="font-size: 3rem; line-height: 1;">
+                                            📦
                                         </div>
                                     </div>
-                                    <small class="text-muted">
-                                        <i class="fa fa-cube"/> <t t-esc="state.data.kpis.total_lines"/> lignes
+                                    <small class="text-muted mt-2 d-block">
+                                        <i class="fa fa-layer-group"/> <strong t-esc="state.data.kpis.total_lines"/> lignes inventoriées
                                     </small>
                                 </div>
                             </div>
@@ -101,19 +106,24 @@
                         
                         <!-- KPI 2: Valeur des Écarts -->
                         <div class="col-md-3 col-sm-6 col-12">
-                            <div class="card shadow-sm border-0 h-100">
+                            <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #ef4444 !important;">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="text-muted mb-2">Valeur des Écarts</h6>
-                                            <h3 class="mb-0 fw-bold" t-att-class="state.data.kpis.value_variance &lt; 0 ? 'text-danger' : 'text-success'" 
+                                        <div class="flex-grow-1">
+                                            <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                                <i class="fa fa-exclamation-triangle me-1"/> Valeur des Écarts
+                                            </h6>
+                                            <h3 class="mb-1 fw-bold" style="font-size: 1.75rem;" t-att-class="state.data.kpis.value_variance &lt; 0 ? 'text-danger' : 'text-success'" 
                                                 t-esc="formatCurrency(state.data.kpis.value_variance)"/>
+                                            <div class="progress mt-2" style="height: 4px;">
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width: 100%"/>
+                                            </div>
                                         </div>
-                                        <div class="icon-box bg-danger bg-opacity-10 rounded">
-                                            <i class="fa fa-exclamation-triangle fa-2x text-danger"/>
+                                        <div style="font-size: 3rem; line-height: 1;">
+                                            ⚠️
                                         </div>
                                     </div>
-                                    <small class="text-muted">
+                                    <small class="text-muted mt-2 d-block">
                                         Taux: <strong t-esc="formatPercent(state.data.kpis.variance_rate)"/>
                                     </small>
                                 </div>
@@ -122,18 +132,23 @@
                         
                         <!-- KPI 3: Taux d'Exactitude -->
                         <div class="col-md-3 col-sm-6 col-12">
-                            <div class="card shadow-sm border-0 h-100">
+                            <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #28a745 !important;">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="text-muted mb-2">Taux d'Exactitude</h6>
-                                            <h3 class="mb-0 fw-bold text-success" t-esc="formatPercent(state.data.kpis.accuracy_rate)"/>
+                                        <div class="flex-grow-1">
+                                            <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                                <i class="fa fa-check-circle me-1"/> Taux d'Exactitude
+                                            </h6>
+                                            <h3 class="mb-1 fw-bold text-success" style="font-size: 1.75rem;" t-esc="formatPercent(state.data.kpis.accuracy_rate)"/>
+                                            <div class="progress mt-2" style="height: 4px;">
+                                                <div class="progress-bar bg-success" role="progressbar" t-att-style="'width: ' + state.data.kpis.accuracy_rate + '%'"/>
+                                            </div>
                                         </div>
-                                        <div class="icon-box bg-success bg-opacity-10 rounded">
-                                            <i class="fa fa-check-circle fa-2x text-success"/>
+                                        <div style="font-size: 3rem; line-height: 1;">
+                                            ✅
                                         </div>
                                     </div>
-                                    <small class="text-muted">
+                                    <small class="text-muted mt-2 d-block">
                                         <t t-esc="state.data.kpis.lines_with_variance"/> lignes avec écart
                                     </small>
                                 </div>
@@ -142,19 +157,26 @@
                         
                         <!-- KPI 4: Inventaires Validés -->
                         <div class="col-md-3 col-sm-6 col-12">
-                            <div class="card shadow-sm border-0 h-100">
+                            <div class="card shadow-sm border-0 h-100" 
+                                 style="cursor: pointer; transition: all 0.2s; border-left: 4px solid #17a2b8 !important;"
+                                 t-on-click="() => this.openInventoriesList()">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="text-muted mb-2">Inventaires Validés</h6>
-                                            <h3 class="mb-0 fw-bold text-info" t-esc="state.data.kpis.total_inventories"/>
+                                        <div class="flex-grow-1">
+                                            <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                                <i class="fa fa-hand-pointer-o me-1"/> Inventaires Validés
+                                            </h6>
+                                            <h3 class="mb-1 fw-bold text-info" style="font-size: 1.75rem;" t-esc="state.data.kpis.total_inventories"/>
+                                            <div class="progress mt-2" style="height: 4px;">
+                                                <div class="progress-bar bg-info" role="progressbar" style="width: 100%"/>
+                                            </div>
                                         </div>
-                                        <div class="icon-box bg-info bg-opacity-10 rounded">
-                                            <i class="fa fa-file-text fa-2x text-info"/>
+                                        <div style="font-size: 3rem; line-height: 1;">
+                                            📋
                                         </div>
                                     </div>
-                                    <small class="text-muted">
-                                        <t t-esc="state.data.kpis.total_products"/> produits distincts
+                                    <small class="text-muted mt-2 d-block">
+                                        <i class="fa fa-cube"/> <t t-esc="state.data.kpis.total_products"/> produits distincts
                                     </small>
                                 </div>
                             </div>
@@ -167,7 +189,7 @@
                         <div class="col-lg-6 col-12">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-header bg-white border-0">
-                                    <h5 class="mb-0"><i class="fa fa-line-chart"/> Évolution Temporelle</h5>
+                                    <h5 class="mb-0">📈 Évolution Temporelle</h5>
                                 </div>
                                 <div class="card-body" style="height: 300px;">
                                     <canvas t-ref="evolutionChart"/>
@@ -179,7 +201,7 @@
                         <div class="col-lg-6 col-12">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-header bg-white border-0">
-                                    <h5 class="mb-0"><i class="fa fa-bar-chart"/> Performance par Entrepôt</h5>
+                                    <h5 class="mb-0">🎯 Performance par Entrepôt</h5>
                                 </div>
                                 <div class="card-body" style="height: 300px;">
                                     <canvas t-ref="warehousePerformanceChart"/>
@@ -193,7 +215,7 @@
                         <div class="col-lg-4 col-md-6 col-12">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-header bg-white border-0">
-                                    <h5 class="mb-0"><i class="fa fa-pie-chart"/> Répartition Catégories</h5>
+                                    <h5 class="mb-0">🧩 Répartition Catégories</h5>
                                 </div>
                                 <div class="card-body" style="height: 300px;">
                                     <canvas t-ref="categoryDistributionChart"/>
@@ -205,7 +227,7 @@
                         <div class="col-lg-4 col-md-6 col-12">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-header bg-white border-0">
-                                    <h5 class="mb-0"><i class="fa fa-map-marker"/> Écarts par Région</h5>
+                                    <h5 class="mb-0">🔥 Heatmap Écarts par Région</h5>
                                 </div>
                                 <div class="card-body" style="height: 300px;">
                                     <canvas t-ref="regionHeatmapChart"/>
@@ -217,7 +239,7 @@
                         <div class="col-lg-4 col-12">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-header bg-white border-0">
-                                    <h5 class="mb-0"><i class="fa fa-line-chart"/> Tendance Écarts</h5>
+                                    <h5 class="mb-0">🔎 Tendance Écarts</h5>
                                 </div>
                                 <div class="card-body" style="height: 300px;">
                                     <canvas t-ref="varianceTrendChart"/>
@@ -231,7 +253,7 @@
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-white border-0">
-                                    <h5 class="mb-0"><i class="fa fa-building"/> Répartition Détaillée par Entrepôt</h5>
+                                    <h5 class="mb-0">🏢 Répartition Détaillée par Entrepôt</h5>
                                 </div>
                                 <div class="card-body" style="height: 400px;">
                                     <canvas t-ref="warehouseDistributionChart"/>
@@ -245,7 +267,7 @@
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0"><i class="fa fa-table"/> Répartition par Entrepôt</h5>
+                                    <h5 class="mb-0">📋 Répartition par Entrepôt - Cliquez pour voir les inventaires</h5>
                                     <button class="btn btn-sm btn-success" t-on-click="() => this.exportWarehouseTable()">
                                         <i class="fa fa-file-excel-o"/> Export Excel
                                     </button>
@@ -266,8 +288,13 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr t-foreach="state.data.warehouse_table" t-as="row" t-key="row.id">
-                                                    <td class="fw-bold"><t t-esc="row.name"/></td>
+                                                <tr t-foreach="state.data.warehouse_table" t-as="row" t-key="row.id" 
+                                                    style="cursor: pointer;"
+                                                    t-on-click="() => this.openWarehouseInventories(row.id)">
+                                                    <td class="fw-bold">
+                                                        <i class="fa fa-warehouse me-2 text-primary"/>
+                                                        <t t-esc="row.name"/>
+                                                    </td>
                                                     <td class="text-end"><t t-esc="formatNumber(row.qty_theo)"/></td>
                                                     <td class="text-end"><t t-esc="formatNumber(row.qty_real)"/></td>
                                                     <td class="text-end" t-att-class="row.qty_variance &lt; 0 ? 'text-danger' : 'text-success'">
@@ -285,6 +312,37 @@
                                                     </td>
                                                 </tr>
                                             </tbody>
+                                            <tfoot class="table-light" style="border-top: 3px solid #667eea;">
+                                                <tr style="font-weight: 700; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                                    <td class="fw-bold" style="font-size: 1.05rem;">
+                                                        <i class="fa fa-calculator me-2 text-primary"/> 📊 TOTAL GÉNÉRAL
+                                                    </td>
+                                                    <td class="text-end fw-bold text-primary" t-if="state.data.warehouse_totals">
+                                                        <t t-esc="formatNumber(state.data.warehouse_totals.qty_theo)"/>
+                                                    </td>
+                                                    <td class="text-end fw-bold text-primary" t-if="state.data.warehouse_totals">
+                                                        <t t-esc="formatNumber(state.data.warehouse_totals.qty_real)"/>
+                                                    </td>
+                                                    <td class="text-end fw-bold" t-if="state.data.warehouse_totals" 
+                                                        t-att-class="state.data.warehouse_totals.qty_variance &lt; 0 ? 'text-danger' : 'text-success'">
+                                                        <t t-esc="formatNumber(state.data.warehouse_totals.qty_variance)"/>
+                                                    </td>
+                                                    <td class="text-end fw-bold text-primary" t-if="state.data.warehouse_totals">
+                                                        <t t-esc="formatCurrency(state.data.warehouse_totals.value_theo)"/>
+                                                    </td>
+                                                    <td class="text-end fw-bold text-primary" t-if="state.data.warehouse_totals">
+                                                        <t t-esc="formatCurrency(state.data.warehouse_totals.value_real)"/>
+                                                    </td>
+                                                    <td class="text-end fw-bold" t-if="state.data.warehouse_totals"
+                                                        t-att-class="state.data.warehouse_totals.value_variance &lt; 0 ? 'text-danger' : 'text-success'"
+                                                        style="font-size: 1.1rem;">
+                                                        <t t-esc="formatCurrency(state.data.warehouse_totals.value_variance)"/>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-info">📈 CUMUL</span>
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
                                         </table>
                                     </div>
                                 </div>

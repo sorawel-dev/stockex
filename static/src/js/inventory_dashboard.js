@@ -88,6 +88,29 @@ export class InventoryDashboard extends Component {
             this.state.data = data;
             this.state.lastUpdate = new Date();
             
+            // 🧮 Calculer les totaux du tableau entrepôts
+            if (data.warehouse_table && data.warehouse_table.length > 0) {
+                const totals = {
+                    qty_theo: 0,
+                    qty_real: 0,
+                    qty_variance: 0,
+                    value_theo: 0,
+                    value_real: 0,
+                    value_variance: 0
+                };
+                
+                data.warehouse_table.forEach(row => {
+                    totals.qty_theo += row.qty_theo || 0;
+                    totals.qty_real += row.qty_real || 0;
+                    totals.qty_variance += row.qty_variance || 0;
+                    totals.value_theo += row.value_theo || 0;
+                    totals.value_real += row.value_real || 0;
+                    totals.value_variance += row.value_variance || 0;
+                });
+                
+                this.state.data.warehouse_totals = totals;
+            }
+            
             // Re-render charts après mise à jour données
             setTimeout(() => {
                 this.renderCharts();
@@ -201,7 +224,7 @@ export class InventoryDashboard extends Component {
             });
         }
         
-        // Graphique 2: Performance par entrepôt
+        // Graphique 2: Performance par entrepôt (Surplus vs Manques)
         if (this.warehousePerformanceChartRef.el && charts.warehouse_performance) {
             this.charts.warehousePerformance = new Chart(this.warehousePerformanceChartRef.el, {
                 type: 'bar',
@@ -212,20 +235,35 @@ export class InventoryDashboard extends Component {
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false,
+                            display: true,
+                            position: 'top',
                         },
                         title: {
                             display: true,
-                            text: 'Taux d\'Écart par Entrepôt'
+                            text: 'Écarts par Entrepôt : ✅ Surplus vs ⚠️ Manques'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    return context.dataset.label + ': ' + this.formatCurrency(context.parsed.x);
+                                }
+                            }
                         }
                     },
                     scales: {
                         x: {
+                            stacked: true,
                             beginAtZero: true,
-                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Valeur (Écart en FCFA)'
+                            },
                             ticks: {
-                                callback: (value) => value + '%'
+                                callback: (value) => this.formatNumber(value)
                             }
+                        },
+                        y: {
+                            stacked: true
                         }
                     }
                 }
@@ -277,7 +315,7 @@ export class InventoryDashboard extends Component {
                         },
                         title: {
                             display: true,
-                            text: 'Écarts par Région Électrique'
+                            text: '🔥 Heatmap Écarts par Région (Vert=Faible, Rouge=Fort)'
                         },
                         tooltip: {
                             callbacks: {
@@ -285,6 +323,9 @@ export class InventoryDashboard extends Component {
                                     const value = this.formatCurrency(context.parsed.y);
                                     const count = charts.region_heatmap.counts[context.dataIndex];
                                     return [`Écart: ${value}`, `Inventaires: ${count}`];
+                                },
+                                footer: () => {
+                                    return '🌈 Couleur = Intensité de l\'écart';
                                 }
                             }
                         }
@@ -301,7 +342,7 @@ export class InventoryDashboard extends Component {
             });
         }
         
-        // Graphique 5: Répartition entrepôt (quantité/valeur/écart)
+        // Graphique 5: Répartition entrepôt (valeurs uniquement)
         if (this.warehouseDistributionChartRef.el && charts.warehouse_distribution) {
             this.charts.warehouseDistribution = new Chart(this.warehouseDistributionChartRef.el, {
                 type: 'bar',
@@ -309,6 +350,15 @@ export class InventoryDashboard extends Component {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const warehouseId = charts.warehouse_distribution.warehouse_ids[index];
+                            if (warehouseId) {
+                                this.openWarehouseInventories(warehouseId);
+                            }
+                        }
+                    },
                     plugins: {
                         legend: {
                             display: true,
@@ -316,29 +366,25 @@ export class InventoryDashboard extends Component {
                         },
                         title: {
                             display: true,
-                            text: 'Répartition par Entrepôt (Quantité / Valeur / Écart)'
+                            text: 'Répartition par Entrepôt (Valeurs) - Cliquez pour voir les inventaires'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    return context.dataset.label + ': ' + this.formatCurrency(context.parsed.y);
+                                },
+                                footer: () => {
+                                    return '👆 Cliquez pour ouvrir les inventaires';
+                                }
+                            }
                         }
                     },
                     scales: {
                         y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: 'Quantité'
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
+                            beginAtZero: true,
                             title: {
                                 display: true,
                                 text: 'Valeur (FCFA)'
-                            },
-                            grid: {
-                                drawOnChartArea: false,
                             },
                             ticks: {
                                 callback: (value) => this.formatNumber(value)
@@ -428,6 +474,50 @@ export class InventoryDashboard extends Component {
             console.error("❌ Erreur export Excel:", error);
             this.notification.add("Erreur lors de l'export Excel", { type: "danger" });
         }
+    }
+    
+    openWarehouseInventories(warehouseId) {
+        // 🎯 Ouvrir la liste des inventaires filtrés par entrepôt
+        this.action.doAction({
+            type: 'ir.actions.act_window',
+            name: 'Inventaires de l\'entrepôt',
+            res_model: 'stockex.stock.inventory',
+            views: [[false, 'list'], [false, 'form']],
+            domain: [['warehouse_id', '=', warehouseId]],
+            context: {
+                default_warehouse_id: warehouseId,
+            },
+        });
+    }
+    
+    openInventoriesList() {
+        // 🎯 Ouvrir la liste de tous les inventaires validés
+        const domain = [];
+        
+        // Appliquer les filtres de période
+        const now = new Date();
+        if (this.state.period === 'ytd') {
+            const startYear = new Date(now.getFullYear(), 0, 1);
+            domain.push(['date', '>=', startYear.toISOString().split('T')[0]]);
+        } else if (this.state.period === 'month') {
+            const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            domain.push(['date', '>=', startMonth.toISOString().split('T')[0]]);
+        } else if (this.state.period === 'quarter') {
+            const quarter = Math.floor(now.getMonth() / 3);
+            const startQuarter = new Date(now.getFullYear(), quarter * 3, 1);
+            domain.push(['date', '>=', startQuarter.toISOString().split('T')[0]]);
+        }
+        
+        // État validé
+        domain.push(['state', '=', 'done']);
+        
+        this.action.doAction({
+            type: 'ir.actions.act_window',
+            name: 'Inventaires Validés',
+            res_model: 'stockex.stock.inventory',
+            views: [[false, 'list'], [false, 'form']],
+            domain: domain,
+        });
     }
 }
 

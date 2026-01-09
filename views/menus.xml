@@ -7,11 +7,12 @@
               web_icon="stockex,static/description/icon.png"
               groups="base.group_user"/>
 
-    <!-- Sous-menu : Opérations -->
+    <!-- Sous-menu : Opérations (Admin uniquement) -->
     <menuitem id="menu_stockex_operations"
-              name="⚙️ Opérations"
+              name="⚩️ Opérations"
               parent="menu_stockex_root"
-              sequence="10"/>
+              sequence="10"
+              groups="base.group_system"/>
     
     <menuitem id="menu_stockex_inventory"
               name="📦 Inventaires de Stock"
