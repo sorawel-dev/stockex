@@ -47,6 +47,8 @@ class InventoryDashboard(models.Model):
             'charts': self._compute_charts(domain, valuation_method),
             'warehouse_table': self._compute_warehouse_table(domain, valuation_method),
             'top_variances': self._compute_top_variances(domain, valuation_method, limit=10),
+            'uninventoried_warehouses': self._compute_uninventoried_warehouses(domain, valuation_method, date_from, date_to),
+            'intelligent_alerts': self._compute_intelligent_alerts(domain, valuation_method),
         }
     
     @api.model
@@ -741,4 +743,214 @@ class InventoryDashboard(models.Model):
             'type': 'ir.actions.act_url',
             'url': f'/web/content/{attachment.id}?download=true',
             'target': 'self',
+        }
+    
+    @api.model
+    def _compute_uninventoried_warehouses(self, domain, valuation_method, date_from, date_to):
+        """🏭 Calcule les entrepôts non inventoriés récemment.
+        
+        Returns:
+            dict: {
+                'count': nombre d'entrepôts non inventoriés,
+                'total_warehouses': nombre total d'entrepôts actifs,
+                'estimated_value': valeur estimée du stock non vérifié,
+                'percentage': % de stock non contrôlé,
+                'warehouse_ids': liste des IDs d'entrepôts non inventoriés,
+                'warehouse_names': liste des noms,
+            }
+        """
+        Warehouse = self.env['stock.warehouse']
+        Inventory = self.env['stockex.stock.inventory']
+        Quant = self.env['stock.quant']
+        
+        # Récupérer tous les entrepôts actifs
+        all_warehouses = Warehouse.search([('active', '=', True)])
+        total_warehouses = len(all_warehouses)
+        
+        if not all_warehouses or not date_from:
+            return {
+                'count': 0,
+                'total_warehouses': total_warehouses,
+                'estimated_value': 0,
+                'percentage': 0,
+                'warehouse_ids': [],
+                'warehouse_names': [],
+            }
+        
+        # Récupérer les entrepôts qui ont été inventoriés dans la période
+        inventoried_warehouses = Inventory.search([
+            ('date', '>=', date_from),
+            ('date', '<=', date_to),
+            ('state', '=', 'done')
+        ]).mapped('warehouse_id')
+        
+        # Entrepôts non inventoriés = tous - inventoriés
+        uninventoried_warehouses = all_warehouses - inventoried_warehouses
+        
+        # Estimer la valeur du stock non vérifié
+        estimated_value = 0
+        if uninventoried_warehouses:
+            # Récupérer les locations des entrepôts non inventoriés
+            location_ids = []
+            for wh in uninventoried_warehouses:
+                if wh.lot_stock_id:
+                    location_ids.append(wh.lot_stock_id.id)
+            
+            if location_ids:
+                # Estimer avec les quants (stock actuel)
+                quants = Quant.search([
+                    ('location_id', 'child_of', location_ids),
+                    ('quantity', '>', 0)
+                ])
+                
+                for quant in quants:
+                    price = quant.product_id.standard_price or 0.0
+                    # Gérer JSONB Odoo 19
+                    if isinstance(price, dict):
+                        price = price.get('1', 0.0) or 0.0
+                    estimated_value += quant.quantity * price
+        
+        # Calculer le % de stock non contrôlé
+        percentage = (len(uninventoried_warehouses) / total_warehouses * 100) if total_warehouses > 0 else 0
+        
+        return {
+            'count': len(uninventoried_warehouses),
+            'total_warehouses': total_warehouses,
+            'estimated_value': estimated_value,
+            'percentage': percentage,
+            'warehouse_ids': uninventoried_warehouses.ids,
+            'warehouse_names': uninventoried_warehouses.mapped('name'),
+        }
+    
+    @api.model
+    def _compute_intelligent_alerts(self, domain, valuation_method):
+        """🚨 Calcule les alertes intelligentes et anomalies.
+        
+        Returns:
+            dict: {
+                'total_alerts': nombre total d'alertes,
+                'critical_alerts': nombre d'alertes critiques,
+                'alerts_by_type': {
+                    'significant_variances': nombre,
+                    'recurring_variances': nombre,
+                    'stock_alerts': nombre,
+                    'value_alerts': nombre,
+                },
+                'alert_details': liste des alertes pour affichage,
+            }
+        """
+        Inventory = self.env['stockex.stock.inventory']
+        inventories = Inventory.search(domain)
+        
+        if not inventories:
+            return {
+                'total_alerts': 0,
+                'critical_alerts': 0,
+                'alerts_by_type': {
+                    'significant_variances': 0,
+                    'recurring_variances': 0,
+                    'stock_alerts': 0,
+                    'value_alerts': 0,
+                },
+                'alert_details': [],
+            }
+        
+        # Précharger les prix
+        price_cache = self._preload_product_prices(inventories, valuation_method)
+        
+        alerts = []
+        alerts_by_type = {
+            'significant_variances': 0,
+            'recurring_variances': 0,
+            'stock_alerts': 0,
+            'value_alerts': 0,
+        }
+        
+        # 1. Détecter les écarts significatifs (> 20% ou > 1M FCFA)
+        for inv in inventories:
+            for line in inv.line_ids:
+                if abs(line.difference) == 0:
+                    continue
+                
+                price = price_cache.get(line.product_id.id, 0.0)
+                variance_value = abs(line.difference * price)
+                
+                # Calculer le taux d'écart
+                if line.theoretical_qty != 0:
+                    variance_rate = abs(line.difference / line.theoretical_qty * 100)
+                else:
+                    variance_rate = 100
+                
+                # Alerte si écart > 20% ou valeur > 1M FCFA
+                if variance_rate > 20 or variance_value > 1000000:
+                    alerts_by_type['significant_variances'] += 1
+                    severity = 'critical' if (variance_rate > 50 or variance_value > 5000000) else 'warning'
+                    
+                    alerts.append({
+                        'type': 'significant_variance',
+                        'severity': severity,
+                        'product': line.product_id.name,
+                        'warehouse': inv.warehouse_id.name if inv.warehouse_id else 'N/A',
+                        'variance_rate': variance_rate,
+                        'variance_value': variance_value,
+                        'date': inv.date.strftime('%Y-%m-%d'),
+                    })
+        
+        # 2. Détecter les écarts récurrents (même produit, même entrepôt, plusieurs inventaires)
+        product_warehouse_variance = {}
+        for inv in inventories:
+            for line in inv.line_ids:
+                if abs(line.difference) == 0:
+                    continue
+                
+                key = (line.product_id.id, inv.warehouse_id.id if inv.warehouse_id else False)
+                if key not in product_warehouse_variance:
+                    product_warehouse_variance[key] = []
+                product_warehouse_variance[key].append({
+                    'difference': line.difference,
+                    'date': inv.date,
+                    'product_name': line.product_id.name,
+                    'warehouse_name': inv.warehouse_id.name if inv.warehouse_id else 'N/A',
+                })
+        
+        # Alertes pour produits avec écarts récurrents (>= 3 fois)
+        for key, variances in product_warehouse_variance.items():
+            if len(variances) >= 3:
+                alerts_by_type['recurring_variances'] += 1
+                alerts.append({
+                    'type': 'recurring_variance',
+                    'severity': 'warning',
+                    'product': variances[0]['product_name'],
+                    'warehouse': variances[0]['warehouse_name'],
+                    'occurrences': len(variances),
+                    'message': f"Écart récurrent détecté {len(variances)} fois",
+                })
+        
+        # 3. Alertes de valeur globale (variance totale > 10M FCFA)
+        total_variance_value = 0
+        for inv in inventories:
+            for line in inv.line_ids:
+                price = price_cache.get(line.product_id.id, 0.0)
+                total_variance_value += abs(line.difference * price)
+        
+        if total_variance_value > 10000000:
+            alerts_by_type['value_alerts'] += 1
+            alerts.append({
+                'type': 'high_total_variance',
+                'severity': 'critical' if total_variance_value > 50000000 else 'warning',
+                'message': f"Écart total de {total_variance_value:,.0f} FCFA détecté",
+                'value': total_variance_value,
+            })
+        
+        # Compter les alertes critiques
+        critical_alerts = sum(1 for alert in alerts if alert.get('severity') == 'critical')
+        
+        # Limiter à 20 alertes pour l'affichage
+        alert_details = sorted(alerts, key=lambda x: (x['severity'] == 'critical', x.get('variance_value', 0)), reverse=True)[:20]
+        
+        return {
+            'total_alerts': len(alerts),
+            'critical_alerts': critical_alerts,
+            'alerts_by_type': alerts_by_type,
+            'alert_details': alert_details,
         }

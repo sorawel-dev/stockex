@@ -519,6 +519,76 @@ export class InventoryDashboard extends Component {
             domain: domain,
         });
     }
+    
+    openUninventoriedWarehouses() {
+        // 🏭 Ouvrir la liste des entrepôts non inventoriés
+        if (!this.state.data.uninventoried_warehouses.warehouse_ids || 
+            this.state.data.uninventoried_warehouses.warehouse_ids.length === 0) {
+            this.notification.add("✅ Tous les entrepôts ont été inventoriés dans la période sélectionnée !", {
+                type: "success",
+            });
+            return;
+        }
+        
+        this.action.doAction({
+            type: 'ir.actions.act_window',
+            name: 'Entrepôts Non Inventoriés',
+            res_model: 'stock.warehouse',
+            views: [[false, 'list'], [false, 'form']],
+            domain: [['id', 'in', this.state.data.uninventoried_warehouses.warehouse_ids]],
+            context: {
+                'search_default_active': 1,
+            },
+        });
+    }
+    
+    openAlertsCenter() {
+        // 🚨 Ouvrir le centre d'alertes (liste des inventaires avec alertes)
+        if (this.state.data.intelligent_alerts.total_alerts === 0) {
+            this.notification.add("✅ Aucune alerte active ! Tout est sous contrôle.", {
+                type: "success",
+            });
+            return;
+        }
+        
+        // Construire le domaine pour les inventaires avec alertes
+        const domain = [];
+        
+        // Appliquer les filtres de période
+        const now = new Date();
+        if (this.state.period === 'ytd') {
+            const startYear = new Date(now.getFullYear(), 0, 1);
+            domain.push(['date', '>=', startYear.toISOString().split('T')[0]]);
+        } else if (this.state.period === '30d') {
+            const start30d = new Date(now);
+            start30d.setDate(start30d.getDate() - 30);
+            domain.push(['date', '>=', start30d.toISOString().split('T')[0]]);
+        } else if (this.state.period === '12m') {
+            const start12m = new Date(now);
+            start12m.setMonth(start12m.getMonth() - 12);
+            domain.push(['date', '>=', start12m.toISOString().split('T')[0]]);
+        }
+        
+        // État validé
+        domain.push(['state', '=', 'done']);
+        
+        // Afficher une notification avec le résumé des alertes
+        const alertMsg = `🚨 ${this.state.data.intelligent_alerts.total_alerts} alertes détectées (${this.state.data.intelligent_alerts.critical_alerts} critiques)`;
+        this.notification.add(alertMsg, {
+            type: this.state.data.intelligent_alerts.critical_alerts > 0 ? "warning" : "info",
+        });
+        
+        this.action.doAction({
+            type: 'ir.actions.act_window',
+            name: '🚨 Centre d\'Alertes - Inventaires avec Anomalies',
+            res_model: 'stockex.stock.inventory',
+            views: [[false, 'list'], [false, 'form']],
+            domain: domain,
+            context: {
+                'search_default_with_variances': 1,
+            },
+        });
+    }
 }
 
 InventoryDashboard.template = "stockex.InventoryDashboard";
