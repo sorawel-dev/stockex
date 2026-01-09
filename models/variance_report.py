@@ -1,56 +1,53 @@
 # -*- coding: utf-8 -*-
+"""
+Rapport d'écart de stock et analyse de variance.
+"""
 
 import logging
-from odoo import models, fields, api, tools
+from odoo import models, fields, tools
 
 _logger = logging.getLogger(__name__)
 
 
 class StockVarianceReport(models.Model):
-    """Rapport de variance de stock - Vue SQL."""
+    """Rapport d'écart de stock."""
     _name = 'stockex.stock.variance.report'
-    _description = 'Rapport de Variance de Stock'
-    _auto = False
-    _order = 'variance_value desc'
+    _description = 'Rapport d\'Écart de Stock'
+    _auto = False  # Vue matérialisée
+    _order = 'inventory_date desc, variance_value_abs desc'
     
-    # Produit
+    # Champs de base
     product_id = fields.Many2one(
         comodel_name='product.product',
         string='Produit',
-        readonly=True
-    )
-    product_name = fields.Char(
-        string='Nom Produit',
         readonly=True
     )
     product_code = fields.Char(
         string='Code Produit',
         readonly=True
     )
-    
-    # Catégorie
+    product_name = fields.Char(
+        string='Nom du Produit',
+        readonly=True
+    )
     category_id = fields.Many2one(
         comodel_name='product.category',
         string='Catégorie',
         readonly=True
     )
     category_name = fields.Char(
-        string='Nom Catégorie',
+        string='Nom de la Catégorie',
         readonly=True
     )
-    
-    # Emplacement
     location_id = fields.Many2one(
         comodel_name='stock.location',
         string='Emplacement',
         readonly=True
     )
     location_name = fields.Char(
-        string='Nom Emplacement',
+        string='Nom de l\'Emplacement',
         readonly=True
     )
-    
-    # Inventaire
     inventory_id = fields.Many2one(
         comodel_name='stockex.stock.inventory',
         string='Inventaire',
@@ -63,52 +60,42 @@ class StockVarianceReport(models.Model):
     
     # Quantités
     theoretical_qty = fields.Float(
-        string='Qté Théorique',
-        readonly=True,
-        digits='Product Unit of Measure'
+        string='Quantité Théorique',
+        readonly=True
     )
     real_qty = fields.Float(
-        string='Qté Réelle',
-        readonly=True,
-        digits='Product Unit of Measure'
+        string='Quantité Réelle',
+        readonly=True
     )
     variance_qty = fields.Float(
-        string='Écart Qté',
-        readonly=True,
-        digits='Product Unit of Measure'
+        string='Écart Quantité',
+        readonly=True
     )
     variance_qty_percent = fields.Float(
-        string='Écart %',
-        readonly=True,
-        help='Pourcentage d\'écart par rapport à la quantité théorique'
+        string='% Écart Quantité',
+        readonly=True
     )
     
-    # Valeurs
+    # Valeurs (corrigé pour utiliser le prix du produit avec cast)
     unit_price = fields.Float(
         string='Prix Unitaire',
-        readonly=True,
-        digits='Product Price'
+        readonly=True
     )
     theoretical_value = fields.Float(
         string='Valeur Théorique',
-        readonly=True,
-        digits='Product Price'
+        readonly=True
     )
     real_value = fields.Float(
         string='Valeur Réelle',
-        readonly=True,
-        digits='Product Price'
+        readonly=True
     )
     variance_value = fields.Float(
-        string='Écart Valeur',
-        readonly=True,
-        digits='Product Price'
+        string='Valeur de l\'Écart',
+        readonly=True
     )
     variance_value_abs = fields.Float(
-        string='Écart Valeur (Absolu)',
-        readonly=True,
-        digits='Product Price',
-        help='Valeur absolue de l\'écart pour tri'
+        string='Valeur Absolue',
+        readonly=True
     )
     
     # Classification
@@ -116,7 +103,7 @@ class StockVarianceReport(models.Model):
         selection=[
             ('surplus', 'Surplus'),
             ('shortage', 'Manquant'),
-            ('ok', 'Conforme'),
+            ('ok', 'Aucun écart'),
         ],
         string='Type d\'Écart',
         readonly=True
@@ -164,11 +151,11 @@ class StockVarianceReport(models.Model):
                         WHEN line.theoretical_qty = 0 THEN 0
                         ELSE (line.difference / NULLIF(line.theoretical_qty, 0) * 100)
                     END AS variance_qty_percent,
-                    line.standard_price AS unit_price,
-                    (line.theoretical_qty * line.standard_price) AS theoretical_value,
-                    (line.product_qty * line.standard_price) AS real_value,
-                    (line.difference * line.standard_price) AS variance_value,
-                    ABS(line.difference * line.standard_price) AS variance_value_abs,
+                    prod.standard_price::float AS unit_price,
+                    (line.theoretical_qty * prod.standard_price::float) AS theoretical_value,
+                    (line.product_qty * prod.standard_price::float) AS real_value,
+                    (line.difference * prod.standard_price::float) AS variance_value,
+                    ABS(line.difference * prod.standard_price::float) AS variance_value_abs,
                     CASE 
                         WHEN line.difference > 0 THEN 'surplus'
                         WHEN line.difference < 0 THEN 'shortage'

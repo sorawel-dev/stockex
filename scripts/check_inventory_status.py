@@ -74,15 +74,18 @@ try:
                     print(f"💰 Valeur totale du stock: {total_value:,.0f} FCFA")
                     
                     # Vérifier le résumé d'inventaire
-                    summary = env['stockex.inventory.summary'].search([], limit=1)
-                    if summary:
-                        print(f"\n📈 Dashboard - Résumé:")
-                        print(f"   • Inventaires validés: {summary.total_inventories_done}")
-                        print(f"   • Produits référencés: {summary.total_products_all}")
-                        print(f"   • Quantité totale: {summary.total_quantity_all:,.0f}")
-                        print(f"   • Valeur totale: {summary.total_value_all:,.0f} FCFA")
-                    else:
-                        print("\n⚠️ Aucun résumé d'inventaire trouvé")
+                    try:
+                        summary = env['stockex.inventory.summary'].search([], limit=1)
+                        if summary:
+                            print(f"\n📈 Dashboard - Résumé:")
+                            print(f"   • Inventaires validés: {summary.total_inventories_done}")
+                            print(f"   • Produits référencés: {summary.total_products_all}")
+                            print(f"   • Quantité totale: {summary.total_quantity_all:,.0f}")
+                            print(f"   • Valeur totale: {summary.total_value_all:,.0f} FCFA")
+                        else:
+                            print("\n⚠️ Aucun résumé d'inventaire trouvé")
+                    except KeyError:
+                        print("\n⚠️ Modèle 'stockex.inventory.summary' non disponible")
                         
                     return True
                     

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from . import test_inventory_dashboard
+from . import test_security
+
 from odoo.tests.common import TransactionCase
 from odoo.exceptions import UserError
 from datetime import date

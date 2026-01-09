@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    
+    <t t-name="stockex.InventoryDashboard" owl="1">
+        <div class="o_stockex_inventory_dashboard p-3 bg-light" style="height: 100vh; overflow-y: auto; padding-bottom: 100px !important;">
+            <div class="container-fluid" style="max-width: 100%;">
+                
+                <!-- Header avec sélecteurs période et valorisation -->
+                <div class="row mb-3 g-2 align-items-center">
+                    <div class="col-md-6 col-12 mb-2 mb-md-0">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fa fa-dashboard" style="font-size: 2rem; margin-right: 12px; color: #667eea;"/>
+                            <h2 class="mb-0 fw-bold">Dashboard Inventaire StockEx</h2>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                            <span>Monitoring et analyse des inventaires</span>
+                            <span class="mx-2">•</span>
+                            <i class="fa fa-clock-o" style="font-size: 0.85rem;"/>
+                            <span style="font-size: 0.85rem;">Dernière mise à jour: <strong t-esc="getLastUpdate()"/></span>
+                        </p>
+                    </div>
+                    <div class="col-md-6 col-12 text-md-end text-start">
+                        <!-- Sélecteur période -->
+                        <div class="btn-group me-2 mb-2" role="group">
+                            <button type="button" 
+                                    t-att-class="state.period === '30d' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-primary'"
+                                    t-on-click="() => this.changePeriod('30d')">
+                                30 Jours
+                            </button>
+                            <button type="button" 
+                                    t-att-class="state.period === 'ytd' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-primary'"
+                                    t-on-click="() => this.changePeriod('ytd')">
+                                YTD
+                            </button>
+                            <button type="button" 
+                                    t-att-class="state.period === '12m' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-primary'"
+                                    t-on-click="() => this.changePeriod('12m')">
+                                12 Mois
+                            </button>
+                            <button type="button" 
+                                    t-att-class="state.period === 'all' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-primary'"
+                                    t-on-click="() => this.changePeriod('all')">
+                                Tout
+                            </button>
+                        </div>
+                        
+                        <!-- Toggle Valorisation -->
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-info me-2 mb-2"
+                                t-on-click="() => this.toggleValuationMethod()"
+                                title="Basculer entre valorisation standard et économique">
+                            <i class="fa fa-exchange"/>
+                            <span t-if="state.valuationMethod === 'standard'">Standard</span>
+                            <span t-else="">Économique</span>
+                        </button>
+                        
+                        <!-- Bouton refresh -->
+                        <button type="button" 
+                                t-att-class="state.loading ? 'btn btn-sm btn-success loading mb-2' : 'btn btn-sm btn-success mb-2'"
+                                t-on-click="() => this.loadDashboardData()"
+                                style="min-width: 110px;">
+                            <i t-att-class="state.loading ? 'fa fa-refresh fa-spin' : 'fa fa-refresh'" style="margin-right: 6px;"/>
+                            <span t-if="!state.loading">Actualiser</span>
+                            <span t-if="state.loading">Chargement...</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Loading spinner -->
+                <div t-if="state.loading and !state.data" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Chargement du dashboard...</p>
+                </div>
+                
+                <!-- Contenu du dashboard -->
+                <div t-if="state.data" class="dashboard-content">
+                    
+                    <!-- Section KPI Cards -->
+                    <div class="row g-3 mb-4">
+                        <!-- KPI 1: Valeur Inventoriée -->
+                        <div class="col-md-3 col-sm-6 col-12">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="text-muted mb-2">Valeur Inventoriée</h6>
+                                            <h3 class="mb-0 fw-bold text-primary" t-esc="formatCurrency(state.data.kpis.value_inventoried)"/>
+                                        </div>
+                                        <div class="icon-box bg-primary bg-opacity-10 rounded">
+                                            <i class="fa fa-archive fa-2x text-primary"/>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fa fa-cube"/> <t t-esc="state.data.kpis.total_lines"/> lignes
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- KPI 2: Valeur des Écarts -->
+                        <div class="col-md-3 col-sm-6 col-12">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="text-muted mb-2">Valeur des Écarts</h6>
+                                            <h3 class="mb-0 fw-bold" t-att-class="state.data.kpis.value_variance &lt; 0 ? 'text-danger' : 'text-success'" 
+                                                t-esc="formatCurrency(state.data.kpis.value_variance)"/>
+                                        </div>
+                                        <div class="icon-box bg-danger bg-opacity-10 rounded">
+                                            <i class="fa fa-exclamation-triangle fa-2x text-danger"/>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        Taux: <strong t-esc="formatPercent(state.data.kpis.variance_rate)"/>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- KPI 3: Taux d'Exactitude -->
+                        <div class="col-md-3 col-sm-6 col-12">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="text-muted mb-2">Taux d'Exactitude</h6>
+                                            <h3 class="mb-0 fw-bold text-success" t-esc="formatPercent(state.data.kpis.accuracy_rate)"/>
+                                        </div>
+                                        <div class="icon-box bg-success bg-opacity-10 rounded">
+                                            <i class="fa fa-check-circle fa-2x text-success"/>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        <t t-esc="state.data.kpis.lines_with_variance"/> lignes avec écart
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- KPI 4: Inventaires Validés -->
+                        <div class="col-md-3 col-sm-6 col-12">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="text-muted mb-2">Inventaires Validés</h6>
+                                            <h3 class="mb-0 fw-bold text-info" t-esc="state.data.kpis.total_inventories"/>
+                                        </div>
+                                        <div class="icon-box bg-info bg-opacity-10 rounded">
+                                            <i class="fa fa-file-text fa-2x text-info"/>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        <t t-esc="state.data.kpis.total_products"/> produits distincts
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section Graphiques -->
+                    <div class="row g-3 mb-4">
+                        <!-- Graph 1: Évolution -->
+                        <div class="col-lg-6 col-12">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white border-0">
+                                    <h5 class="mb-0"><i class="fa fa-line-chart"/> Évolution Temporelle</h5>
+                                </div>
+                                <div class="card-body" style="height: 300px;">
+                                    <canvas t-ref="evolutionChart"/>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Graph 2: Performance Entrepôts -->
+                        <div class="col-lg-6 col-12">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white border-0">
+                                    <h5 class="mb-0"><i class="fa fa-bar-chart"/> Performance par Entrepôt</h5>
+                                </div>
+                                <div class="card-body" style="height: 300px;">
+                                    <canvas t-ref="warehousePerformanceChart"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mb-4">
+                        <!-- Graph 3: Répartition Catégories -->
+                        <div class="col-lg-4 col-md-6 col-12">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white border-0">
+                                    <h5 class="mb-0"><i class="fa fa-pie-chart"/> Répartition Catégories</h5>
+                                </div>
+                                <div class="card-body" style="height: 300px;">
+                                    <canvas t-ref="categoryDistributionChart"/>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Graph 4: Heatmap Régions -->
+                        <div class="col-lg-4 col-md-6 col-12">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white border-0">
+                                    <h5 class="mb-0"><i class="fa fa-map-marker"/> Écarts par Région</h5>
+                                </div>
+                                <div class="card-body" style="height: 300px;">
+                                    <canvas t-ref="regionHeatmapChart"/>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Graph 5: Tendance Écarts -->
+                        <div class="col-lg-4 col-12">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white border-0">
+                                    <h5 class="mb-0"><i class="fa fa-line-chart"/> Tendance Écarts</h5>
+                                </div>
+                                <div class="card-body" style="height: 300px;">
+                                    <canvas t-ref="varianceTrendChart"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Graph 6: Répartition Entrepôt (full width) -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-white border-0">
+                                    <h5 class="mb-0"><i class="fa fa-building"/> Répartition Détaillée par Entrepôt</h5>
+                                </div>
+                                <div class="card-body" style="height: 400px;">
+                                    <canvas t-ref="warehouseDistributionChart"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tableau Répartition Entrepôts -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fa fa-table"/> Répartition par Entrepôt</h5>
+                                    <button class="btn btn-sm btn-success" t-on-click="() => this.exportWarehouseTable()">
+                                        <i class="fa fa-file-excel-o"/> Export Excel
+                                    </button>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover table-striped mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Entrepôt</th>
+                                                    <th class="text-end">Qté Théo</th>
+                                                    <th class="text-end">Qté Réelle</th>
+                                                    <th class="text-end">Écart Qté</th>
+                                                    <th class="text-end">Valeur Théo</th>
+                                                    <th class="text-end">Valeur Réelle</th>
+                                                    <th class="text-end">Écart Valeur</th>
+                                                    <th class="text-center">Statut</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr t-foreach="state.data.warehouse_table" t-as="row" t-key="row.id">
+                                                    <td class="fw-bold"><t t-esc="row.name"/></td>
+                                                    <td class="text-end"><t t-esc="formatNumber(row.qty_theo)"/></td>
+                                                    <td class="text-end"><t t-esc="formatNumber(row.qty_real)"/></td>
+                                                    <td class="text-end" t-att-class="row.qty_variance &lt; 0 ? 'text-danger' : 'text-success'">
+                                                        <t t-esc="formatNumber(row.qty_variance)"/>
+                                                    </td>
+                                                    <td class="text-end"><t t-esc="formatCurrency(row.value_theo)"/></td>
+                                                    <td class="text-end"><t t-esc="formatCurrency(row.value_real)"/></td>
+                                                    <td class="text-end" t-att-class="row.value_variance &lt; 0 ? 'text-danger' : 'text-success'">
+                                                        <strong><t t-esc="formatCurrency(row.value_variance)"/></strong>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span t-att-class="'badge bg-' + getStatusBadge(row.status)">
+                                                            <t t-esc="row.status_label"/>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Top Variances -->
+                    <div class="row mb-5">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-white border-0">
+                                    <h5 class="mb-0"><i class="fa fa-warning"/> Top 10 Plus Gros Écarts</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Produit</th>
+                                                    <th>Référence</th>
+                                                    <th>Entrepôt</th>
+                                                    <th class="text-end">Qté Théo</th>
+                                                    <th class="text-end">Qté Réelle</th>
+                                                    <th class="text-end">Écart Qté</th>
+                                                    <th class="text-end">Écart Valeur</th>
+                                                    <th>Inventaire</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr t-foreach="state.data.top_variances" t-as="var" t-key="var_index">
+                                                    <td><small><t t-esc="var.product_name"/></small></td>
+                                                    <td><small class="badge bg-secondary"><t t-esc="var.product_code"/></small></td>
+                                                    <td><small><t t-esc="var.warehouse"/></small></td>
+                                                    <td class="text-end"><t t-esc="formatNumber(var.qty_theo)"/></td>
+                                                    <td class="text-end"><t t-esc="formatNumber(var.qty_real)"/></td>
+                                                    <td class="text-end" t-att-class="var.qty_variance &lt; 0 ? 'text-danger' : 'text-success'">
+                                                        <strong><t t-esc="formatNumber(var.qty_variance)"/></strong>
+                                                    </td>
+                                                    <td class="text-end" t-att-class="var.value_variance &lt; 0 ? 'text-danger fw-bold' : 'text-success fw-bold'">
+                                                        <t t-esc="formatCurrency(var.value_variance)"/>
+                                                    </td>
+                                                    <td><small><t t-esc="var.inventory_ref"/> (<t t-esc="var.inventory_date"/>)</small></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </t>
+    
+</templates>

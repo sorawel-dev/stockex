@@ -5,15 +5,34 @@
         <field name="name">stockex.stock.inventory.line.list</field>
         <field name="model">stockex.stock.inventory.line</field>
         <field name="arch" type="xml">
-            <list editable="bottom">
+            <list editable="bottom" decoration-warning="difference != 0">
                 <field name="product_id" readonly="1"/>
                 <field name="product_categ_id" readonly="1" optional="show"/>
                 <field name="location_id" readonly="1"/>
-                <field name="theoretical_qty" readonly="1" string="Qté Théorique"/>
-                <field name="product_qty" string="Qté Réelle"/>
+                <field name="theoretical_qty" readonly="1" string="Qté Théorique" widget="integer" sum="Total Théorique"/>
+                <field name="product_qty" string="Qté Réelle" widget="integer" sum="Total Réel"/>
+                <field name="product_brand" optional="hide"/>
+                <field name="product_serial" string="N° série" optional="hide"/>
                 <field name="standard_price" readonly="1" optional="show"/>
                 <field name="difference" column_invisible="1"/>
-                <field name="difference_display" readonly="1"/>
+                <field name="difference_display" readonly="1" sum="Total Écart"/>
+                <field name="note" optional="show"/>
+                <button name="action_inspect_image" string="Inspecter" type="object" icon="fa-eye" class="btn-link"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_stockex_inventory_line_variance_list" model="ir.ui.view">
+        <field name="name">stockex.stock.inventory.line.variance.list</field>
+        <field name="model">stockex.stock.inventory.line</field>
+        <field name="arch" type="xml">
+            <list string="Écarts d'inventaire" editable="bottom" decoration-warning="difference != 0">
+                <field name="product_id" readonly="1"/>
+                <field name="location_id" readonly="1"/>
+                <field name="theoretical_qty" string="Qté Théorique" widget="integer" sum="Total Théorique" readonly="1"/>
+                <field name="product_qty" string="Qté Réelle" widget="integer" sum="Total Réel" readonly="1"/>
+                <field name="difference" string="Écart" sum="Total Écart" readonly="1"/>
+                <field name="standard_price" readonly="1" optional="show"/>
                 <field name="note" optional="show"/>
             </list>
         </field>
@@ -68,16 +87,34 @@
         <field name="arch" type="xml">
             <form string="Inventaire">
                 <header>
-                    <button name="action_start" string="Démarrer" type="object" invisible="state != 'draft'" class="oe_highlight"/>
-                    <button name="action_validate" string="Valider" type="object" invisible="state != 'in_progress'" class="oe_highlight"/>
-                    <button name="action_draft" string="🔄 Retour Brouillon" type="object" invisible="state != 'in_progress'" class="btn-warning" groups="base.group_system"/>
-                    <button name="action_refresh_theoretical_qty" string="🔄 Recalculer Qté Théoriques" type="object" icon="fa-refresh" class="btn-info" invisible="state != 'draft'" help="Recalcule les quantités théoriques depuis le stock Odoo actuel"/>
-                    <button name="action_export_excel" string="📥 Export Excel" type="object" icon="fa-file-excel-o" class="btn-success"/>
-                    <button name="action_print_pdf" string="🖨️ Imprimer PDF" type="object" icon="fa-print" class="btn-primary"/>
-                    <button name="action_draft" string="🔄 Remettre en brouillon" type="object" invisible="state != 'cancel'" groups="base.group_system"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,done"/>
+                    <button name="action_start" string="Démarrer" type="object" icon="fa-play" invisible="state != 'draft'" class="oe_highlight"/>
+                    <button name="action_request_approval" string="Demander Approbation" type="object" icon="fa-check-circle" invisible="state != 'in_progress'" class="oe_highlight"/>
+                    <button name="action_approve" string="Approuver" type="object" icon="fa-thumbs-up" invisible="state != 'pending_approval'" class="oe_highlight" groups="stockex.group_stockex_manager"/>
+                    <button name="action_reject" string="Rejeter" type="object" icon="fa-times-circle" invisible="state != 'pending_approval'" class="btn-danger" groups="stockex.group_stockex_manager"/>
+                    <button name="action_validate" string="Valider" type="object" icon="fa-check" invisible="state != 'approved'" class="oe_highlight"/>
+                    <button name="action_draft" string="Retour Brouillon" type="object" icon="fa-undo" invisible="state not in ['in_progress', 'pending_approval']" class="btn-warning" groups="base.group_system"/>
+                    <button name="action_refresh_theoretical_qty" string="MAJ Qté Théo" type="object" icon="fa-refresh" class="btn-info" invisible="state != 'draft'" help="Recalcule les quantités théoriques depuis le stock Odoo actuel"/>
+                    <button name="action_export_excel" string="Export Excel" type="object" icon="fa-file-excel-o" class="btn-success" invisible="state not in ['approved', 'done']"/>
+                    <button name="action_print_pdf" string="Imprimer PDF" type="object" icon="fa-print" class="btn-primary" invisible="state not in ['approved', 'done']"/>
+                    <button name="action_attach_document" string="Joindre un document" type="object" icon="fa-paperclip" class="btn-secondary"/>
+                    <button name="action_draft" string="Remettre en brouillon" type="object" icon="fa-undo" invisible="state != 'cancel'" groups="base.group_system"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,pending_approval,approved,done"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_stock_moves" type="object" class="oe_stat_button" icon="fa-exchange">
+                            <field name="stock_move_count" widget="statinfo" string="Mouvements"/>
+                        </button>
+                        <button name="action_view_account_moves" type="object" class="oe_stat_button" icon="fa-book">
+                            <field name="account_move_count" widget="statinfo" string="Écritures"/>
+                        </button>
+                        <button name="action_view_variances" type="object" class="oe_stat_button" icon="fa-exclamation-triangle">
+                            <field name="variance_count" widget="statinfo" string="Écarts"/>
+                        </button>
+                        <button name="action_view_documents" type="object" class="oe_stat_button" icon="fa-paperclip">
+                            <field name="message_attachment_count" widget="statinfo" string="Documents"/>
+                        </button>
+                    </div>
                     <div class="oe_title">
                         <h1><field name="name" placeholder="Référence de l'inventaire" readonly="state != 'draft'"/></h1>
                     </div>
@@ -85,26 +122,29 @@
                         <group name="left_info">
                             <field name="date" readonly="state != 'draft'"/>
                             <field name="location_id" options="{'no_create': True}" readonly="state != 'draft'"/>
-                            <field name="is_initial_stock" readonly="state != 'draft'"/>
+                            <field name="warehouse_id" options="{'no_create': True}" readonly="state != 'draft'"/>
+                            <field name="is_initial_stock" readonly="state != 'draft'" invisible="state != 'draft'"/>
                         </group>
                         <group name="right_info">
                             <field name="user_id" widget="many2one_avatar_user" options="{'no_create': True}" readonly="state != 'draft'"/>
+                            <field name="approver_id" widget="many2one_avatar_user" readonly="1" invisible="not approver_id"/>
+                            <field name="approval_date" readonly="1" invisible="not approval_date"/>
+                            <field name="validator_id" widget="many2one_avatar_user" readonly="1" invisible="not validator_id"/>
+                            <field name="validation_date" readonly="1" invisible="not validation_date"/>
+                            <field name="sync_to_native" readonly="1" invisible="not sync_to_native" widget="boolean" string="Synchronisé avec Odoo Natif"/>
+                            <field name="sync_date" readonly="1" invisible="not sync_date"/>
                             <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}" readonly="state != 'draft'"/>
                         </group>
                     </group>
-                    <div class="row mb-2">
-                        <div class="col-12 text-end">
-                            <field name="state"/>
-                        </div>
-                    </div>
+                    
                     <div class="container o_kanban_card_content mt-2">
                         <div class="row g-3">
                             <div class="col-md-4 col-sm-12">
                                 <div class="card border-primary h-100">
-                                    <div class="card-header bg-primary text-white"><h6 class="mb-0">📋 Valeur Théorique (Stock Odoo)</h6></div>
+                                    <div class="card-header bg-primary text-white"><h6 class="mb-0 text-center">📋 Valeur Théorique (FCFA)</h6></div>
                                     <div class="card-body text-center">
                                         <h2 class="mb-0">
-                                            <field name="odoo_stock_value" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                                            <field name="display_odoo_stock_value" nolabel="1"/>
                                         </h2>
                                         <small class="text-muted">Valeur théorique du stock Odoo</small>
                                     </div>
@@ -112,10 +152,10 @@
                             </div>
                             <div class="col-md-4 col-sm-12">
                                 <div class="card border-success h-100">
-                                    <div class="card-header bg-success text-white"><h6 class="mb-0">💰 Valeur Réelle (Inventoriée)</h6></div>
+                                    <div class="card-header bg-success text-white"><h6 class="mb-0 text-center">💰 Valeur Réelle (FCFA)</h6></div>
                                     <div class="card-body text-center">
                                         <h2 class="mb-0">
-                                            <field name="total_value_real" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                                            <field name="display_total_value_real" nolabel="1"/>
                                         </h2>
                                         <small class="text-muted">Somme des lignes réelles</small>
                                     </div>
@@ -123,12 +163,10 @@
                             </div>
                             <div class="col-md-4 col-sm-12">
                                 <div class="card border-warning h-100">
-                                    <div class="card-header bg-warning text-white"><h6 class="mb-0">⚠️ Écart de valeur</h6></div>
+                                    <div class="card-header bg-warning text-white"><h6 class="mb-0 text-center">⚠️ Écart de valeur (FCFA)</h6></div>
                                     <div class="card-body text-center">
                                         <h2 class="mb-0">
-                                            <field name="total_value_difference" widget="monetary" options="{'currency_field': 'company_currency_id'}" 
-                                                   decoration-danger="total_value_difference &lt; 0" 
-                                                   decoration-success="total_value_difference &gt;= 0"/>
+                                            <span class="text-danger"><field name="display_total_value_difference" nolabel="1"/></span>
                                         </h2>
                                         <small class="text-muted">Réel − Théorique</small>
                                     </div>
@@ -138,25 +176,25 @@
                         <div class="row g-3 mt-2">
                             <div class="col-md-4 col-sm-12">
                                 <div class="card border-secondary h-100">
-                                    <div class="card-header bg-light"><h6 class="mb-0">📦 Quantité Théorique</h6></div>
+                                    <div class="card-header bg-light"><h6 class="mb-0 text-center">📦 Quantité Théorique</h6></div>
                                     <div class="card-body text-center">
-                                        <h3 class="mb-0"><field name="total_quantity_theoretical"/></h3>
+                                        <h3 class="mb-0"><field name="total_quantity_theoretical" widget="integer"/></h3>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4 col-sm-12">
                                 <div class="card border-info h-100">
-                                    <div class="card-header bg-info text-white"><h6 class="mb-0">🔢 Quantité Réelle</h6></div>
+                                    <div class="card-header bg-info text-white"><h6 class="mb-0 text-center">🔢 Quantité Réelle</h6></div>
                                     <div class="card-body text-center">
-                                        <h3 class="mb-0"><field name="total_quantity_real"/></h3>
+                                        <h3 class="mb-0"><field name="total_quantity_real" widget="integer"/></h3>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4 col-sm-12">
                                 <div class="card border-dark h-100">
-                                    <div class="card-header bg-dark text-white"><h6 class="mb-0">∆ Écart Quantité</h6></div>
+                                    <div class="card-header bg-dark text-white"><h6 class="mb-0 text-center text-white">∆ Écart Quantité</h6></div>
                                     <div class="card-body text-center">
-                                        <h3 class="mb-0"><field name="total_quantity_difference"/></h3>
+                                        <h3 class="mb-0"><field name="total_quantity_difference" widget="integer"/></h3>
                                     </div>
                                 </div>
                             </div>
@@ -184,9 +222,135 @@
                 <chatter/>
             </form>
         </field>
+        </record>
+    
+    <!-- Minimal Form View for ir.attachment when attaching to Inventory -->
+    <record id="view_ir_attachment_inventory_minimal" model="ir.ui.view">
+        <field name="name">stockex.ir.attachment.inventory.minimal.form</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <form string="Joindre un document">
+                <sheet>
+                    <group>
+                        <field name="name" string="Titre" placeholder="Généré automatiquement si laissé vide"/>
+                        <field name="type"/>
+                        <field name="datas" string="Fichier" widget="binary" invisible="type == 'url'"/>
+                        <field name="url" string="Lien (URL)" invisible="type != 'url'"/>
+                        <field name="description" string="Description"/>
+                        <field name="res_model" readonly="1" invisible="1"/>
+                        <field name="res_id" readonly="1" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
     </record>
 
-    <!-- Search View for Stock Inventory -->
+    <!-- Vue pour l'aperçu des documents (modal) -->
+    <record id="view_ir_attachment_preview_form" model="ir.ui.view">
+        <field name="name">stockex.ir.attachment.preview.form</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <form string="Aperçu" create="false" edit="false" delete="false">
+                <sheet>
+                    <field name="mimetype" invisible="1"/>
+                    <field name="type" invisible="1"/>
+                    <group>
+                        <field name="name" readonly="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Aperçu" name="preview">
+                            <!-- Aperçu pour les images -->
+                            <field name="datas" 
+                                   widget="image" 
+                                   options="{'size': [0, 600]}" 
+                                   invisible="type != 'binary' or mimetype not in ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml']"/>
+                            
+                            <!-- Aperçu pour les PDFs -->
+                            <field name="datas" 
+                                   widget="pdf_viewer" 
+                                   invisible="mimetype != 'application/pdf'"/>
+                        </page>
+                        <page string="Informations" name="info">
+                            <group>
+                                <field name="create_date" readonly="1"/>
+                                <field name="create_uid" readonly="1"/>
+                                <field name="file_size" readonly="1"/>
+                                <field name="description" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_ir_attachment_inventory_kanban" model="ir.ui.view">
+        <field name="name">stockex.ir.attachment.inventory.kanban</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <kanban string="Documents" class="o_attachment_kanban">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="type"/>
+                <field name="mimetype"/>
+                <field name="url"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="o_kanban_record o_attachment_card">
+                            <div class="o_attachment_preview">
+                                <img t-if="record.type.raw_value == 'binary' and record.mimetype.raw_value and record.mimetype.raw_value.startsWith('image/')" 
+                                     t-att-src="'/web/content/ir.attachment/' + record.id.raw_value + '/datas?download=false'" 
+                                     class="img-fluid"/>
+                                <i t-if="record.type.raw_value == 'binary' and !(record.mimetype.raw_value and record.mimetype.raw_value.startsWith('image/'))" 
+                                   class="fa fa-file-o fa-2x"/>
+                                <div t-if="record.type.raw_value == 'url'" class="text-truncate">
+                                    <a t-att-href="record.url.raw_value" target="_blank" class="o_attachment_url">
+                                        <span t-esc="record.url.raw_value"/>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="o_attachment_name mt-1">
+                                <strong t-esc="record.name.raw_value"/>
+                            </div>
+                            <div class="o_attachment_actions mt-1">
+                                <button t-if="record.type.raw_value == 'binary'" 
+                                   name="action_open_preview"
+                                   type="object"
+                                   class="btn btn-link btn-sm">
+                                    <i class="fa fa-eye"/> Aperçu
+                                </button>
+                                <a t-if="record.type.raw_value == 'url'" 
+                                   t-att-href="record.url.raw_value" 
+                                   target="_blank" 
+                                   class="btn btn-link btn-sm">
+                                    <i class="fa fa-eye"/> Ouvrir
+                                </a>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-name="card">
+                        <t t-call="kanban-box"/>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_ir_attachment_inventory_list" model="ir.ui.view">
+        <field name="name">stockex.ir.attachment.inventory.list</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <list string="Documents">
+                <field name="datas" widget="image" string="Miniature"/>
+                <field name="name" string="Nom"/>
+                <field name="type" optional="show"/>
+                <field name="mimetype" optional="show"/>
+                <field name="url" widget="url" optional="show"/>
+                <field name="create_date" optional="show" string="Date d'ajout"/>
+            </list>
+        </field>
+    </record>
+
     <record id="view_stockex_inventory_search" model="ir.ui.view">
         <field name="name">stockex.stock.inventory.search</field>
         <field name="model">stockex.stock.inventory</field>
@@ -199,6 +363,8 @@
                 <separator/>
                 <filter string="Brouillon" name="draft" domain="[('state','=','draft')]"/>
                 <filter string="En cours" name="in_progress" domain="[('state','=','in_progress')]"/>
+                <filter string="En attente d'approbation" name="pending_approval" domain="[('state','=','pending_approval')]"/>
+                <filter string="Approuvé" name="approved" domain="[('state','=','approved')]"/>
                 <filter string="Validé" name="done" domain="[('state','=','done')]"/>
                 <separator/>
                 <filter string="Mes inventaires" name="my_inventories" domain="[('user_id','=',uid)]"/>
@@ -218,7 +384,7 @@
         <field name="res_model">stockex.stock.inventory</field>
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_stockex_inventory_search"/>
-        <field name="context">{'search_default_draft': 1, 'search_default_in_progress': 1}</field>
+        <field name="context">{'search_default_approved': 1, 'search_default_done': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Créer un nouvel inventaire de stock
@@ -229,5 +395,35 @@
         </field>
     </record>
 
-
+    <!-- Form View for Stock Inventory Line (Inspecter) -->
+    <record id="view_stockex_inventory_line_form" model="ir.ui.view">
+        <field name="name">stockex.stock.inventory.line.form</field>
+        <field name="model">stockex.stock.inventory.line</field>
+        <field name="arch" type="xml">
+            <form string="Inspecter Ligne d'inventaire">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="product_id" readonly="1"/>
+                            <field name="location_id" readonly="1"/>
+                            <field name="product_qty" readonly="1"/>
+                            <field name="theoretical_qty" readonly="1"/>
+                            <field name="difference" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="standard_price" readonly="1"/>
+                            <field name="note" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Photos">
+                        <group>
+                            <field name="image_1" widget="image"/>
+                            <field name="image_2" widget="image"/>
+                            <field name="image_3" widget="image"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
 </odoo>

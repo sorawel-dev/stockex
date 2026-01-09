@@ -72,20 +72,8 @@ class WarehouseValuationExportWizard(models.TransientModel):
         """Initialiser avec les filtres du dashboard si disponibles."""
         res = super().default_get(fields_list)
         
-        # Récupérer le contexte du dashboard
-        if self.env.context.get('active_model') == 'stockex.inventory.summary':
-            dashboard = self.env['stockex.inventory.summary'].browse(
-                self.env.context.get('active_id')
-            )
-            if dashboard:
-                if dashboard.warehouse_ids:
-                    res['warehouse_ids'] = [(6, 0, dashboard.warehouse_ids.ids)]
-                if dashboard.date_from:
-                    res['date_from'] = dashboard.date_from
-                if dashboard.date_to:
-                    res['date_to'] = dashboard.date_to
-                if dashboard.category_ids:
-                    res['category_ids'] = [(6, 0, dashboard.category_ids.ids)]
+        # Le dashboard a été supprimé - Cette fonctionnalité n'est plus disponible
+        # Vous pouvez configurer les filtres manuellement dans le wizard
         
         return res
 
@@ -183,11 +171,7 @@ class WarehouseValuationExportWizard(models.TransientModel):
             cell.border = border
         
         # Données
-        dashboard = self.env['stockex.inventory.summary'].search([], limit=1)
-        if not dashboard:
-            dashboard = self.env['stockex.inventory.summary'].create({})
-        
-        # Récupérer les données par entrepôt
+        # Note: Le dashboard a été supprimé, les calculs se font directement sans lui
         row = 2
         total_qty = 0
         total_value = 0

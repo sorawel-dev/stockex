@@ -123,6 +123,39 @@
         </field>
     </record>
     
+    <!-- Vue recherche pour Entrepôts (filtres pertinents) -->
+    <record id="view_warehouse_search_stockex" model="ir.ui.view">
+        <field name="name">stock.warehouse.search.stockex</field>
+        <field name="model">stock.warehouse</field>
+        <field name="arch" type="xml">
+            <search string="Recherche Entrepôts">
+                <field name="name"/>
+                <field name="code" string="Diminutif"/>
+                <field name="warehouse_code"/>
+                <field name="city"/>
+                <field name="warehouse_type"/>
+                <field name="eneo_region_id"/>
+                <field name="parent_id"/>
+                <field name="eneo_network"/>
+                
+                <separator/>
+                <filter string="🏠 Racine (sans parent)" name="root_only" domain="[('parent_id','=',False)]"/>
+                <filter string="👶 Avec enfants" name="with_children" domain="[('child_count','>',0)]"/>
+                
+                <separator/>
+                <filter string="⚡ Réseau Sud (RIS)" name="network_south" domain="[('eneo_network','=','south')]"/>
+                <filter string="⚡ Réseau Nord (RIN)" name="network_north" domain="[('eneo_network','=','north')]"/>
+                
+                <separator/>
+                <filter string="🏷️ Type" name="group_type" context="{'group_by':'warehouse_type'}"/>
+                <filter string="🔌 Région Électrique ENEO" name="group_region" context="{'group_by':'eneo_region_id'}"/>
+                <filter string="👪 Parent" name="group_parent" context="{'group_by':'parent_id'}"/>
+                <filter string="⚡ Réseau ENEO" name="group_network" context="{'group_by':'eneo_network'}"/>
+                <filter string="🏙️ Ville" name="group_city" context="{'group_by':'city'}"/>
+            </search>
+        </field>
+    </record>
+    
     <!-- Action pour les entrepôts -->
     <record id="action_warehouse_stockex" model="ir.actions.act_window">
         <field name="name">Entrepôts</field>
@@ -149,6 +182,8 @@
                 <field name="name"/>
                 <field name="code"/>
                 <field name="stock_value_fcfa"/>
+                <field name="inventory_variance_fcfa"/>
+                <field name="currency_id"/>
                 <field name="city"/>
                 <field name="warehouse_type"/>
                 <field name="eneo_region_id"/>
@@ -189,8 +224,8 @@
                                     </div>
                                     <!-- Valeur du stock avec libellé -->
                                     <div class="mb-0">
-                                        <i class="fa fa-money-bill-wave fa-lg text-success me-1"/> 
-                                        <strong>Valeur stock:</strong> <span t-esc="((record.stock_value_fcfa &amp;&amp; record.stock_value_fcfa.raw_value) ? record.stock_value_fcfa.raw_value : 0).toFixed(0)"/> FCFA
+                                        <i class="fa fa-money-bill-wave fa-lg text-success me-1"/>
+                                        <strong>Valeur stock:</strong> <field name="stock_value_fcfa" widget="monetary"/>
                                     </div>
                                     <!-- Badges compacts: Articles en stock, Mouvements -->
                                     <div class="d-flex gap-1 mb-0">
@@ -199,6 +234,9 @@
                                         </span>
                                         <span class="badge rounded-pill text-bg-info" title="Nombre total de mouvements">
                                             <i class="fa fa-exchange-alt me-1" title="Mouvements"/> <field name="move_count"/>
+                                        </span>
+                                        <span t-att-class="record.inventory_variance_fcfa.raw_value &lt; 0 ? 'badge rounded-pill text-bg-danger' : 'badge rounded-pill text-bg-secondary'" title="Écart inventaire">
+                                            <i class="fa fa-exclamation-triangle me-1" title="Écart"/> <field name="inventory_variance_fcfa" widget="monetary"/>
                                         </span>
                                     </div>
                                     <!-- Type de magasin -->
@@ -225,37 +263,4 @@
     </record>
     
     
-    <!-- Vue recherche pour Entrepôts (filtres pertinents) -->
-    <record id="view_warehouse_search_stockex" model="ir.ui.view">
-        <field name="name">stock.warehouse.search.stockex</field>
-        <field name="model">stock.warehouse</field>
-        <field name="arch" type="xml">
-            <search string="Recherche Entrepôts">
-                <field name="name"/>
-                <field name="code" string="Diminutif"/>
-                <field name="warehouse_code"/>
-                <field name="city"/>
-                <field name="warehouse_type"/>
-                <field name="eneo_region_id"/>
-                <field name="parent_id"/>
-                <field name="eneo_network"/>
-
-                <separator/>
-                <filter string="🏠 Racine (sans parent)" name="root_only" domain="[('parent_id','=',False)]"/>
-                <filter string="👶 Avec enfants" name="with_children" domain="[('child_count','>',0)]"/>
-
-                <separator/>
-                <filter string="⚡ Réseau Sud (RIS)" name="network_south" domain="[('eneo_network','=','south')]"/>
-                <filter string="⚡ Réseau Nord (RIN)" name="network_north" domain="[('eneo_network','=','north')]"/>
-
-                <separator/>
-                <filter string="🏷️ Type" name="group_type" context="{'group_by':'warehouse_type'}"/>
-                <filter string="🔌 Région Électrique ENEO" name="group_region" context="{'group_by':'eneo_region_id'}"/>
-                <filter string="👪 Parent" name="group_parent" context="{'group_by':'parent_id'}"/>
-                <filter string="⚡ Réseau ENEO" name="group_network" context="{'group_by':'eneo_network'}"/>
-                <filter string="🏙️ Ville" name="group_city" context="{'group_by':'city'}"/>
-            </search>
-        </field>
-    </record>
-
 </odoo>

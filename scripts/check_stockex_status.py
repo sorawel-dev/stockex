@@ -141,28 +141,31 @@ def check_stockex_status():
         
         # Vérifier le résumé d'inventaire
         print("\n📈 Vérification du dashboard...")
-        summary_count = models.execute_kw(
-            db, uid, password,
-            'stockex.inventory.summary', 'search_count',
-            [[]]
-        )
-        print(f"   • Résumés d'inventaire: {summary_count}")
-        
-        if summary_count > 0:
-            summary = models.execute_kw(
+        try:
+            summary_count = models.execute_kw(
                 db, uid, password,
-                'stockex.inventory.summary', 'search_read',
-                [[]],
-                {'limit': 1}
+                'stockex.inventory.summary', 'search_count',
+                [[]]
             )
+            print(f"   • Résumés d'inventaire: {summary_count}")
             
-            if summary:
-                s = summary[0]
-                print(f"   • Inventaires validés: {s.get('total_inventories_done', 0)}")
-                print(f"   • Produits référencés: {s.get('total_products_all', 0)}")
-                print(f"   • Quantité totale: {s.get('total_quantity_all', 0)}")
-                print(f"   • Valeur totale: {s.get('total_value_all', 0)}")
+            if summary_count > 0:
+                summary = models.execute_kw(
+                    db, uid, password,
+                    'stockex.inventory.summary', 'search_read',
+                    [[]],
+                    {'limit': 1}
+                )
                 
+                if summary:
+                    s = summary[0]
+                    print(f"   • Inventaires validés: {s.get('total_inventories_done', 0)}")
+                    print(f"   • Produits référencés: {s.get('total_products_all', 0)}")
+                    print(f"   • Quantité totale: {s.get('total_quantity_all', 0)}")
+                    print(f"   • Valeur totale: {s.get('total_value_all', 0)}")
+        except Exception as e:
+            print(f"   ⚠️ Dashboard non disponible: {str(e)}")
+            
         print("\n" + "="*60)
         print("✅ VÉRIFICATION TERMINÉE")
         print("="*60)

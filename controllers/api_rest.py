@@ -16,8 +16,11 @@ Endpoints disponibles:
 
 import json
 import logging
+import time
 from odoo import http
 from odoo.http import request, Response
+from odoo.addons.stockex.tools.jwt_auth import stockex_jwt_auth
+from odoo.addons.stockex.tools.api_monitoring import stockex_api_monitoring
 
 _logger = logging.getLogger(__name__)
 
@@ -27,20 +30,33 @@ class StockexAPIController(http.Controller):
     
     def _get_user_from_token(self, token):
         """Valide le token API et retourne l'utilisateur."""
-        # TODO: Implémenter validation JWT/OAuth2
-        # Pour l'instant, utilise la session Odoo standard
-        return request.env.user
+        return stockex_jwt_auth.get_user_from_token(token)
     
-    def _json_response(self, data, status=200):
+    def _json_response(self, data, status=200, endpoint=None, start_time=None):
         """Retourne une réponse JSON formatée."""
+        # Monitoring
+        if start_time and endpoint:
+            response_time = time.time() - start_time
+            client_ip = request.httprequest.remote_addr
+            stockex_api_monitoring.log_api_call(
+                endpoint=endpoint,
+                method=request.httprequest.method,
+                user_id=request.env.user.id,
+                ip_address=client_ip,
+                status_code=status,
+                response_time=response_time,
+                request_data=dict(request.params)
+            )
+        
         return Response(
             json.dumps(data, default=str, ensure_ascii=False),
             status=status,
             mimetype='application/json',
             headers={
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': request.httprequest.headers.get('Origin', 'http://localhost:8069'),
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Allow-Credentials': 'true',
             }
         )
     
@@ -65,6 +81,9 @@ class StockexAPIController(http.Controller):
             - limit: Nombre max de résultats (défaut: 100)
             - offset: Décalage pour pagination (défaut: 0)
         """
+        start_time = time.time()
+        endpoint = '/api/stockex/inventories'
+        
         try:
             domain = []
             
@@ -81,6 +100,9 @@ class StockexAPIController(http.Controller):
                 domain.append(('date', '<=', params['date_to']))
             
             limit = int(params.get('limit', 100))
+            # Limiter la pagination à 1000 enregistrements max
+            if limit > 1000:
+                limit = 1000
             offset = int(params.get('offset', 0))
             
             inventories = request.env['stockex.stock.inventory'].search(
@@ -109,10 +131,21 @@ class StockexAPIController(http.Controller):
                 } for inv in inventories]
             }
             
-            return self._json_response(data)
+            return self._json_response(data, endpoint=endpoint, start_time=start_time)
             
         except Exception as e:
             _logger.error(f"Erreur API list_inventories: {str(e)}", exc_info=True)
+            response_time = time.time() - start_time
+            client_ip = request.httprequest.remote_addr
+            stockex_api_monitoring.log_api_call(
+                endpoint=endpoint,
+                method='GET',
+                user_id=request.env.user.id,
+                ip_address=client_ip,
+                status_code=500,
+                response_time=response_time,
+                request_data=params
+            )
             return self._error_response(str(e), status=500)
     
     @http.route('/api/stockex/inventories/<int:inventory_id>', type='http', auth='user', methods=['GET'], csrf=False)
@@ -166,7 +199,7 @@ class StockexAPIController(http.Controller):
             _logger.error(f"Erreur API get_inventory: {str(e)}", exc_info=True)
             return self._error_response(str(e), status=500)
     
-    @http.route('/api/stockex/inventories', type='json', auth='user', methods=['POST'], csrf=False)
+    @http.route('/api/stockex/inventories', type='jsonrpc', auth='user', methods=['POST'], csrf=False)
     def create_inventory(self, **params):
         """Crée un nouvel inventaire.
         
@@ -238,6 +271,9 @@ class StockexAPIController(http.Controller):
                 domain.append(('categ_id', '=', int(params['category_id'])))
             
             limit = int(params.get('limit', 100))
+            # Limiter la pagination à 1000 enregistrements max
+            if limit > 1000:
+                limit = 1000
             
             products = request.env['product.product'].search(domain, limit=limit)
             
@@ -307,21 +343,28 @@ class StockexAPIController(http.Controller):
             - period: Période (today, week, month, year)
         """
         try:
-            summary_model = request.env['stockex.inventory.summary']
+            # Calculer les KPIs directement sans le dashboard
+            inventory_model = request.env['stockex.stock.inventory']
             
-            # Récupérer l'enregistrement par défaut
-            summary = summary_model.search([], limit=1)
-            if not summary:
-                summary = summary_model.create({})
+            # Compter les inventaires
+            total_inventories = inventory_model.search_count([])
+            total_inventories_done = inventory_model.search_count([('state', '=', 'done')])
             
-            # Récupération KPIs depuis le summary
+            # Calculer valeur stock actuelle via stock.quant
+            quants = request.env['stock.quant'].search([
+                ('quantity', '>', 0),
+                ('location_id.usage', '=', 'internal')
+            ])
+            current_stock_value = sum(q.quantity * q.product_id.standard_price for q in quants)
+            
+            # Récupération KPIs
             kpis = {
-                'total_inventories': summary.total_inventories,
-                'total_inventories_done': summary.total_inventories_done,
-                'total_products': summary.total_products_all,
-                'total_quantity': summary.total_quantity_all,
-                'total_value': summary.total_value_all,
-                'current_stock_value': summary.current_stock_value,
+                'total_inventories': total_inventories,
+                'total_inventories_done': total_inventories_done,
+                'total_products': len(quants.mapped('product_id')),
+                'total_quantity': sum(quants.mapped('quantity')),
+                'total_value': current_stock_value,
+                'current_stock_value': current_stock_value,
             }
             
             return self._json_response(kpis)

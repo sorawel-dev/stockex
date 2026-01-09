@@ -81,7 +81,7 @@
                 </nav>
                 
                 <!-- Script Inline -->
-                <script>
+                <script><![CDATA[
                     // Affiche status online/offline
                     const statusIndicator = document.getElementById('status-indicator');
                     const statusText = document.getElementById('status-text');
@@ -104,7 +104,7 @@
                             item.classList.add('active');
                         }
                     });
-                </script>
+                ]]></script>
             </body>
         </html>
     </template>
@@ -158,10 +158,10 @@
                 </div>
             </div>
             
-            <script>
+            <script><![CDATA[
                 // Affiche inventaires en attente de sync
                 async function loadPendingInventories() {
-                    if (window.stockexApp &amp;&amp; window.stockexApp.offlineStorage) {
+                    if (window.stockexApp && window.stockexApp.offlineStorage) {
                         const pending = await window.stockexApp.offlineStorage.getPendingInventories();
                         
                         if (pending.length > 0) {
@@ -181,7 +181,7 @@
                 
                 // Charge au démarrage
                 setTimeout(loadPendingInventories, 1000);
-            </script>
+            ]]></script>
         </t>
     </template>
     
@@ -317,9 +317,9 @@
                 </div>
             </div>
             
-            <script>
+            <script><![CDATA[
                 // Script de scan initialisé par barcode-scanner.js
-            </script>
+            ]]></script>
         </t>
     </template>
     

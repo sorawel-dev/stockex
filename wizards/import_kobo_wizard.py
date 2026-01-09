@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from odoo import models, fields, api
 from odoo.exceptions import UserError
+from markupsafe import Markup
 
 _logger = logging.getLogger(__name__)
 
@@ -678,6 +679,6 @@ class ImportKoboWizard(models.TransientModel):
             if len(errors_detail) > 10:
                 message += f"\n... et {len(errors_detail) - 10} autres erreurs"
         
-        inventory.message_post(body=message)
+        inventory.message_post(body=Markup(message))
         
         return inventory

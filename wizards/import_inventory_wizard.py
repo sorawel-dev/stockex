@@ -372,12 +372,15 @@ class ImportInventoryWizard(models.TransientModel):
                 
                 # Créer la ligne d'inventaire
                 # La quantité théorique sera calculée automatiquement par le modèle
-                self.env['stockex.stock.inventory.line'].create({
+                line = self.env['stockex.stock.inventory.line'].create({
                     'inventory_id': inventory.id,
                     'product_id': product_id,
                     'location_id': location_id,
                     'product_qty': quantity,  # Quantité inventoriée (du CSV)
                 })
+                
+                # Forcer le recalcul de la quantité théorique
+                line._compute_theoretical_qty()
                 
                 imported += 1
                 
@@ -391,6 +394,11 @@ class ImportInventoryWizard(models.TransientModel):
                 error_msg = f"Ligne {i+2}: {str(e)}"
                 errors_detail.append(error_msg)
                 _logger.error(f"{error_msg}\n{traceback.format_exc()}")
+        
+        # Forcer le recalcul de toutes les quantités théoriques en une seule fois
+        _logger.info(f"Recalcul des quantités théoriques pour {imported} lignes...")
+        inventory.line_ids._compute_theoretical_qty()
+        self.env.cr.commit()
         
         # Message de confirmation
         message = f"Import terminé avec succès !\n\n"

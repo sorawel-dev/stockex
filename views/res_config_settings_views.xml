@@ -386,6 +386,62 @@
                         </setting>
                     </block>
                     
+                    <!-- Stockage MinIO -->
+                    <block title="📦 Stockage MinIO" name="stockex_minio_storage">
+                        <setting string="Activer MinIO">
+                            <div class="text-muted">
+                                Utiliser MinIO pour le stockage des pièces jointes (haute disponibilité, scalabilité)
+                            </div>
+                            <div class="content-group mt-2">
+                                <field name="minio_enabled"/>
+                                <label for="minio_enabled"/>
+                            </div>
+                        </setting>
+                        
+                        <setting string="Configuration MinIO" invisible="not minio_enabled">
+                            <div class="text-muted">
+                                Paramètres de connexion au serveur MinIO
+                            </div>
+                            <div class="content-group mt-2">
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <label for="minio_endpoint" string="Endpoint MinIO" class="o_light_label"/>
+                                        <field name="minio_endpoint" placeholder="infra-minio:9000" class="mb-2"/>
+                                        
+                                        <label for="minio_access_key" string="Access Key" class="o_light_label"/>
+                                        <field name="minio_access_key" password="True" placeholder="Access Key" class="mb-2"/>
+                                        
+                                        <label for="minio_secret_key" string="Secret Key" class="o_light_label"/>
+                                        <field name="minio_secret_key" password="True" placeholder="Secret Key" class="mb-2"/>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <label for="minio_bucket" string="Bucket" class="o_light_label"/>
+                                        <field name="minio_bucket" placeholder="stockex-documents" class="mb-2"/>
+                                        
+                                        <label for="minio_region" string="Région" class="o_light_label"/>
+                                        <field name="minio_region" placeholder="Deutchland" class="mb-2"/>
+                                        
+                                        <div class="mb-2">
+                                            <field name="minio_secure"/>
+                                            <label for="minio_secure"/>
+                                        </div>
+                                        
+                                        <button name="test_minio_connection" 
+                                                string="🔍 Tester la connexion" 
+                                                type="object" 
+                                                class="btn-primary mt-2"
+                                                icon="fa-check-circle"/>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info mt-3 mb-0 py-2" role="alert">
+                                    <strong>💡 Info :</strong> 
+                                    <span class="text-muted">MinIO permet de décharger le stockage des fichiers lourds sur une infrastructure dédiée haute disponibilité</span>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    
                 </app>
             </xpath>
         </field>

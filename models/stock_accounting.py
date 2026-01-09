@@ -3,6 +3,7 @@
 import logging
 from odoo import models, fields, api
 from odoo.exceptions import UserError
+from markupsafe import Markup
 
 _logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class StockInventoryAccounting(models.Model):
     
     move_ids = fields.One2many(
         comodel_name='account.move',
-        inverse_name='inventory_id',
+        inverse_name='stockex_inventory_id',
         string='Écritures Comptables',
         readonly=True
     )
@@ -139,7 +140,7 @@ class StockInventoryAccounting(models.Model):
                     'journal_id': self._get_inventory_journal().id,
                     'date': self.date,
                     'ref': f'Inventaire {self.name} - {category.name}',
-                    'inventory_id': self.id,
+                    'stockex_inventory_id': self.id,
                     'line_ids': move_lines,
                 })
                 
@@ -153,7 +154,7 @@ class StockInventoryAccounting(models.Model):
         
         # Message dans le chatter
         self.message_post(
-            body=f"✅ {len(self.move_ids)} écriture(s) comptable(s) générée(s)"
+            body=Markup(f"✅ {len(self.account_move_ids)} écriture(s) comptable(s) générée(s)")
         )
     
     def _get_inventory_journal(self):
@@ -187,8 +188,9 @@ class AccountMove(models.Model):
     """Ajout du lien vers l'inventaire."""
     _inherit = 'account.move'
     
-    inventory_id = fields.Many2one(
+    stockex_inventory_id = fields.Many2one(
         comodel_name='stockex.stock.inventory',
         string='Inventaire d\'Origine',
-        readonly=True
+        readonly=True,
+        index=True
     )

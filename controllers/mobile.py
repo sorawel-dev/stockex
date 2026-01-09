@@ -107,7 +107,7 @@ class StockexMobileController(http.Controller):
             _logger.error(f"Erreur création inventaire mobile: {str(e)}", exc_info=True)
             return request.redirect(f'/stockex/mobile?error={str(e)}')
     
-    @http.route('/api/mobile/inventories/sync', type='json', auth='user', methods=['POST'], csrf=False)
+    @http.route('/api/mobile/inventories/sync', type='jsonrpc', auth='user', methods=['POST'], csrf=False)
     def sync_inventories(self, **params):
         """Synchronise les inventaires locaux (offline) vers serveur.
         
@@ -203,7 +203,7 @@ class StockexMobileController(http.Controller):
                 'error': str(e),
             }
     
-    @http.route('/api/mobile/products/search', type='json', auth='user', methods=['POST'])
+    @http.route('/api/mobile/products/search', type='jsonrpc', auth='user', methods=['POST'])
     def mobile_search_product(self, **params):
         """Recherche produit par code-barres ou référence.
         
@@ -253,7 +253,7 @@ class StockexMobileController(http.Controller):
             _logger.error(f"Erreur recherche produit: {str(e)}", exc_info=True)
             return {'error': True, 'message': str(e)}
     
-    @http.route('/api/mobile/inventory/add-line', type='json', auth='user', methods=['POST'])
+    @http.route('/api/mobile/inventory/add-line', type='jsonrpc', auth='user', methods=['POST'])
     def mobile_add_line(self, **params):
         """Ajoute une ligne à un inventaire mobile.
         
@@ -313,7 +313,7 @@ class StockexMobileController(http.Controller):
             _logger.error(f"Erreur ajout ligne: {str(e)}", exc_info=True)
             return {'error': True, 'message': str(e)}
     
-    @http.route('/api/mobile/inventory/<int:inventory_id>/lines', type='json', auth='user', methods=['GET'])
+    @http.route('/api/mobile/inventory/<int:inventory_id>/lines', type='jsonrpc', auth='user', methods=['GET'])
     def mobile_get_lines(self, inventory_id, **params):
         """Récupère les lignes d'un inventaire pour affichage mobile."""
         try:

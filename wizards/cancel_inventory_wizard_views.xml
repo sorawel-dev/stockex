@@ -48,6 +48,16 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
         <field name="binding_model_id" ref="model_stockex_stock_inventory"/>
-        <field name="binding_view_types">form</field>
+        <field name="binding_view_types">form,list</field>
+    </record>
+    
+    <!-- Action serveur pour annuler plusieurs inventaires depuis le menu Actions -->
+    <record id="action_server_cancel_inventory" model="ir.actions.server">
+        <field name="name">Annuler l'inventaire</field>
+        <field name="model_id" ref="model_stockex_stock_inventory"/>
+        <field name="binding_model_id" ref="model_stockex_stock_inventory"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_open_cancel_wizard()</field>
     </record>
 </odoo>

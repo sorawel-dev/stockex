@@ -3,6 +3,11 @@
 # Vérification de compatibilité (doit être en premier)
 from . import compat
 
+# Héritage stock.move DOIT être AVANT models.py
+from . import stock_move
+from . import minio_storage
+
+# models.py doit être avant eneo_region car il définit eneo_region_id sur stock.warehouse
 from . import models
 from . import eneo_region
 from . import account_move
@@ -11,13 +16,15 @@ from . import stock_location
 from . import product_category
 from . import product_category_auto_config
 from . import res_config_settings
-from . import inventory_dashboard
 from . import depreciation_report
 from . import kobo_submission
 from . import cycle_count
 from . import inventory_comparison
+from . import inventory_summary
+from . import inventory_dashboard
 from . import variance_report
 from . import stock_accounting
 from . import stock_analysis
+from . import stock_analysis_pivot
 from . import lot_tracking
 from . import eneo_network

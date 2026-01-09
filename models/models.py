@@ -4,8 +4,32 @@ import logging
 
 from odoo import models, fields, api
 from odoo.exceptions import UserError
+from markupsafe import Markup
 
 _logger = logging.getLogger(__name__)
+
+class ProductTemplate(models.Model):
+    _inherit = 'product.template'
+    brand = fields.Char(string='Marque')
+    has_serial = fields.Boolean(string="A un N° série", help="Indique si l'article possède un numéro de série")
+
+
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
+    
+    stock_value = fields.Monetary(
+        string='Coût total',
+        compute='_compute_stock_value',
+        currency_field='currency_id',
+        store=False,
+        help='Valeur totale du stock = Quantité disponible × Coût unitaire'
+    )
+    
+    @api.depends('qty_available', 'standard_price')
+    def _compute_stock_value(self):
+        """Calcule la valeur totale du stock (quantité × coût unitaire)."""
+        for product in self:
+            product.stock_value = (product.qty_available or 0.0) * (product.standard_price or 0.0)
 
 
 class StockWarehouse(models.Model):
@@ -140,6 +164,12 @@ class StockWarehouse(models.Model):
         compute='_compute_stock_value_fcfa',
         store=False,
     )
+    inventory_variance_fcfa = fields.Monetary(
+        string='Écart Inventaire',
+        currency_field='currency_id',
+        compute='_compute_inventory_variance_fcfa',
+        store=False,
+    )
     move_count = fields.Integer(
         string='Mouvements',
         compute='_compute_move_count',
@@ -156,12 +186,26 @@ class StockWarehouse(models.Model):
         store=False,
         help='Nombre de références de produits uniques en stock'
     )
+
+    location_count = fields.Integer(
+        string='Emplacements internes',
+        compute='_compute_location_count',
+        store=False,
+    )
     
     def _compute_quant_count(self):
         for wh in self:
             root = wh.view_location_id.id if wh.view_location_id else False
             domain = [('location_id', 'child_of', root), ('quantity', '>', 0)] if root else [('id', '=', 0)]
             wh.quant_count = self.env['stock.quant'].search_count(domain)
+    
+    def _compute_location_count(self):
+        for wh in self:
+            root = wh.view_location_id.id if wh.view_location_id else False
+            if root:
+                wh.location_count = self.env['stock.location'].search_count([('id', 'child_of', root), ('usage', '=', 'internal')])
+            else:
+                wh.location_count = 0
     
     def _compute_product_ref_count(self):
         """Calcule le nombre de références (produits uniques) en stock."""
@@ -181,13 +225,40 @@ class StockWarehouse(models.Model):
             domain = domain + [('state', '=', 'done')]
             wh.move_count = self.env['stock.move'].search_count(domain)
     
+    def _compute_inventory_variance_fcfa(self):
+        for wh in self:
+            invs = self.env['stockex.stock.inventory'].search([('warehouse_id', '=', wh.id), ('state', '=', 'done')])
+            wh.inventory_variance_fcfa = sum(invs.mapped('total_value_difference'))
+
     def _compute_stock_value_fcfa(self):
         for wh in self:
             total = 0.0
             root = wh.view_location_id.id if wh.view_location_id else False
             quants = self.env['stock.quant'].search([('location_id', 'child_of', root), ('quantity', '>', 0)]) if root else []
+            ICP = self.env['ir.config_parameter'].sudo()
+            rule = ICP.get_param('stockex.valuation_rule', 'standard')
+            
+            # Odoo 19: stock.valuation.layer n'existe plus, utiliser stock_valuation_layer_ids depuis stock.move
             for q in quants:
-                total += (q.quantity or 0.0) * (q.product_id.standard_price or 0.0)
+                price = 0.0
+                if rule == 'economic':
+                    # Chercher les couches de valorisation via les mouvements de stock
+                    try:
+                        moves = self.env['stock.move'].search([
+                            ('product_id', '=', q.product_id.id),
+                            ('company_id', '=', wh.company_id.id),
+                            ('state', '=', 'done')
+                        ], limit=1, order='date desc')
+                        if moves and hasattr(moves, 'price_unit'):
+                            price = moves.price_unit or q.product_id.standard_price or 0.0
+                        else:
+                            price = q.product_id.standard_price or 0.0
+                    except Exception:
+                        # Fallback sur le prix standard
+                        price = q.product_id.standard_price or 0.0
+                else:
+                    price = q.product_id.standard_price or 0.0
+                total += (q.quantity or 0.0) * price
             wh.stock_value_fcfa = total
     
     def action_open_stock_value(self):
@@ -197,10 +268,12 @@ class StockWarehouse(models.Model):
             'name': 'Valorisation du stock',
             'res_model': 'product.product',
             'view_mode': 'list,form',
+            'views': [(self.env.ref('stockex.product_product_tree_stock_valuation').id, 'list')],
             'domain': [('qty_available', '!=', 0)],
             'context': {
                 'search_default_real_stock_available': 1,
                 'location': self.view_location_id.id,
+                'group_by': 'categ_id',
             },
         }
     
@@ -449,6 +522,37 @@ class StockInventory(models.Model):
         store=True
     )
     
+    # Mouvements de stock liés (traçabilité)
+    stock_move_ids = fields.One2many(
+        comodel_name='stock.move',
+        inverse_name='stockex_inventory_id',
+        string='Mouvements de Stock',
+        readonly=True,
+    )
+    stock_move_count = fields.Integer(
+        string='Nombre de mouvements',
+        compute='_compute_stock_move_count',
+        store=True
+    )
+    variance_count = fields.Integer(
+        string='Nombre d\'écarts',
+        compute='_compute_variance_count',
+        store=True
+    )
+    
+    # Synchronisation avec le stock natif Odoo
+    sync_to_native = fields.Boolean(
+        string='Synchronisé avec Odoo Natif',
+        default=False,
+        readonly=True,
+        help='Indique si les quantités ont été synchronisées avec les quants Odoo natifs'
+    )
+    sync_date = fields.Datetime(
+        string='Date de synchronisation',
+        readonly=True,
+        help='Date de la dernière synchronisation avec les quants Odoo'
+    )
+    
     # Totaux inventaire
     total_quantity_real = fields.Float(string='Quantité réelle totale', compute='_compute_totals', digits='Product Unit of Measure')
     total_quantity_theoretical = fields.Float(string='Quantité théorique totale', compute='_compute_totals', digits='Product Unit of Measure')
@@ -472,6 +576,27 @@ class StockInventory(models.Model):
     
     company_currency_id = fields.Many2one(comodel_name='res.currency', string='Devise', related='company_id.currency_id', store=False)
     
+    # Affichages formatés FCFA (sans décimales)
+    display_odoo_stock_value = fields.Char(string='Valeur Stock Odoo (affichage)', compute='_compute_display_values')
+    display_total_value_real = fields.Char(string='Valeur réelle (affichage)', compute='_compute_display_values')
+    display_total_value_difference = fields.Char(string='Écart de valeur (affichage)', compute='_compute_display_values')
+    
+    def _format_fcfa(self, value):
+        try:
+            n = int(round(value or 0))
+        except Exception:
+            n = 0
+        s = f"{abs(n):,}".replace(',', ' ')
+        return (('-' + s) if n < 0 else s) + ' FCFA'
+    
+    @api.depends('odoo_stock_value', 'total_value_real', 'total_value_difference')
+    def _compute_display_values(self):
+        for inv in self:
+            inv.display_odoo_stock_value = self._format_fcfa(inv.odoo_stock_value)
+            inv.display_total_value_real = self._format_fcfa(inv.total_value_real)
+            inv.display_total_value_difference = self._format_fcfa(inv.total_value_difference)
+
+    
     _name_company_uniq = models.UniqueIndex("(name, company_id)")
     
     @api.depends('account_move_ids')
@@ -480,66 +605,326 @@ class StockInventory(models.Model):
         for inventory in self:
             inventory.account_move_count = len(inventory.account_move_ids)
     
-    def _get_product_valuation_price(self, product):
-        """Retourne le prix de valorisation d'un produit selon la règle Stockex.
+    @api.depends('stock_move_ids')
+    def _compute_stock_move_count(self):
+        """Calcule le nombre de mouvements de stock."""
+        for inventory in self:
+            inventory.stock_move_count = len(inventory.stock_move_ids)
+    
+    @api.depends('line_ids.difference', 'line_ids.product_qty', 'line_ids.theoretical_qty')
+    def _compute_variance_count(self):
+        """Calcule le nombre de lignes avec écart."""
+        for inventory in self:
+            inventory.variance_count = len(inventory.line_ids.filtered(lambda l: (l.difference or 0.0) != 0.0))
+    
+    def action_view_stock_moves(self):
+        """Ouvre la vue des mouvements de stock liés à l'inventaire."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f"Mouvements - {self.name}",
+            'res_model': 'stock.move',
+            'view_mode': 'list,form',
+            'domain': [('stockex_inventory_id', '=', self.id)],
+            'context': {
+                'search_default_done': 1,
+                'group_by': 'product_id',
+            },
+        }
+    
+    def action_view_variances(self):
+        """Ouvre la liste des écarts de cet inventaire."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f"Écarts - {self.name}",
+            'res_model': 'stockex.stock.inventory.line',
+            'view_mode': 'list,form',
+            'domain': [('inventory_id', '=', self.id), ('difference', '!=', 0.0)],
+            'context': {
+                'tree_view_ref': 'stockex.view_stockex_inventory_line_variance_list',
+                'search_default_group_by_product': 1,
+                'group_by': 'product_id',
+            },
+        }
+    
+    def action_view_account_moves(self):
+        """Ouvre la vue des écritures comptables liées à l'inventaire."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f"Écritures Comptables - {self.name}",
+            'res_model': 'account.move',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', self.account_move_ids.ids)],
+            'context': {
+                'search_default_posted': 1,
+                'allow_inventory_attachment': True,
+                'default_res_model': self._name,
+                'default_res_id': self.id,
+                'default_type': 'url',
+            },
+        }
+    
+    
+    def action_view_documents(self):
+        """Ouvre la liste des pièces jointes (documents) liées à l'inventaire."""
+        self.ensure_one()
+        view_form = self.env.ref('stockex.view_ir_attachment_inventory_minimal', raise_if_not_found=False)
+        view_kanban = self.env.ref('stockex.view_ir_attachment_inventory_kanban', raise_if_not_found=False)
+        list_view = self.env.ref('stockex.view_ir_attachment_inventory_list', raise_if_not_found=False)
+        action = {
+            'type': 'ir.actions.act_window',
+            'name': f"Documents - {self.name}",
+            'res_model': 'ir.attachment',
+            'view_mode': 'kanban,list,form',
+            'domain': [('res_model', '=', self._name), ('res_id', '=', self.id)],
+            'context': {
+                'default_res_model': self._name,
+                'default_res_id': self.id,
+                'allow_inventory_attachment': True,
+            },
+        }
+        views_list = []
+        if view_kanban:
+            views_list.append((view_kanban.id, 'kanban'))
+        if list_view:
+            views_list.append((list_view.id, 'list'))
+        else:
+            views_list.append((False, 'list'))
+        if view_form:
+            views_list.append((view_form.id, 'form'))
+        action['views'] = views_list
+        return action
+    
+    
+    def action_attach_document(self):
+        """Ouvre le formulaire d'attachement (URL par défaut) pour cet inventaire."""
+        self.ensure_one()
+        view = self.env.ref('stockex.view_ir_attachment_inventory_minimal', raise_if_not_found=False)
+        action = {
+            'type': 'ir.actions.act_window',
+            'name': f"Joindre un document - {self.name}",
+            'res_model': 'ir.attachment',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'allow_inventory_attachment': True,
+                'default_res_model': self._name,
+                'default_res_id': self.id,
+            },
+        }
+        if view:
+            action['views'] = [(view.id, 'form')]
+        return action
+
+class IrAttachment(models.Model):
+    _inherit = 'ir.attachment'
+
+    # Champs MinIO
+    minio_bucket = fields.Char(string='MinIO Bucket', readonly=True)
+    minio_object_name = fields.Char(string='MinIO Object Path', readonly=True)
+    use_minio = fields.Boolean(string='Stocké sur MinIO', default=False, readonly=True)
+
+    def init(self):
+        # Crée les colonnes si elles n'existent pas encore (évite l'erreur avant upgrade)
+        try:
+            self.env.cr.execute("ALTER TABLE ir_attachment ADD COLUMN IF NOT EXISTS minio_bucket varchar")
+            self.env.cr.execute("ALTER TABLE ir_attachment ADD COLUMN IF NOT EXISTS minio_object_name varchar")
+            self.env.cr.execute("ALTER TABLE ir_attachment ADD COLUMN IF NOT EXISTS use_minio boolean DEFAULT false")
+        except Exception as e:
+            _logger.warning(f"Échec création colonnes MinIO: {e}")
+
+    @api.onchange('datas', 'url')
+    def _onchange_datas_url(self):
+        """Génère automatiquement le titre lors de la sélection du fichier ou saisie de l'URL."""
+        if self.env.context.get('default_res_model') == 'stockex.stock.inventory' and not self.name:
+            from datetime import date
+            today = date.today().strftime('%Y-%m-%d')
+            if self.datas:
+                # Fichier: utiliser 'document' comme base
+                self.name = f"document-{today}"
+            elif self.url:
+                # URL: extraire le dernier segment ou utiliser 'lien'
+                url_parts = self.url.strip('/').split('/')
+                url_name = url_parts[-1] if url_parts else 'lien'
+                self.name = f"{url_name}-{today}"
+    
+    @api.model
+    def create(self, vals_list):
+        """Surcharge pour empêcher l'ajout de pièces jointes via le chatter."""
+        # Odoo 19: vals_list est toujours une liste
+        if not isinstance(vals_list, list):
+            vals_list = [vals_list]
+        
+        for vals in vals_list:
+            # Interdire la création d'attachements via le chatter pour les inventaires,
+            # sauf si l'action "Documents" ou "Joindre un document" l'autorise explicitement.
+            if vals.get('res_model') == 'stockex.stock.inventory' and not self.env.context.get('allow_inventory_attachment'):
+                raise UserError("Veuillez ajouter les documents via le bouton 'Documents' ou 'Joindre un document'.\nPréférez les liens (URL) plutôt que des fichiers lourds.")
+            
+            # Générer automatiquement le titre si non fourni
+            if vals.get('res_model') == 'stockex.stock.inventory' and not vals.get('name'):
+                from datetime import date
+                today = date.today().strftime('%Y-%m-%d')
+                if vals.get('datas'):
+                    # Fichier: utiliser le nom fourni ou 'document'
+                    filename = vals.get('name', 'document') if vals.get('name') else 'document'
+                    vals['name'] = f"{filename}-{today}"
+                elif vals.get('url'):
+                    # URL: extraire le dernier segment ou utiliser 'lien'
+                    url_parts = vals['url'].strip('/').split('/')
+                    url_name = url_parts[-1] if url_parts else 'lien'
+                    vals['name'] = f"{url_name}-{today}"
+                else:
+                    vals['name'] = f"document-{today}"
+        
+        return super().create(vals_list)
+    
+    def action_open_preview(self):
+        """Ouvre l'aperçu du document dans un modal sur la même page."""
+        self.ensure_one()
+        
+        # Pour les images et PDFs, ouvrir dans un wizard avec widget
+        if self.mimetype and (self.mimetype.startswith('image/') or self.mimetype == 'application/pdf'):
+            return {
+                'type': 'ir.actions.act_window',
+                'name': self.name or 'Aperçu',
+                'res_model': 'ir.attachment',
+                'res_id': self.id,
+                'view_mode': 'form',
+                'view_id': self.env.ref('stockex.view_ir_attachment_preview_form').id,
+                'target': 'new',
+                'context': {'preview_mode': True},
+            }
+        
+        # Pour les URLs, ouvrir dans un nouvel onglet
+        if self.type == 'url' and self.url:
+            return {
+                'type': 'ir.actions.act_url',
+                'url': self.url,
+                'target': 'new',
+            }
+        
+        # Pour les autres fichiers, télécharger
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f"/web/content/ir.attachment/{self.id}/datas?download=true",
+            'target': 'self',
+        }
+    
+    def action_download(self):
+        self.ensure_one()
+        if self.type == 'url' and self.url:
+            return {
+                'type': 'ir.actions.act_url',
+                'url': self.url,
+                'target': 'new',
+            }
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f"/web/content/ir.attachment/{self.id}/datas?download=true",
+            'target': 'self',
+        }
+
+# Fin de la classe IrAttachment
+
+class StockInventoryExtension(models.Model):
+    """Extension de StockInventory avec méthodes de valorisation."""
+    _inherit = 'stockex.stock.inventory'
+
+    def _get_product_valuation_price(self, product, method=None):
+        """Retourne le prix de valorisation unitaire d'un produit.
         
         Args:
             product: recordset product.product
-            
-        Returns:
-            float: Prix de valorisation unitaire (avec décote éventuelle)
-            
-        Règles Stockex:
-        - Règle 1 (standard): Utilise product.standard_price
-        - Règle 2 (economic): Utilise stock.valuation.layer (coût économique réel)
+            method: 'standard' ou 'economic' (si None, utilise la config système)
         
-        Décote selon rotation (optionnel):
-        - Si activée, applique un coefficient de décote selon la rotation du produit
-        - Stock actif (< 12 mois) : 0% de décote
-        - Rotation lente (12-36 mois) : 40% de décote
-        - Stock mort (> 36 mois) : 100% de décote
+        Priorité des sources:
+        1) stock.valuation.layer (référence comptable fiable, convertie en devise société)
+        2) stock.move.price_unit (dernier mouvement réalisé) si méthode économique
+        3) product.standard_price (fallback)
         
-        Configuration: Inventaire > Configuration > Paramètres > Règle de valorisation
+        Applique éventuellement la décote selon rotation si activée.
         """
         self.ensure_one()
         
         if not product:
             return 0.0
         
-        # Récupérer la règle de valorisation configurée dans Stockex
-        ICP = self.env['ir.config_parameter'].sudo()
-        rule = ICP.get_param('stockex.valuation_rule', 'standard')
+        # Cache désactivé (les recordsets Odoo n'acceptent pas d'attributs dynamiques)
         
-        # Étape 1: Calculer le prix de base selon la règle
+        ICP = self.env['ir.config_parameter'].sudo()
+        # Utiliser la méthode passée en paramètre, sinon la config système
+        rule = method if method else ICP.get_param('stockex.valuation_rule', 'standard')
+        company = self.company_id
+        company_currency = company.currency_id
+        # Utiliser la date d'inventaire pour la conversion, sinon aujourd'hui
+        conv_date = self.date or fields.Date.today()
+        
         base_price = 0.0
         
-        # Règle 2: Coût économique réel (stock.valuation.layer)
-        if rule == 'economic':
+        # 1) Source prioritaire: stock.valuation.layer
+        try:
             ValuationLayer = self.env['stock.valuation.layer']
-            
-            # Rechercher la dernière couche de valorisation du produit
             layer = ValuationLayer.search([
                 ('product_id', '=', product.id),
-                ('company_id', '=', self.company_id.id),
-            ], limit=1, order='create_date desc')
-            
-            if layer and (layer.unit_cost or layer.value):
-                # Utiliser unit_cost si disponible, sinon calculer depuis value/quantity
-                unit = layer.unit_cost or (layer.value / layer.quantity if layer.quantity else 0.0)
-                if unit and unit > 0:
-                    base_price = unit
+                ('company_id', '=', company.id),
+            ], order='create_date desc', limit=1)
+            if layer:
+                # Déterminer le coût unitaire de la couche
+                unit_cost = getattr(layer, 'unit_cost', 0.0) or 0.0
+                if not unit_cost:
+                    qty = getattr(layer, 'quantity', 0.0) or 0.0
+                    val = getattr(layer, 'value', 0.0) or 0.0
+                    unit_cost = (val / qty) if qty else 0.0
+                # Conversion devise si nécessaire
+                source_currency = getattr(layer, 'currency_id', company_currency) or company_currency
+                if source_currency and source_currency != company_currency:
+                    try:
+                        base_price = source_currency._convert(unit_cost, company_currency, company, conv_date)
+                    except Exception:
+                        base_price = unit_cost
+                else:
+                    base_price = unit_cost
+        except Exception:
+            # Continuer vers les autres sources
+            pass
         
-        # Règle 1 (fallback): Coût standard
-        if base_price == 0.0:
-            base_price = product.standard_price or 0.0
+        # 2) Règle économique: dernier stock.move.price_unit si rien obtenu
+        if base_price <= 0.0 and rule == 'economic':
+            try:
+                moves = self.env['stock.move'].search([
+                    ('product_id', '=', product.id),
+                    ('company_id', '=', company.id),
+                    ('state', '=', 'done')
+                ], limit=1, order='date desc')
+                if moves and hasattr(moves, 'price_unit') and moves.price_unit:
+                    base_price = moves.price_unit
+            except Exception:
+                pass
         
-        # Étape 2: Appliquer la décote selon rotation (si activée)
+        # 3) Fallback: coût standard du produit
+        if base_price <= 0.0:
+            std_price = product.standard_price or 0.0
+            # En Odoo 19, standard_price peut être un dict JSONB {"company_id": price}
+            if isinstance(std_price, dict):
+                # Récupérer le prix pour la société courante (clé = str(company_id))
+                company_key = str(company.id)
+                std_price = std_price.get(company_key, 0.0) or std_price.get('1', 0.0) or 0.0
+            base_price = std_price
+        
+        # Appliquer décote rotation si activée
         apply_depreciation = ICP.get_param('stockex.apply_depreciation', 'False') == 'True'
-        
         if apply_depreciation and base_price > 0:
             depreciation_coef = self._get_depreciation_coefficient(product)
-            return base_price * depreciation_coef
+            base_price = base_price * depreciation_coef
         
+        # Garde-fou
+        if base_price < 0 or base_price is None:
+            base_price = 0.0
+        
+        # (cache désactivé)
         return base_price
     
     def _get_depreciation_coefficient(self, product):
@@ -604,18 +989,15 @@ class StockInventory(models.Model):
             # Stock mort: décote maximale
             return 1.0 - (dead_rate / 100.0)
     
-    @api.depends('line_ids.product_qty','line_ids.theoretical_qty','line_ids.difference','line_ids.standard_price','line_ids.product_id.standard_price')
+    @api.depends('line_ids.product_qty','line_ids.theoretical_qty','line_ids.difference','line_ids.product_id')
     def _compute_totals(self):
         """Calcule les totaux (quantités et valeur) de l'inventaire.
         
         Pour l'écart de quantité, on utilise la somme des écarts des lignes
         (qui prend en compte la règle : si stock initial et qte_theo=0 alors écart=0)
         
-        IMPORTANT: total_value_difference = total_value_real - odoo_stock_value
-        (c'est-à-dire la différence entre la valeur inventoriée et la valeur réelle du stock Odoo)
-        
-        ⚠️ VALORISATION: Utilise line.standard_price si défini (prix capturé lors de l'inventaire),
-        sinon utilise la méthode de valorisation du produit (FIFO/AVCO/Standard)
+        ⚠️ VALORISATION: Utilise la méthode de valorisation Stockex (_get_product_valuation_price)
+        qui calcule le prix depuis product.standard_price (source unique de vérité)
         """
         for inv in self:
             qty_real = sum(inv.line_ids.mapped('product_qty'))
@@ -626,12 +1008,8 @@ class StockInventory(models.Model):
             total_val_theo = 0.0
             
             for line in inv.line_ids:
-                # Utiliser line.standard_price si défini (prix capturé lors de l'inventaire)
-                # Sinon, utiliser la méthode de valorisation du produit
-                if line.standard_price and line.standard_price > 0:
-                    price = line.standard_price
-                else:
-                    price = inv._get_product_valuation_price(line.product_id)
+                # Utiliser la méthode de valorisation Stockex (source unique: product.standard_price)
+                price = inv._get_product_valuation_price(line.product_id)
                 
                 total_val_real += (line.product_qty or 0.0) * price
                 total_val_theo += (line.theoretical_qty or 0.0) * price
@@ -642,15 +1020,17 @@ class StockInventory(models.Model):
             inv.total_value_real = total_val_real
             inv.total_value_theoretical = total_val_theo
     
-    @api.depends('total_value_real', 'odoo_stock_value')
+    @api.depends('total_value_real', 'total_value_theoretical')
     def _compute_value_difference(self):
-        """Calcule l'écart de valeur entre l'inventaire et le stock Odoo.
+        """Calcule l'écart de valeur entre valeur réelle et théorique inventoriée.
         
-        total_value_difference = total_value_real - odoo_stock_value
-        Cela garantit que l'écart reflète la différence avec la valeur totale du stock Odoo.
+        total_value_difference = total_value_real - total_value_theoretical
+        
+        Cet écart reflète la différence de valeur sur les produits inventoriés uniquement.
+        Écart positif = surplus, Écart négatif = manquant
         """
         for inv in self:
-            inv.total_value_difference = inv.total_value_real - inv.odoo_stock_value
+            inv.total_value_difference = inv.total_value_real - inv.total_value_theoretical
     
     @api.depends('location_id', 'warehouse_id', 'company_id')
     def _compute_odoo_stock_value(self):
@@ -662,7 +1042,7 @@ class StockInventory(models.Model):
         
         IMPORTANT: Utilise la règle de valorisation Stockex configurée:
         - Règle 1 (standard): product.standard_price
-        - Règle 2 (economic): stock.valuation.layer (coût économique réel)
+        - Règle 2 (economic): dernier mouvement de stock (coût économique réel)
         
         Configuration: Inventaire > Configuration > Paramètres > Règle de valorisation
         """
@@ -778,7 +1158,7 @@ class StockInventory(models.Model):
         return self.write({'state': 'pending_approval'})
     
     def action_approve(self):
-        """Approuve l'inventaire."""
+        """Approuve l'inventaire et synchronise automatiquement avec Odoo natif."""
         self.write({
             'state': 'approved',
             'approver_id': self.env.user.id,
@@ -789,6 +1169,24 @@ class StockInventory(models.Model):
         activity = self.activity_ids.filtered(lambda a: a.user_id == self.env.user)
         if activity:
             activity.action_done()
+        
+        # ✅ Synchronisation automatique vers Odoo natif
+        try:
+            _logger.info(f"🔄 Déclenchement synchronisation automatique pour {self.name}")
+            self.sync_to_native_inventory()
+        except Exception as e:
+            # Ne pas bloquer l'approbation si la synchro échoue
+            _logger.warning(f"⚠️ Échec synchronisation automatique pour {self.name}: {e}")
+            self.message_post(
+                body=Markup(f"""
+                <p style="color: #856404;">⚠️ <strong>Avertissement</strong></p>
+                <p>L'inventaire a été approuvé, mais la synchronisation automatique a échoué.</p>
+                <p><em>Erreur : {str(e)}</em></p>
+                <p>Vous pouvez relancer la synchronisation manuellement via le bouton '🔄 Synchro vers Odoo Natif'.</p>
+                """),
+                message_type='notification',
+                subtype_xmlid='mail.mt_note'
+            )
         
         return True
     
@@ -834,7 +1232,7 @@ class StockInventory(models.Model):
                 
                 # Message utilisateur
                 inventory.message_post(
-                    body=f"⏳ Mise à jour de {total_lines} lignes de stock en cours en arrière-plan...",
+                    body=Markup(f"⏳ Mise à jour de {total_lines} lignes de stock en cours en arrière-plan..."),
                     message_type='notification'
                 )
                 
@@ -850,38 +1248,57 @@ class StockInventory(models.Model):
                 }
             else:
                 # Pour petits inventaires (≤ 500 lignes), traitement immédiat
-                inventory._update_odoo_stock()
-                
-                res = inventory.write({
+                if inventory.state != 'approved':
+                    raise UserError("Cet inventaire doit être approuvé avant validation.")
+                moves = inventory._update_odoo_stock()
+                inventory.write({
                     'state': 'done',
                     'validator_id': self.env.user.id,
                     'validation_date': fields.Datetime.now()
                 })
+                if moves:
+                    # Les mouvements de stock générés sont déjà liés via stockex_inventory_id
+                    # Mais il faut aussi lier les écritures comptables si elles existent
+                    account_moves = moves.mapped('account_move_id').filtered(lambda m: m)
+                    if account_moves:
+                        inventory.account_move_ids = [(4, move.id) for move in account_moves]
                 inventory._notify_telegram(f"✅ Inventaire {inventory.name} validé ({total_lines} lignes). Stocks mis à jour.")
-                return res
+                return True
     
     def _update_odoo_stock(self):
-        """Met à jour les stocks Odoo avec les quantités de l'inventaire (optimisé avec commits par lots)."""
+        """Met à jour les stocks Odoo avec l'API native (stock.move + _update_available_quantity)."""
         self.ensure_one()
         
+        StockMove = self.env['stock.move']
         StockQuant = self.env['stock.quant']
+        moves_created = self.env['stock.move']
         adjusted_count = 0
         errors = []
         skipped_no_data = 0
         skipped_bad_location = 0
-        skipped_qty_zero = 0
+        skipped_no_difference = 0
+        
+        # Emplacements virtuels pour ajustements
+        inventory_loc = self.env.ref('stock.location_inventory', raise_if_not_found=False)
+        if not inventory_loc:
+            # Créer l'emplacement d'inventaire virtuel s'il n'existe pas
+            inventory_loc = self.env['stock.location'].create({
+                'name': 'Inventory adjustment',
+                'usage': 'inventory',
+                'company_id': self.company_id.id,
+            })
         
         total_lines = len(self.line_ids)
-        batch_size = 50  # Traiter 50 lignes à la fois
+        batch_size = 50
         
-        _logger.info(f"🚀 Début mise à jour stocks pour inventaire {self.name} - {total_lines} lignes (par lots de {batch_size})")
+        _logger.info(f"🚀 [NATIF] Début mise à jour stocks pour {self.name} - {total_lines} lignes")
         
         for batch_num, i in enumerate(range(0, total_lines, batch_size), 1):
             batch_lines = self.line_ids[i:i + batch_size]
             batch_start = i + 1
             batch_end = min(i + batch_size, total_lines)
             
-            _logger.info(f"📦 Traitement lot {batch_num}: lignes {batch_start}-{batch_end} / {total_lines}")
+            _logger.info(f"📦 Lot {batch_num}: lignes {batch_start}-{batch_end}")
             
             for line in batch_lines:
                 try:
@@ -892,60 +1309,77 @@ class StockInventory(models.Model):
                     # Vérifier que l'emplacement est de type interne
                     if line.location_id.usage != 'internal':
                         skipped_bad_location += 1
-                        errors.append(f"Emplacement '{line.location_id.name}' n'est pas de type 'internal' (type: {line.location_id.usage})")
+                        errors.append(f"Emplacement '{line.location_id.name}' non interne")
                         continue
                     
-                    # Trouver ou créer le quant avec company_id
-                    quant = StockQuant.search([
-                        ('product_id', '=', line.product_id.id),
-                        ('location_id', '=', line.location_id.id),
-                        ('company_id', '=', self.company_id.id),
-                    ], limit=1)
+                    # Calculer la différence à ajuster
+                    difference = line.product_qty - line.theoretical_qty
                     
-                    if quant:
-                        # Mettre à jour la quantité existante
-                        quant.inventory_quantity = line.product_qty
-                        quant.inventory_quantity_set = True
-                        quant.action_apply_inventory()
-                        adjusted_count += 1
+                    if difference == 0:
+                        skipped_no_difference += 1
+                        continue
+                    
+                    # Créer un stock.move pour l'ajustement (API native)
+                    move_vals = {
+                        'name': f'Inventaire {self.name} - {line.product_id.display_name}',
+                        'product_id': line.product_id.id,
+                        'product_uom': line.product_id.uom_id.id,
+                        'product_uom_qty': abs(difference),
+                        'company_id': self.company_id.id,
+                        'date': self.date or fields.Datetime.now(),
+                        'origin': self.name,
+                        'reference': f'Ajustement inventaire {self.name}',
+                        'stockex_inventory_id': self.id,
+                        'stockex_inventory_line_id': line.id,
+                    }
+                    
+                    # Si différence > 0 : entrée (depuis inventory vers location)
+                    # Si différence < 0 : sortie (depuis location vers inventory)
+                    if difference > 0:
+                        move_vals.update({
+                            'location_id': inventory_loc.id,
+                            'location_dest_id': line.location_id.id,
+                        })
                     else:
-                        # Créer un nouveau quant si nécessaire
-                        if line.product_qty != 0:
-                            new_quant = StockQuant.create({
-                                'product_id': line.product_id.id,
-                                'location_id': line.location_id.id,
-                                'company_id': self.company_id.id,
-                                'inventory_quantity': line.product_qty,
-                                'inventory_quantity_set': True,
-                            })
-                            new_quant.action_apply_inventory()
-                            adjusted_count += 1
-                        else:
-                            skipped_qty_zero += 1
-                            
+                        move_vals.update({
+                            'location_id': line.location_id.id,
+                            'location_dest_id': inventory_loc.id,
+                        })
+                    
+                    # Créer et valider le mouvement
+                    move = StockMove.create(move_vals)
+                    move._action_confirm()
+                    move._action_assign()
+                    move._action_done()
+                    
+                    moves_created |= move
+                    adjusted_count += 1
+                    
+                    _logger.debug(f"✅ Ajustement {difference:+.2f} pour {line.product_id.default_code} @ {line.location_id.name}")
+                    
                 except Exception as e:
-                    error_msg = f"Produit {line.product_id.default_code} @ {line.location_id.name}: {str(e)}"
+                    error_msg = f"{line.product_id.default_code or line.product_id.name} @ {line.location_id.name}: {str(e)}"
                     errors.append(error_msg)
-                    _logger.error(f"❌ Erreur ligne: {error_msg}")
+                    _logger.error(f"❌ Erreur: {error_msg}")
             
-            # Commit après chaque lot pour éviter timeout
+            # Commit après chaque lot
             self.env.cr.commit()
             progress_pct = (batch_end / total_lines) * 100
-            _logger.info(f"✅ Lot {batch_num} terminé: {adjusted_count} ajustements ({progress_pct:.1f}%)")
+            _logger.info(f"✅ Lot {batch_num} terminé: {adjusted_count} mouvements ({progress_pct:.1f}%)")
         
         # Statistiques détaillées
         stats = f"""
-📊 Statistiques de mise à jour:
-- Total lignes: {len(self.line_ids)}
-- ✅ Ajustements réussis: {adjusted_count}
-- ⚠️ Ignorées (emplacement non 'internal'): {skipped_bad_location}
+📊 Statistiques (API Native):
+- Total lignes: {total_lines}
+- ✅ Mouvements créés: {adjusted_count}
+- ⏭️ Ignorées (pas de différence): {skipped_no_difference}
+- ⚠️ Ignorées (emplacement non interne): {skipped_bad_location}
 - ⚠️ Ignorées (sans données): {skipped_no_data}
-- ⚠️ Ignorées (quantité = 0): {skipped_qty_zero}
 - ❌ Erreurs: {len(errors)}
 """
         
         # Message de confirmation
-        message = f"✅ Stocks mis à jour : {adjusted_count} ajustements effectués sur {len(self.line_ids)} lignes"
+        message = f"✅ Stocks mis à jour via API native : {adjusted_count} mouvements créés sur {total_lines} lignes"
         message += stats
         
         if errors:
@@ -956,22 +1390,25 @@ class StockInventory(models.Model):
         # Poster un message dans le chatter
         try:
             self.message_post(
-                body=message,
+                body=Markup(message),
                 message_type='notification',
                 subtype_xmlid='mail.mt_note'
             )
         except Exception as msg_error:
             _logger.warning(f"⚠️ Impossible de poster le message dans le chatter: {msg_error}")
+        
+        return moves_created
     
     @staticmethod
     def _update_odoo_stock_async(inventory_id, dbname):
         """Version asynchrone de _update_odoo_stock pour gros inventaires (utilise un nouveau curseur)."""
-        import odoo
         from odoo import api, SUPERUSER_ID
+        from odoo.modules.registry import Registry
         
+        registry = None
         try:
             # Créer un nouveau curseur et registry
-            registry = odoo.registry(dbname)
+            registry = Registry(dbname)
             with registry.cursor() as new_cr:
                 env = api.Environment(new_cr, SUPERUSER_ID, {})
                 inventory = env['stockex.stock.inventory'].browse(inventory_id)
@@ -984,22 +1421,54 @@ class StockInventory(models.Model):
         except Exception as e:
             _logger.error(f"❌ Erreur traitement asynchrone: {e}", exc_info=True)
             # Essayer de poster l'erreur dans le chatter
-            try:
-                with registry.cursor() as err_cr:
-                    err_env = api.Environment(err_cr, SUPERUSER_ID, {})
-                    inventory = err_env['stockex.stock.inventory'].browse(inventory_id)
-                    inventory.message_post(
-                        body=f"❌ Erreur lors de la mise à jour des stocks: {str(e)}",
-                        message_type='notification',
-                        subtype_xmlid='mail.mt_note'
-                    )
-                    err_cr.commit()
-            except Exception as msg_err:
-                _logger.error(f"❌ Impossible de poster l'erreur: {msg_err}")
+            if registry:
+                try:
+                    with registry.cursor() as err_cr:
+                        err_env = api.Environment(err_cr, SUPERUSER_ID, {})
+                        inventory = err_env['stockex.stock.inventory'].browse(inventory_id)
+                        inventory.message_post(
+                            body=Markup(f"❌ Erreur lors de la mise à jour des stocks: {str(e)}"),
+                            message_type='notification',
+                            subtype_xmlid='mail.mt_note'
+                        )
+                        err_cr.commit()
+                except Exception as msg_err:
+                    _logger.error(f"❌ Impossible de poster l'erreur: {msg_err}")
     
     def action_draft(self):
         """Remet l'inventaire en brouillon."""
         return self.write({'state': 'draft'})
+    
+    def action_open_cancel_wizard(self):
+        """Ouvre le wizard de confirmation d'annulation pour un ou plusieurs inventaires."""
+        # Si plusieurs inventaires sélectionnés, traiter le premier (ou afficher un message d'erreur)
+        if len(self) > 1:
+            raise UserError(
+                "Vous ne pouvez annuler qu'un seul inventaire à la fois.\n"
+                "Veuillez sélectionner un seul inventaire et réessayer."
+            )
+        
+        # Vérifier que l'inventaire peut être annulé
+        if self.state != 'done':
+            raise UserError(
+                f"L'inventaire '{self.name}' ne peut pas être annulé.\n"
+                f"Seuls les inventaires validés (état: Validé) peuvent être annulés.\n"
+                f"État actuel: {dict(self._fields['state'].selection).get(self.state)}"
+            )
+        
+        # Créer le wizard avec l'inventaire sélectionné
+        wizard = self.env['stockex.cancel.inventory.wizard'].create({
+            'inventory_id': self.id,
+        })
+        
+        return {
+            'name': 'Confirmer l\'Annulation',
+            'type': 'ir.actions.act_window',
+            'res_model': 'stockex.cancel.inventory.wizard',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
     
     def action_cancel(self):
         """Annule l'inventaire validé en inversant les ajustements de stock et en supprimant les écritures comptables."""
@@ -1008,6 +1477,20 @@ class StockInventory(models.Model):
                 raise UserError("Seuls les inventaires validés peuvent être annulés.")
             
             _logger.info(f"🔄 Début de l'annulation de l'inventaire {inventory.name}")
+            # Tentative d'annulation native via les mouvements liés
+            moves_to_cancel = inventory.stock_move_ids.filtered(lambda m: m.state == 'done')
+            if moves_to_cancel:
+                _logger.info(f"📦 Annulation de {len(moves_to_cancel)} mouvements liés")
+                try:
+                    moves_to_cancel._action_cancel()
+                    inventory.write({'state': 'cancel', 'validator_id': False, 'validation_date': False})
+                    inventory.message_post(
+                        body=Markup(f"❌ Inventaire annulé - {len(moves_to_cancel)} mouvements inversés"),
+                        message_type='notification'
+                    )
+                    continue
+                except Exception as cancel_err:
+                    _logger.warning(f"⚠️ Annulation via mouvements a échoué, fallback quants: {cancel_err}")
             
             quants_adjusted = 0
             account_moves_count = 0
@@ -1142,7 +1625,7 @@ class StockInventory(models.Model):
             message_body += "</div>"
             
             inventory.message_post(
-                body=message_body,
+                body=Markup(message_body),
                 message_type='comment',
                 subtype_xmlid='mail.mt_note'
             )
@@ -1171,6 +1654,125 @@ class StockInventory(models.Model):
             if vals.get('name', 'Nouveau') == 'Nouveau' or not vals.get('name'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('stockex.stock.inventory') or 'Nouveau'
         return super().create(vals_list)
+    
+    def sync_to_native_inventory(self):
+        """Synchronise l'inventaire StockEx vers les quants natifs Odoo.
+        
+        Met à jour directement les stock.quant avec les quantités comptées dans StockEx,
+        en respectant les emplacements (Odoo 19+).
+        """
+        self.ensure_one()
+        
+        if not self.line_ids:
+            raise UserError("⚠️ Impossible de synchroniser un inventaire sans lignes.")
+        
+        StockQuant = self.env['stock.quant']
+        synced_count = 0
+        errors = []
+        
+        _logger.info(f"🔄 Début synchronisation StockEx → Quants Odoo pour {self.name}")
+        
+        for line in self.line_ids:
+            if not line.product_id or not line.location_id:
+                continue
+            
+            try:
+                # Chercher le quant correspondant
+                quant = StockQuant.search([
+                    ('product_id', '=', line.product_id.id),
+                    ('location_id', '=', line.location_id.id),
+                    ('company_id', '=', self.company_id.id),
+                ], limit=1)
+                
+                if quant:
+                    # Mettre à jour la quantité inventoriee
+                    quant.inventory_quantity = line.product_qty
+                    quant.inventory_quantity_set = True
+                    quant.inventory_diff_quantity = line.product_qty - quant.quantity
+                    
+                    _logger.debug(
+                        f"✅ Quant mis à jour: {line.product_id.default_code} @ {line.location_id.name}: "
+                        f"{quant.quantity} → {line.product_qty}"
+                    )
+                else:
+                    # Créer un nouveau quant si nécessaire et quantité > 0
+                    if line.product_qty > 0:
+                        quant = StockQuant.create({
+                            'product_id': line.product_id.id,
+                            'location_id': line.location_id.id,
+                            'company_id': self.company_id.id,
+                            'inventory_quantity': line.product_qty,
+                            'inventory_quantity_set': True,
+                            'inventory_diff_quantity': line.product_qty,
+                        })
+                        _logger.debug(
+                            f"✅ Quant créé: {line.product_id.default_code} @ {line.location_id.name}: "
+                            f"0 → {line.product_qty}"
+                        )
+                    else:
+                        continue
+                
+                synced_count += 1
+                
+            except Exception as e:
+                error_msg = f"{line.product_id.default_code} @ {line.location_id.name}: {str(e)}"
+                errors.append(error_msg)
+                _logger.error(f"❌ Erreur synchronisation: {error_msg}")
+        
+        # Marquer comme synchronisé
+        self.write({
+            'sync_to_native': True,
+            'sync_date': fields.Datetime.now(),
+        })
+        
+        # Message de confirmation
+        message = f"""
+        <div style="padding: 15px; background: #d1ecf1; border-left: 4px solid #0c5460; border-radius: 5px;">
+            <h4 style="color: #0c5460; margin-top: 0;">🔄 Synchronisation vers Stock Natif Odoo</h4>
+            <hr style="border-color: #bee5eb;"/>
+            <ul style="margin: 10px 0;">
+                <li><strong>✅ Quants synchronisés :</strong> {synced_count} ligne(s)</li>
+                <li><strong>📍 Emplacement :</strong> {self.location_id.complete_name if self.location_id else 'Tous'}</li>
+                <li><strong>🕒 Date :</strong> {self.sync_date.strftime('%d/%m/%Y à %H:%M')}</li>
+            </ul>
+            <p style="margin: 10px 0; font-style: italic; color: #0c5460;">
+                Les quantités comptées dans StockEx sont maintenant dans les quants Odoo natifs.
+                Vous pouvez appliquer l'ajustement depuis <strong>Inventaire > Opérations > Ajustements d'inventaire</strong>.
+            </p>
+        """
+        
+        if errors:
+            message += f"""
+            <hr style="border-color: #ffc107;"/>
+            <p style="color: #856404;"><strong>⚠️ Erreurs ({len(errors)}) :</strong></p>
+            <ul style="font-size: 11px; color: #856404;">
+            """
+            for error in errors[:10]:
+                message += f"<li>{error}</li>"
+            if len(errors) > 10:
+                message += f"<li>... et {len(errors) - 10} autre(s) erreur(s)</li>"
+            message += "</ul>"
+        
+        message += "</div>"
+        
+        self.message_post(
+            body=Markup(message),
+            message_type='notification',
+            subtype_xmlid='mail.mt_note'
+        )
+        
+        _logger.info(f"✅ Synchronisation terminée: {synced_count} quants mis à jour")
+        
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': '✅ Synchronisation réussie',
+                'message': f'{synced_count} quantité(s) synchronisée(s) vers les quants Odoo natifs',
+                'type': 'success',
+                'sticky': False,
+            }
+        }
     
     def action_export_excel(self):
         """Exporter l'inventaire en Excel."""
@@ -1307,6 +1909,37 @@ class StockInventory(models.Model):
         self.ensure_one()
         return self.env.ref('stockex.action_report_inventory').report_action(self)
     
+    def action_print_variance_list(self):
+        """Imprimer la liste des écarts (produits avec difference != 0)."""
+        self.ensure_one()
+        
+        # Filtrer les lignes avec des écarts
+        variance_lines = self.line_ids.filtered(lambda l: (l.difference or 0.0) != 0.0)
+        
+        if not variance_lines:
+            raise UserError("Aucun écart trouvé dans cet inventaire.")
+        
+        # Créer un rapport personnalisé avec uniquement les écarts
+        return {
+            'type': 'ir.actions.report',
+            'report_type': 'qweb-pdf',
+            'report_name': 'stockex.report_inventory_variance_list',
+            'report_file': 'stockex.report_inventory_variance_list',
+            'context': {
+                'active_model': 'stockex.stock.inventory',
+                'active_ids': [self.id],
+                'active_id': self.id,
+                'variance_only': True,  # Indicateur pour le template
+            },
+            'data': {
+                'model': 'stockex.stock.inventory',
+                'ids': [self.id],
+                'id': self.id,
+                'docs': self,
+                'variance_lines': variance_lines.read(),
+            }
+        }
+    
     def action_refresh_theoretical_qty(self):
         """Recalcule les quantités théoriques ET les prix unitaires depuis le stock Odoo actuel."""
         self.ensure_one()
@@ -1339,27 +1972,22 @@ class StockInventory(models.Model):
             
             qty_available = sum(quants.mapped('quantity')) - sum(quants.mapped('reserved_quantity'))
             
-            # Récupérer le prix du produit
-            product_price = line.product_id.standard_price
-            
             # Calculer la différence
             difference = line.product_qty - qty_available
             
             # Forcer l'écriture directe (bypass du compute)
             self.env.cr.execute("""
                 UPDATE stockex_stock_inventory_line 
-                SET theoretical_qty = %s, difference = %s, standard_price = %s
+                SET theoretical_qty = %s, difference = %s
                 WHERE id = %s
-            """, (qty_available, difference, product_price, line.id))
+            """, (qty_available, difference, line.id))
             
             if qty_available > 0:
                 updated_count += 1
-            if product_price > 0:
-                price_updated += 1
             
             _logger.info(
                 f"📦 Ligne {line.id}: {line.product_id.name} → "
-                f"Théo: {qty_available}, Réel: {line.product_qty}, Écart: {difference}, Prix: {product_price}"
+                f"Théo: {qty_available}, Réel: {line.product_qty}, Écart: {difference}"
             )
         
         # Invalider le cache pour forcer le rechargement
@@ -1368,12 +1996,11 @@ class StockInventory(models.Model):
         # Compter les résultats
         lines_with_qty = len([l for l in self.line_ids if l.theoretical_qty > 0])
         
-        message = f"✅ Quantités théoriques ET prix recalculés\n"
+        message = f"✅ Quantités théoriques recalculées\n"
         message += f"📊 {lines_with_qty} ligne(s) avec stock > 0\n"
-        message += f"💰 {price_updated} ligne(s) avec prix > 0\n"
         message += f"📦 {len(self.line_ids) - lines_with_qty} ligne(s) avec stock = 0"
         
-        _logger.info(f"✅ Recalcul terminé: {lines_with_qty}/{len(self.line_ids)} lignes avec stock, {price_updated} avec prix")
+        _logger.info(f"✅ Recalcul terminé: {lines_with_qty}/{len(self.line_ids)} lignes avec stock")
         
         return {
             'type': 'ir.actions.client',
@@ -1484,14 +2111,50 @@ class StockInventoryLine(models.Model):
     )
     standard_price = fields.Float(
         string='Prix unitaire',
+        compute='_compute_standard_price',
         digits='Product Price',
-        help='Prix unitaire du produit au moment de l\'inventaire'
+        store=False,
+        help='Prix unitaire du produit (calculé depuis product.standard_price)'
     )
     product_uom_id = fields.Many2one(
         comodel_name='uom.uom',
         string='Unité de Mesure',
         related='product_id.uom_id',
         readonly=True
+    )
+    currency_id = fields.Many2one(
+        comodel_name='res.currency',
+        string='Devise',
+        related='inventory_id.company_id.currency_id',
+        store=True,
+        readonly=True,
+    )
+    line_value = fields.Monetary(
+        string='Valeur de ligne',
+        currency_field='currency_id',
+        compute='_compute_line_value',
+        store=True,
+        help="Valeur inventoriée = Quantité réelle × Prix unitaire",
+    )
+    difference_value = fields.Monetary(
+        string='Valeur de l’écart',
+        currency_field='currency_id',
+        compute='_compute_difference_value',
+        store=True,
+        help="Valeur de l’écart = Écart × Prix unitaire",
+    )
+    inventory_date = fields.Date(
+        string='Date inventaire',
+        related='inventory_id.date',
+        store=True,
+        readonly=True,
+    )
+    warehouse_id = fields.Many2one(
+        comodel_name='stock.warehouse',
+        string='Entrepôt',
+        related='inventory_id.warehouse_id',
+        store=True,
+        readonly=True,
     )
     
     # Pièces jointes et photos
@@ -1510,10 +2173,63 @@ class StockInventoryLine(models.Model):
         attachment=True,
         help='Troisième photo du produit compté'
     )
+    
+    # Champs supplémentaires pour le comptage terrain
+    product_brand = fields.Char(
+        string='Marque',
+        related='product_id.product_tmpl_id.brand',
+        store=True,
+        readonly=True,
+        help='Marque du produit (depuis la fiche article)'
+    )
+    product_serial = fields.Char(
+        string='N° série',
+        help='Numéro de série saisi lors du comptage'
+    )
+    product_has_serial = fields.Boolean(
+        string="A un N° série",
+        related='product_id.product_tmpl_id.has_serial',
+        store=True,
+        readonly=True,
+        help="Indique si l'article possède un numéro de série (depuis la fiche article)"
+    )
+    
     note = fields.Text(
         string='Remarques',
         help='Notes ou observations sur cette ligne d\'inventaire'
     )
+    
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Auto-remplit location_id depuis l'inventaire parent et product_serial avec le code produit si non fourni."""
+        for vals in vals_list:
+            # Si location_id n'est pas fourni mais inventory_id oui, récupérer l'emplacement de l'inventaire
+            if not vals.get('location_id') and vals.get('inventory_id'):
+                inventory = self.env['stockex.stock.inventory'].browse(vals['inventory_id'])
+                if inventory.location_id:
+                    vals['location_id'] = inventory.location_id.id
+            
+            # Si product_serial n'est pas fourni mais product_id oui, remplir avec le code produit
+            if not vals.get('product_serial') and vals.get('product_id'):
+                product = self.env['product.product'].browse(vals['product_id'])
+                if product.default_code:
+                    vals['product_serial'] = product.default_code
+        
+        return super().create(vals_list)
+    
+    @api.depends('product_id')
+    def _compute_standard_price(self):
+        """Calcule le prix unitaire depuis product.standard_price (source unique de vérité)."""
+        for line in self:
+            if line.product_id:
+                # Utiliser la méthode de valorisation de l'inventaire
+                if line.inventory_id:
+                    line.standard_price = line.inventory_id._get_product_valuation_price(line.product_id)
+                else:
+                    # Fallback si pas d'inventaire (cas rare)
+                    line.standard_price = line.product_id.standard_price or 0.0
+            else:
+                line.standard_price = 0.0
     
     @api.depends('product_id', 'location_id')
     def _compute_theoretical_qty(self):
@@ -1611,20 +2327,27 @@ class StockInventoryLine(models.Model):
         # Ne rien faire - la valeur est déjà écrite par le create/write
         pass
     
+    def action_inspect_image(self):
+        """Ouvre une fenêtre pour inspecter les images de la ligne."""
+        self.ensure_one()
+        view = self.env.ref('stockex.view_stockex_inventory_line_form', raise_if_not_found=False)
+        action = {
+            'type': 'ir.actions.act_window',
+            'name': 'Inspecter la ligne',
+            'res_model': 'stockex.stock.inventory.line',
+            'view_mode': 'form',
+            'res_id': self.id,
+            'target': 'new',
+        }
+        if view:
+            action['views'] = [(view.id, 'form')]
+        return action
+    
     @api.depends('theoretical_qty', 'product_qty', 'inventory_id.is_initial_stock')
     def _compute_difference(self):
-        """Calcule la différence entre la quantité réelle et théorique.
-        
-        Pour les inventaires de stock initial :
-        - Si qte_theorique = 0, alors écart = 0 (pas d'écart sur stock initial vide)
-        - Sinon, écart normal = qte_reelle - qte_theorique
-        """
+        """Calcule la différence entre la quantité réelle et théorique."""
         for line in self:
-            # Pour stock initial avec qte théorique = 0 : écart = 0
-            if line.inventory_id.is_initial_stock and line.theoretical_qty == 0:
-                line.difference = 0.0
-            else:
-                line.difference = line.product_qty - line.theoretical_qty
+            line.difference = (line.product_qty or 0.0) - (line.theoretical_qty or 0.0)
     
     @api.depends('difference')
     def _compute_difference_display(self):
@@ -1662,10 +2385,13 @@ class StockInventoryLine(models.Model):
     
     @api.onchange('product_id', 'location_id')
     def _onchange_product_location(self):
-        """Remplit automatiquement la quantité théorique et le prix unitaire."""
+        """Remplit automatiquement la quantité théorique et le numéro de série."""
         if self.product_id:
-            # Récupérer le prix unitaire du produit
-            self.standard_price = self.product_id.standard_price
+            # Remplir le numéro de série avec le code produit
+            if not self.product_serial and self.product_id.default_code:
+                self.product_serial = self.product_id.default_code
+            
+            # Le prix unitaire est maintenant calculé automatiquement via _compute_standard_price
             
             # Récupérer la quantité théorique si l'emplacement est défini
             if self.location_id:
@@ -1680,11 +2406,25 @@ class StockInventoryLine(models.Model):
                     self.theoretical_qty = theoretical_qty
                     _logger.info(
                         f"✅ Auto-rempli: {self.product_id.default_code} @ {self.location_id.name}: "
-                        f"Qté théo={theoretical_qty}, Prix={self.standard_price}"
+                        f"Qté théo={theoretical_qty}"
                     )
                 else:
                     self.theoretical_qty = 0.0
     
+    @api.depends('product_qty', 'standard_price')
+    def _compute_line_value(self):
+        for line in self:
+            qty = line.product_qty or 0.0
+            price = line.standard_price or 0.0
+            line.line_value = qty * price
+
+    @api.depends('difference', 'standard_price')
+    def _compute_difference_value(self):
+        for line in self:
+            diff = line.difference or 0.0
+            price = line.standard_price or 0.0
+            line.difference_value = diff * price
+
     @api.constrains('product_id', 'inventory_id')
     def _check_product_uniqueness(self):
         """Vérifie qu'un produit n'apparaît qu'une seule fois par inventaire."""
@@ -1701,4 +2441,5 @@ class StockInventoryLine(models.Model):
                     f"Le produit '{line.product_id.display_name}' est déjà présent dans cet inventaire "
                     f"pour cet emplacement."
                 )
+
 

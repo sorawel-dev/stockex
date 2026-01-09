@@ -61,38 +61,41 @@ def test_odoo_connection():
         print(f"🛍️ Produits stockables: {product_count}")
         
         # Vérifier le résumé d'inventaire
-        summary_ids = models.execute_kw(
-            db, uid, password,
-            'stockex.inventory.summary', 'search',
-            [[]],
-            {'limit': 1}
-        )
-        
-        if summary_ids:
-            summary_data = models.execute_kw(
+        try:
+            summary_ids = models.execute_kw(
                 db, uid, password,
-                'stockex.inventory.summary', 'read',
-                [summary_ids],
-                {'fields': [
-                    'total_inventories_done',
-                    'total_products_all', 
-                    'total_quantity_all',
-                    'total_value_all'
-                ]}
+                'stockex.inventory.summary', 'search',
+                [[]],
+                {'limit': 1}
             )
             
-            if summary_data:
-                summary = summary_data[0]
-                print(f"\n📈 Dashboard - Résumé:")
-                print(f"   • Inventaires validés: {summary.get('total_inventories_done', 0)}")
-                print(f"   • Produits référencés: {summary.get('total_products_all', 0)}")
-                print(f"   • Quantité totale: {summary.get('total_quantity_all', 0):,.0f}")
-                print(f"   • Valeur totale: {summary.get('total_value_all', 0):,.0f} FCFA")
+            if summary_ids:
+                summary_data = models.execute_kw(
+                    db, uid, password,
+                    'stockex.inventory.summary', 'read',
+                    [summary_ids],
+                    {'fields': [
+                        'total_inventories_done',
+                        'total_products_all', 
+                        'total_quantity_all',
+                        'total_value_all'
+                    ]}
+                )
+                
+                if summary_data:
+                    summary = summary_data[0]
+                    print(f"\n📈 Dashboard - Résumé:")
+                    print(f"   • Inventaires validés: {summary.get('total_inventories_done', 0)}")
+                    print(f"   • Produits référencés: {summary.get('total_products_all', 0)}")
+                    print(f"   • Quantité totale: {summary.get('total_quantity_all', 0):,.0f}")
+                    print(f"   • Valeur totale: {summary.get('total_value_all', 0):,.0f} FCFA")
+                else:
+                    print("\n⚠️ Aucune donnée de résumé disponible")
             else:
-                print("\n⚠️ Aucune donnée de résumé disponible")
-        else:
-            print("\n⚠️ Aucun résumé d'inventaire trouvé")
-            
+                print("\n⚠️ Aucun résumé d'inventaire trouvé")
+        except Exception as e:
+            print(f"\n⚠️ Dashboard non disponible: {str(e)}")
+
         # Vérifier les quantités de stock réel
         stock_quant_count = models.execute_kw(
             db, uid, password,

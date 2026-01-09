@@ -19,6 +19,26 @@
         </field>
     </record>
     
+    <!-- Vue liste pour valorisation du stock - Groupement par catégorie avec totaux -->
+    <record id="product_product_tree_stock_valuation" model="ir.ui.view">
+        <field name="name">product.product.tree.stock.valuation</field>
+        <field name="model">product.product</field>
+        <field name="arch" type="xml">
+            <list string="Valorisation du stock" default_group_by="categ_id">
+                <field name="default_code" optional="show"/>
+                <field name="name" string="Article"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="qty_available" string="En stock" sum="Total quantité"/>
+                <field name="uom_id" optional="show" groups="uom.group_uom"/>
+                <field name="standard_price" string="Coût unitaire" sum="Total coûts unitaires"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="stock_value" string="Coût total" widget="monetary" sum="Total"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Inherit Product Template Form to add brand & has_serial -->
     <!-- Action personnalisée pour le menu Configuration > Produits -->
     <record id="action_product_config_stockex" model="ir.actions.act_window">
         <field name="name">Produits</field>
@@ -26,11 +46,21 @@
         <field name="view_mode">list,form</field>
         <field name="view_id" ref="product_product_tree_view_stockex"/>
         <field name="context">{}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Créer un nouveau produit
-            </p>
+    </record>
+
+    <record id="product_template_form_view_stockex_inherit" model="ir.ui.view">
+        <field name="name">product.template.form.stockex.inherit</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet//group" position="inside">
+                <group string="Stockex">
+                    <field name="brand"/>
+                    <field name="has_serial"/>
+                </group>
+            </xpath>
         </field>
     </record>
     
+    <!-- Keep existing closing tag -->
 </odoo>

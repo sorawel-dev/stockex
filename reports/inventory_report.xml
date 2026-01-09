@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     
-    <!-- Action de rapport PDF -->
+    <!-- Template PDF -->
     <record id="action_report_inventory" model="ir.actions.report">
         <field name="name">Inventaire de Stock</field>
         <field name="model">stockex.stock.inventory</field>
@@ -18,7 +18,10 @@
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="o">
                 <t t-call="web.external_layout">
-                    <div class="page">
+                    <style>
+                        .footer { margin-bottom: 1.5cm !important; }
+                    </style>
+                    <div class="page" style="font-size: 10pt; font-family: 'Calibri', Arial, sans-serif;">
                         <!-- En-tête du rapport -->
                         <div class="row mb-4">
                             <div class="col-8">
@@ -51,38 +54,42 @@
                         </div>
                         
                         <!-- Tableau des lignes -->
-                        <table class="table table-sm table-bordered">
-                            <thead style="background-color: #875A7B; color: white;">
+                        <table class="table table-sm table-bordered" style="font-size: 9pt; font-family: 'Calibri', Arial, sans-serif;">
+                            <thead style="background-color: #28a745; color: white; font-size: 11.5pt; font-weight: bold; text-align: center;">
                                 <tr>
-                                    <th>Produit</th>
-                                    <th>Réf.</th>
-                                    <th class="text-center">Emplacement</th>
-                                    <th class="text-end">Qté Théo.</th>
-                                    <th class="text-end">Qté Réelle</th>
-                                    <th class="text-end">Écart</th>
-                                    <th class="text-end">Prix (FCFA)</th>
-                                    <th class="text-end">Valeur Écart (FCFA)</th>
+                                    <th class="text-center">#</th>
+                                    <th class="text-center">Produit</th>
+                                    <th class="text-center">Réf.</th>
+                                    <th class="text-center">Entrepôt</th>
+                                    <th class="text-center">Qté Théo.</th>
+                                    <th class="text-center">Qté Réelle</th>
+                                    <th class="text-center">Écart</th>
+                                    <th class="text-center">Prix (FCFA)</th>
+                                    <th class="text-center">Valeur Écart (FCFA)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <t t-set="total_theoretical" t-value="0"/>
                                 <t t-set="total_real" t-value="0"/>
                                 <t t-set="total_diff_value" t-value="0"/>
+                                <t t-set="line_number" t-value="0"/>
                                 
                                 <tr t-foreach="o.line_ids" t-as="line">
+                                    <t t-set="line_number" t-value="line_number + 1"/>
+                                    <td class="text-center"><t t-esc="line_number"/></td>
                                     <td><span t-field="line.product_id"/></td>
                                     <td><span t-field="line.product_id.default_code"/></td>
-                                    <td class="text-center"><small><span t-field="line.location_id"/></small></td>
-                                    <td class="text-end"><span t-field="line.theoretical_qty"/></td>
-                                    <td class="text-end"><span t-field="line.product_qty"/></td>
+                                    <td class="text-center"><small><span t-field="line.location_id.warehouse_id"/></small></td>
+                                    <td class="text-end"><t t-esc="'{:,.0f}'.format(line.theoretical_qty).replace(',', ' ')"/></td>
+                                    <td class="text-end"><t t-esc="'{:,.0f}'.format(line.product_qty).replace(',', ' ')"/></td>
                                     <td class="text-end">
-                                        <span t-field="line.difference" 
+                                        <span t-esc="'{:,.0f}'.format(line.difference).replace(',', ' ')" 
                                               t-att-class="'text-success fw-bold' if line.difference > 0 else ('text-danger fw-bold' if line.difference &lt; 0 else '')"/>
                                     </td>
-                                    <td class="text-end"><span t-esc="'{:,.2f}'.format(line.standard_price)"/></td>
+                                    <td class="text-end"><t t-esc="'{:,.0f}'.format(line.standard_price).replace(',', ' ')"/></td>
                                     <td class="text-end">
                                         <t t-set="diff_value" t-value="line.difference * line.standard_price"/>
-                                        <span t-esc="'{:,.2f}'.format(diff_value)" 
+                                        <span t-esc="'{:,.0f}'.format(diff_value).replace(',', ' ')" 
                                               t-att-class="'text-success fw-bold' if diff_value > 0 else ('text-danger fw-bold' if diff_value &lt; 0 else '')"/>
                                         <t t-set="total_theoretical" t-value="total_theoretical + line.theoretical_qty"/>
                                         <t t-set="total_real" t-value="total_real + line.product_qty"/>
@@ -90,18 +97,18 @@
                                     </td>
                                 </tr>
                             </tbody>
-                            <tfoot style="background-color: #f0f0f0; font-weight: bold;">
+                            <tfoot style="background-color: #d4edda; font-weight: bold; border: 2px solid #28a745; font-size: 11.4pt;">
                                 <tr>
-                                    <td colspan="3" class="text-end">TOTAUX :</td>
-                                    <td class="text-end"><t t-esc="'{:,.2f}'.format(total_theoretical)"/></td>
-                                    <td class="text-end"><t t-esc="'{:,.2f}'.format(total_real)"/></td>
+                                    <td colspan="4" class="text-end">TOTAUX :</td>
+                                    <td class="text-end"><t t-esc="'{:,.0f}'.format(total_theoretical).replace(',', ' ')"/></td>
+                                    <td class="text-end"><t t-esc="'{:,.0f}'.format(total_real).replace(',', ' ')"/></td>
                                     <td class="text-end">
-                                        <span t-esc="'{:,.2f}'.format(total_real - total_theoretical)"
+                                        <span t-esc="'{:,.0f}'.format(total_real - total_theoretical).replace(',', ' ')"
                                               t-att-class="'text-success' if (total_real - total_theoretical) > 0 else ('text-danger' if (total_real - total_theoretical) &lt; 0 else '')"/>
                                     </td>
                                     <td></td>
                                     <td class="text-end">
-                                        <span t-esc="'{:,.2f}'.format(total_diff_value)"
+                                        <span t-esc="'{:,.0f}'.format(total_diff_value).replace(',', ' ')"
                                               t-att-class="'text-success' if total_diff_value > 0 else ('text-danger' if total_diff_value &lt; 0 else '')"/>
                                     </td>
                                 </tr>
@@ -111,12 +118,12 @@
                         <!-- Résumé des écarts -->
                         <div class="row mt-4">
                             <div class="col-12">
-                                <h4>Résumé des Écarts</h4>
-                                <table class="table table-sm">
+                                <h4 style="font-size: 11pt;">Résumé des Écarts</h4>
+                                <table class="table table-sm" style="font-size: 9pt;">
                                     <tr>
                                         <td width="40%"><strong>Valeur Totale des Écarts :</strong></td>
                                         <td class="text-end">
-                                            <span t-esc="'{:,.2f}'.format(total_diff_value)"/> FCFA
+                                            <span t-esc="'{:,.0f}'.format(total_diff_value).replace(',', ' ')"/> FCFA
                                         </td>
                                     </tr>
                                     <tr>
@@ -139,14 +146,149 @@
                         <t t-if="o.description">
                             <div class="row mt-4">
                                 <div class="col-12">
-                                    <h4>Notes</h4>
-                                    <p t-field="o.description"/>
+                                    <h4 style="font-size: 11pt;">Notes</h4>
+                                    <p style="font-size: 9pt;" t-field="o.description"/>
                                 </div>
                             </div>
                         </t>
                         
                         <!-- Signatures -->
-                        <div class="row mt-5">
+                        <div class="row mt-5" style="font-size: 9pt;">
+                            <div class="col-6">
+                                <p><strong>Responsable de l'inventaire</strong></p>
+                                <p class="mt-5">_______________________</p>
+                                <p><span t-field="o.user_id"/></p>
+                            </div>
+                            <div class="col-6">
+                                <p><strong>Validé par</strong></p>
+                                <p class="mt-5">_______________________</p>
+                                <p>Date : <span t-field="o.date"/></p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+    
+    <!-- Action de rapport PDF pour la liste des écarts -->
+    <record id="action_report_inventory_variance_list" model="ir.actions.report">
+        <field name="name">Liste des Écarts d'Inventaire</field>
+        <field name="model">stockex.stock.inventory</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">stockex.report_inventory_variance_list</field>
+        <field name="report_file">stockex.report_inventory_variance_list</field>
+        <field name="binding_model_id" ref="model_stockex_stock_inventory"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+    
+    <!-- Template PDF pour la liste des écarts -->
+    <template id="report_inventory_variance_list">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <style>
+                        .footer { margin-bottom: 1.5cm !important; }
+                    </style>
+                    <div class="page" style="font-size: 10pt; font-family: 'Calibri', Arial, sans-serif;">
+                        <!-- En-tête du rapport -->
+                        <div class="row mb-4">
+                            <div class="col-8">
+                                <h2>LISTE DES ÉCARTS D'INVENTAIRE</h2>
+                                <h3 t-field="o.name"/>
+                            </div>
+                            <div class="col-4 text-end">
+                                <span class="badge" t-att-class="'badge-success' if o.state == 'done' else 'badge-warning'">
+                                    <t t-if="o.state == 'draft'">Brouillon</t>
+                                    <t t-if="o.state == 'in_progress'">En cours</t>
+                                    <t t-if="o.state == 'done'">Validé</t>
+                                    <t t-if="o.state == 'cancel'">Annulé</t>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Informations générales -->
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <strong>Date :</strong> <span t-field="o.date"/><br/>
+                                <strong>Responsable :</strong> <span t-field="o.user_id"/><br/>
+                                <t t-if="o.location_id">
+                                    <strong>Emplacement :</strong> <span t-field="o.location_id"/><br/>
+                                </t>
+                            </div>
+                            <div class="col-6">
+                                <strong>Société :</strong> <span t-field="o.company_id"/><br/>
+                                <strong>Nombre d'écarts :</strong> <t t-esc="len(o.line_ids.filtered(lambda l: (l.difference or 0.0) != 0.0))"/><br/>
+                            </div>
+                        </div>
+                        
+                        <!-- Tableau des écarts uniquement -->
+                        <table class="table table-sm table-bordered" style="font-size: 9pt; font-family: 'Calibri', Arial, sans-serif;">
+                            <thead style="background-color: #28a745; color: white; font-size: 11.5pt; font-weight: bold; text-align: center;">
+                                <tr>
+                                    <th class="text-center">#</th>
+                                    <th class="text-center">Produit</th>
+                                    <th class="text-center">Réf.</th>
+                                    <th class="text-center">Entrepôt</th>
+                                    <th class="text-center">Qté Théo.</th>
+                                    <th class="text-center">Qté Réelle</th>
+                                    <th class="text-center">Écart</th>
+                                    <th class="text-center">Prix (FCFA)</th>
+                                    <th class="text-center">Valeur Écart (FCFA)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-set="total_theoretical" t-value="0"/>
+                                <t t-set="total_real" t-value="0"/>
+                                <t t-set="total_diff_value" t-value="0"/>
+                                <t t-set="line_number" t-value="0"/>
+                                
+                                <t t-foreach="o.line_ids.filtered(lambda l: (l.difference or 0.0) != 0.0)" t-as="line">
+                                    <t t-set="line_number" t-value="line_number + 1"/>
+                                    <tr>
+                                        <td class="text-center"><t t-esc="line_number"/></td>
+                                        <td><span t-field="line.product_id"/></td>
+                                        <td><span t-field="line.product_id.default_code"/></td>
+                                        <td class="text-center"><small><span t-field="line.location_id.warehouse_id"/></small></td>
+                                        <td class="text-end"><t t-esc="'{:,.0f}'.format(line.theoretical_qty).replace(',', ' ')"/></td>
+                                        <td class="text-end"><t t-esc="'{:,.0f}'.format(line.product_qty).replace(',', ' ')"/></td>
+                                        <td class="text-end">
+                                            <span t-esc="'{:,.0f}'.format(line.difference).replace(',', ' ')" 
+                                                  t-att-class="'text-success fw-bold' if line.difference > 0 else 'text-danger fw-bold'"/>
+                                        </td>
+                                        <td class="text-end"><t t-esc="'{:,.0f}'.format(line.standard_price).replace(',', ' ')"/></td>
+                                        <td class="text-end">
+                                            <t t-set="diff_value" t-value="line.difference * line.standard_price"/>
+                                            <span t-esc="'{:,.0f}'.format(diff_value).replace(',', ' ')" 
+                                                  t-att-class="'text-success fw-bold' if diff_value > 0 else 'text-danger fw-bold'"/>
+                                            <t t-set="total_theoretical" t-value="total_theoretical + line.theoretical_qty"/>
+                                            <t t-set="total_real" t-value="total_real + line.product_qty"/>
+                                            <t t-set="total_diff_value" t-value="total_diff_value + diff_value"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                            <tfoot style="background-color: #d4edda; font-weight: bold; border: 2px solid #28a745; font-size: 11.4pt;">
+                                <tr>
+                                    <td colspan="4" class="text-end">TOTAUX :</td>
+                                    <td class="text-end"><t t-esc="'{:,.0f}'.format(total_theoretical).replace(',', ' ')"/></td>
+                                    <td class="text-end"><t t-esc="'{:,.0f}'.format(total_real).replace(',', ' ')"/></td>
+                                    <td class="text-end">
+                                        <span t-esc="'{:,.0f}'.format(total_real - total_theoretical).replace(',', ' ')"
+                                              t-att-class="'text-success' if (total_real - total_theoretical) > 0 else 'text-danger'"/>
+                                    </td>
+                                    <td></td>
+                                    <td class="text-end">
+                                        <span t-esc="'{:,.0f}'.format(total_diff_value).replace(',', ' ')"
+                                              t-att-class="'text-success' if total_diff_value > 0 else 'text-danger'"/>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        
+                        <!-- Signatures -->
+                        <div class="row mt-5" style="font-size: 9pt;">
                             <div class="col-6">
                                 <p><strong>Responsable de l'inventaire</strong></p>
                                 <p class="mt-5">_______________________</p>

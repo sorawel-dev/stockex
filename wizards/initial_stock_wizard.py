@@ -72,12 +72,26 @@ class InitialStockWizard(models.TransientModel):
     )
     
     incremental_update = fields.Boolean(
-        string='🔄 Mise à jour incrémentale',
+        string='🔄 Ajouter au stock existant (mise à jour incrémentale)',
         default=False,
-        help='Permet de continuer l\'import même si des stocks existent déjà.\n'
-             '• Les produits existants seront mis à jour (ajout de quantité)\n'
+        help='⚠️ ATTENTION : Cette option permet d\'ajouter des quantités aux stocks existants.\n'
+             '• Les produits existants verront leurs quantités AJOUTÉES (pas remplacées)\n'
              '• Les nouveaux produits seront créés\n'
-             'Utile pour importer un fichier par étapes ou compléter un import partiel.'
+             '\n'
+             '⚡ Cas d\'usage typique :\n'
+             '  - Import partiel d\'un entrepôt supplémentaire (ex: NKONGSAMBA après DLA)\n'
+             '  - Complément d\'un import précédent\n'
+             '\n'
+             '🔒 Si DÉCOCHÉ (recommandé) : Vérifie qu\'aucun stock n\'existe déjà pour éviter les doublons.'
+    )
+    
+    # Nouveau champ pour l'option d'enregistrement des mouvements
+    create_stock_moves = fields.Boolean(
+        string='📦 Enregistrer les mouvements de stock',
+        default=False,
+        help='Si coché, crée des mouvements de stock lors de l\'import du stock initial.\n'
+             '⚠️ Cela ralentira l\'import mais permettra une traçabilité complète des mouvements.\n'
+             'Par défaut, les quantités sont mises à jour directement sans mouvements.'
     )
     
     # Champs pour la prévisualisation
@@ -129,8 +143,19 @@ class InitialStockWizard(models.TransientModel):
             if category_name:
                 categories.add(category_name)
             
-            quantity = float(line_data.get('QUANTITE', 0))
-            price = float(line_data.get('PRIX UNITAIRE', 0))
+            # Convertir en float avec gestion des valeurs vides/nulles
+            try:
+                quantity_str = line_data.get('QUANTITE', '')
+                quantity = float(quantity_str) if quantity_str and str(quantity_str).strip() else 0.0
+            except (ValueError, TypeError):
+                quantity = 0.0
+            
+            try:
+                price_str = line_data.get('PRIX UNITAIRE', '')
+                price = float(price_str) if price_str and str(price_str).strip() else 0.0
+            except (ValueError, TypeError):
+                price = 0.0
+            
             total_quantity += quantity
             total_cost += quantity * price
         
@@ -235,8 +260,8 @@ class InitialStockWizard(models.TransientModel):
                                     <td style="padding: 10px;">
                                         <span style="background: #edf2f7; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #667eea;">{str(line.get('ENTREPOT', '') or line.get('EMPLACEMENT', ''))[:20]}</span>
                                     </td>
-                                    <td style="padding: 10px; text-align: right; font-weight: 500; color: #2d3748;">{float(line.get('QUANTITE', 0)):,.0f}</td>
-                                    <td style="padding: 10px; text-align: right; font-weight: 500; color: #2d3748;">{float(line.get('PRIX UNITAIRE', 0)):,.0f}</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 500; color: #2d3748;">{float(line.get('QUANTITE') or 0) if line.get('QUANTITE') and str(line.get('QUANTITE')).strip() else 0:,.0f}</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 500; color: #2d3748;">{float(line.get('PRIX UNITAIRE') or 0) if line.get('PRIX UNITAIRE') and str(line.get('PRIX UNITAIRE')).strip() else 0:,.0f}</td>
                                 </tr>''' for idx, line in enumerate(lines[:5])])}
                             </tbody>
                         </table>
@@ -393,64 +418,115 @@ class InitialStockWizard(models.TransientModel):
             _logger.error(f"❌ Erreur Telegram : {str(e)}")
     
     def _reset_all_stocks(self):
-        """Réinitialise complètement tous les stocks (DANGEREUX !)."""
+        """Transfère le stock existant vers un emplacement technique 'Ancien stock ENEO'."""
         self.ensure_one()
         
-        _logger.warning("🔥 RÉINITIALISATION COMPLÈTE DES STOCKS DEMANDÉE")
+        _logger.warning("🔄 RÉINITIALISATION DES STOCKS : Transfert vers 'Ancien stock ENEO'")
         
-        # 1. Supprimer tous les mouvements de stock
-        stock_moves = self.env['stock.move'].search([
+        # 1. Créer ou récupérer l'emplacement technique "Ancien stock ENEO"
+        old_stock_location = self.env['stock.location'].search([
+            ('name', '=', 'Ancien stock ENEO'),
+            ('usage', '=', 'inventory'),
             ('company_id', '=', self.company_id.id)
-        ])
-        moves_count = len(stock_moves)
-        _logger.warning(f"🗑️ Suppression de {moves_count} mouvements de stock...")
+        ], limit=1)
         
-        # Supprimer les mouvements en lot pour éviter les timeouts
-        batch_size = 500
-        for i in range(0, moves_count, batch_size):
-            batch = stock_moves[i:i+batch_size]
-            try:
-                # Forcer la suppression même si done
-                batch.sudo().write({'state': 'draft'})
-                batch.sudo().unlink()
-                self.env.cr.commit()
-            except Exception as e:
-                _logger.error(f"❌ Erreur suppression mouvements batch {i}: {str(e)}")
+        if not old_stock_location:
+            old_stock_location = self.env['stock.location'].create({
+                'name': 'Ancien stock ENEO',
+                'usage': 'inventory',
+                'company_id': self.company_id.id,
+                'location_id': self.env.ref('stock.stock_location_locations').id,
+            })
+            _logger.info(f"✅ Emplacement technique créé: {old_stock_location.name}")
         
-        # 2. Supprimer tous les quants (quantités en stock)
+        # 2. Récupérer tous les quants avec stock > 0
         stock_quants = self.env['stock.quant'].search([
+            ('quantity', '>', 0),
+            ('location_id.usage', '=', 'internal'),
             ('company_id', '=', self.company_id.id)
         ])
+        
         quants_count = len(stock_quants)
-        _logger.warning(f"🗑️ Suppression de {quants_count} quants...")
+        _logger.warning(f"📦 {quants_count} quants à transférer vers 'Ancien stock ENEO'")
         
-        # Suppression en lot
-        for i in range(0, quants_count, batch_size):
-            batch = stock_quants[i:i+batch_size]
-            try:
-                batch.sudo().unlink()
-                self.env.cr.commit()
-            except Exception as e:
-                _logger.error(f"❌ Erreur suppression quants batch {i}: {str(e)}")
+        if quants_count == 0:
+            _logger.info("✅ Aucun stock existant à transférer")
+            return {
+                'quants_transferred': 0,
+                'pickings_created': 0
+            }
         
-        # 3. Supprimer toutes les lignes de stock à zéro ou négatives restantes
-        remaining_quants = self.env['stock.quant'].search([
+        # 3. Créer des pickings de transfert interne par lot
+        pickings_created = 0
+        picking_type = self.env['stock.picking.type'].search([
+            ('code', '=', 'internal'),
             ('company_id', '=', self.company_id.id)
-        ])
-        if remaining_quants:
-            _logger.warning(f"🗑️ Suppression de {len(remaining_quants)} quants restants...")
-            remaining_quants.sudo().unlink()
-            self.env.cr.commit()
+        ], limit=1)
         
-        _logger.warning(f"✅ Réinitialisation terminée: {moves_count} mouvements + {quants_count} quants supprimés")
+        if not picking_type:
+            raise UserError("Type de picking interne introuvable. Vérifiez la configuration Odoo.")
+        
+        # Regrouper par emplacement source pour optimiser
+        quants_by_location = {}
+        for quant in stock_quants:
+            loc_id = quant.location_id.id
+            if loc_id not in quants_by_location:
+                quants_by_location[loc_id] = []
+            quants_by_location[loc_id].append(quant)
+        
+        # Créer un picking par emplacement source
+        for location_id, quants_group in quants_by_location.items():
+            location = self.env['stock.location'].browse(location_id)
+            
+            picking_vals = {
+                'picking_type_id': picking_type.id,
+                'location_id': location.id,
+                'location_dest_id': old_stock_location.id,
+                'origin': f'Réinitialisation stock {self.date}',
+                'company_id': self.company_id.id,
+            }
+            
+            picking = self.env['stock.picking'].create(picking_vals)
+            
+            # Créer les mouvements pour chaque quant
+            for quant in quants_group:
+                move_vals = {
+                    'name': f'Transfert ancien stock: {quant.product_id.name}',
+                    'product_id': quant.product_id.id,
+                    'product_uom_qty': quant.quantity,
+                    'product_uom': quant.product_id.uom_id.id,
+                    'picking_id': picking.id,
+                    'location_id': location.id,
+                    'location_dest_id': old_stock_location.id,
+                    'company_id': self.company_id.id,
+                }
+                self.env['stock.move'].create(move_vals)
+            
+            # Confirmer et valider le picking
+            picking.action_confirm()
+            picking.action_assign()
+            
+            # Valider avec les quantités disponibles
+            for move in picking.move_ids:
+                move.quantity = move.product_uom_qty
+            
+            picking.button_validate()
+            pickings_created += 1
+            
+            _logger.info(f"✅ Picking {picking.name} créé et validé: {len(quants_group)} produits transférés")
+        
+        # Commit pour libérer la mémoire
+        self.env.cr.commit()
+        
+        _logger.warning(f"✅ Réinitialisation terminée: {quants_count} quants transférés via {pickings_created} pickings")
         
         return {
-            'moves_deleted': moves_count,
-            'quants_deleted': quants_count
+            'quants_transferred': quants_count,
+            'pickings_created': pickings_created
         }
-    
+
     def action_create_initial_stock(self):
-        """Crée le stock initial directement dans les quants (sans inventaire)."""
+        """Crée le stock initial : via mouvements (Option A) ou quants directs (ancien mode)."""
         self.ensure_one()
         
         # Si réinitialisation forcée demandée
@@ -465,15 +541,15 @@ class InitialStockWizard(models.TransientModel):
             if existing_quants or existing_moves:
                 _logger.warning(
                     f"⚠️ RÉINITIALISATION FORCÉE : "
-                    f"{len(existing_quants)} quants et {len(existing_moves)} mouvements seront supprimés"
+                    f"{len(existing_quants)} quants et {len(existing_moves)} mouvements seront transférés"
                 )
                 
                 reset_result = self._reset_all_stocks()
                 
                 _logger.warning(
                     f"✅ Réinitialisation terminée : "
-                    f"{reset_result['moves_deleted']} mouvements et "
-                    f"{reset_result['quants_deleted']} quants supprimés"
+                    f"{reset_result['quants_transferred']} quants transférés via "
+                    f"{reset_result['pickings_created']} pickings"
                 )
         else:
             # Vérifier qu'il n'y a pas déjà de stock
@@ -490,7 +566,7 @@ class InitialStockWizard(models.TransientModel):
                     f"Options :\n"
                     f"1. Cochez '🔄 Mise à jour incrémentale' pour continuer l'import et compléter les données\n"
                     f"2. Utilisez un inventaire normal pour mettre à jour le stock existant\n"
-                    f"3. Cochez '⚠️ Réinitialiser tous les stocks' pour forcer une réinitialisation complète (DANGEREUX)"
+                    f"3. Cochez '⚠️ Réinitialiser tous les stocks' pour forcer une réinitialisation complète"
                 )
             
             # Si mode incrémental, afficher un message d'information
@@ -506,8 +582,12 @@ class InitialStockWizard(models.TransientModel):
                 "Le stock initial nécessite des données d'import."
             )
         
-        # Parser et créer les stocks initiaux
+        # Parser les lignes
         lines = self._parse_excel_file()
+        
+        # La méthode _create_initial_stock_quants gère automatiquement
+        # l'option create_stock_moves en interne
+        _logger.info(f"📦 MODE: {'Avec mouvements de stock' if self.create_stock_moves else 'Quants directs'}")
         created_count = self._create_initial_stock_quants(lines)
         
         if created_count == 0:
@@ -521,7 +601,11 @@ class InitialStockWizard(models.TransientModel):
         message = f"✅ Stock initial créé avec succès !\n\n"
         message += f"• {created_count} enregistrement(s) de stock créé(s)\n"
         if self.force_reset:
-            message += f"• Stocks préalablement réinitialisés\n"
+            message += f"• Stocks préalablement réinitialisés (transférés vers 'Ancien stock ENEO')\n"
+        if self.create_stock_moves:
+            message += f"• Mode : Pickings/Mouvements Odoo (valorisation complète)\n"
+        else:
+            message += f"• Mode : Quants directs (rapide)\n"
         message += f"• Date : {self.date}\n"
         
         # Envoyer les notifications
@@ -530,15 +614,16 @@ class InitialStockWizard(models.TransientModel):
         except Exception as notif_error:
             _logger.error(f"❌ Erreur lors de l'envoi des notifications : {str(notif_error)}")
         
-        # Retourner un message de succès
+        # Afficher un message de succès dans les logs et via notification
+        _logger.info(message)
+        
+        # Retourner une action qui affiche un message ET ferme le wizard
         return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Stock Initial Créé',
-                'message': message,
+            'type': 'ir.actions.act_window_close',
+            'infos': {
                 'type': 'success',
-                'sticky': False,
+                'title': '✅ Stock Initial Créé avec Succès',
+                'message': message,
             }
         }
     
@@ -670,9 +755,21 @@ Recherche ou crée un entrepôt.
                 
                 # Si toujours pas trouvé après 100 tentatives
                 if counter >= 100:
-                    _logger.error(f"❌ Impossible de générer un code unique pour '{warehouse_name}' après 100 tentatives")
-                    self.env.cr.execute(f'ROLLBACK TO SAVEPOINT "{savepoint_name}"')
-                    return None
+                    import random
+                    # Dernier fallback: suffixe aléatoire 3 caractères et quelques essais supplémentaires
+                    for _ in range(10):
+                        rand = ''.join(random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(3))
+                        test_code = f"{code_base[:min(13, len(code_base))]}{rand}"
+                        existing = self.env['stock.warehouse'].search([
+                            ('code', '=', test_code),
+                            ('company_id', '=', self.company_id.id)
+                        ], limit=1)
+                        if not existing:
+                            break
+                    else:
+                        _logger.error(f"❌ Impossible de générer un code unique pour '{warehouse_name}' après 100 tentatives")
+                        self.env.cr.execute(f'ROLLBACK TO SAVEPOINT "{savepoint_name}"')
+                        return None
                 
                 warehouse_vals = {
                     'name': warehouse_name,
@@ -826,15 +923,32 @@ Recherche ou crée un entrepôt.
         if self.incremental_update:
             _logger.info("🔄 Mode incrémental activé : mise à jour des stocks existants autorisée")
         
+        # Récupérer l'emplacement d'inventaire virtuel pour les mouvements
+        inventory_loc = None
+        if self.create_stock_moves:
+            inventory_loc = self.env.ref('stock.location_inventory', raise_if_not_found=False)
+            if not inventory_loc:
+                # Créer l'emplacement d'inventaire virtuel s'il n'existe pas
+                inventory_loc = self.env['stock.location'].create({
+                    'name': 'Inventory adjustment',
+                    'usage': 'inventory',
+                    'company_id': self.company_id.id,
+                })
+            _logger.info("📦 Mode mouvements de stock activé : les mouvements seront créés")
+        
         for i, line_data in enumerate(lines):
-            # Mettre à jour la progression et commit périodique (tous les 100 lignes)
+            # Commit intermédiaire tous les 500 lignes pour éviter les timeouts
+            if i > 0 and i % 500 == 0:
+                # Sauvegarder la progression
+                progress_percent = (i / total_lines) * 100
+                _logger.info(f"💾 Commit intermédiaire: {i}/{total_lines} ({progress_percent:.1f}%) - {created_count} stocks créés")
+                # Commit pour libérer la mémoire
+                self.env.cr.commit()
+                _logger.info(f"✅ Commit réussi, continuation de l'import...")
+            
+            # Afficher la progression (tous les 100 lignes)
             if i % 100 == 0:
                 progress_percent = (i / total_lines) * 100
-                self.write({
-                    'progress': progress_percent,
-                    'progress_message': f'Traitement ligne {i + 1}/{total_lines} ({progress_percent:.1f}%) - {created_count} stocks créés'
-                })
-                self.env.cr.commit()
                 _logger.info(f"📊 Progression: {i + 1}/{total_lines} ({progress_percent:.1f}%) - {created_count} stocks créés")
             
             try:
@@ -844,8 +958,19 @@ Recherche ou crée un entrepôt.
                 category_code = str(line_data.get('CODE CATEGORIE', '')).strip() if line_data.get('CODE CATEGORIE') else None
                 warehouse_name = str(line_data.get('ENTREPOT', '') or line_data.get('EMPLACEMENT', '')).strip() if line_data.get('ENTREPOT') or line_data.get('EMPLACEMENT') else None
                 uom_name = str(line_data.get('UDM', '') or line_data.get('UNITE', '') or line_data.get('UM', '')).strip() if (line_data.get('UDM') or line_data.get('UNITE') or line_data.get('UM')) else None
-                quantity = float(line_data.get('QUANTITE', 0))
-                price = float(line_data.get('PRIX UNITAIRE', 0))
+                
+                # Convertir en float avec gestion des valeurs vides/nulles
+                try:
+                    quantity_str = line_data.get('QUANTITE', '')
+                    quantity = float(quantity_str) if quantity_str and str(quantity_str).strip() else 0.0
+                except (ValueError, TypeError):
+                    quantity = 0.0
+                
+                try:
+                    price_str = line_data.get('PRIX UNITAIRE', '')
+                    price = float(price_str) if price_str and str(price_str).strip() else 0.0
+                except (ValueError, TypeError):
+                    price = 0.0
                 
                 if not product_code:
                     _logger.warning(f"⚠️ Ligne {i+2}: CODE PRODUIT vide, ignorée")
@@ -910,13 +1035,14 @@ Recherche ou crée un entrepôt.
                         errors.append(f"Ligne {i+2}: Produit '{product_code}' non trouvé et création désactivée")
                         continue
                     
-                    # Créer le nouveau produit
+                    # Créer le nouveau produit (sans prix pour éviter les erreurs de valorisation)
                     product_vals = {
                         'name': product_name or product_code,
                         'default_code': product_code,
-                        'type': 'product',  # IMPORTANT: 'product' pour stockable (pas 'consu')
-                        'standard_price': price,
+                        # Le prix sera ajouté après création (ligne 1062-1065)
                     }
+                    # Déterminer le champ de type selon la version (detailed_type vs type)
+                    # detailed_type volontairement non défini pour éviter les erreurs de validation
                     
                     if category:
                         product_vals['categ_id'] = category.id
@@ -926,9 +1052,23 @@ Recherche ou crée un entrepôt.
                         uom = self._get_uom_by_name(uom_name)
                         if uom:
                             product_vals['uom_id'] = uom.id
-                            product_vals['uom_po_id'] = uom.id  # Même unité pour achats
                     
-                    product = self.env['product.product'].create(product_vals)
+                    # Créer le template produit, puis récupérer la variante
+                    tmpl_vals = dict(product_vals)
+                    # default_code appartient à la variante, pas au template
+                    default_code_val = tmpl_vals.pop('default_code', None)
+                    try:
+                        tmpl = self.env['product.template'].create(tmpl_vals)
+                    except Exception as e:
+                        if 'product.template.type' in str(e):
+                            tmpl_vals.pop('detailed_type', None)
+                            tmpl_vals.pop('type', None)
+                            tmpl = self.env['product.template'].create(tmpl_vals)
+                        else:
+                            raise
+                    product = tmpl.product_variant_id
+                    if default_code_val:
+                        product.write({'default_code': default_code_val})
                     product_cache[product_code] = product
                     created_products.add(product_code)
                 
@@ -937,13 +1077,62 @@ Recherche ou crée un entrepôt.
                     if product.categ_id.id != category.id:
                         product.write({'categ_id': category.id})
                 
-                # Note: On suppose que tous les produits ont été convertis en 'product' en amont
-                # On skip la vérification du type pour éviter les problèmes de cache Odoo
+                # Forcer type produit = consu et suivre l'inventaire
+                pp_fields = self.env['product.product']._fields
+                try:
+                    pp_write = {}
+                    if 'type' in pp_fields and getattr(product, 'type', None) != 'consu':
+                        pp_write['type'] = 'consu'
+                    if 'is_storable' in pp_fields and getattr(product, 'is_storable', None) is False:
+                        pp_write['is_storable'] = True
+                    if pp_write:
+                        product.sudo().write(pp_write)
+                except Exception:
+                    pass
                 
-                # Mettre à jour le prix coûtant si fourni (optimisé - pas de vérification)
+                # Mettre à jour les prix (coûtant ET vente) si fourni
                 if price > 0:
-                    product.standard_price = price
+                    tmpl_record = product.product_tmpl_id
+                    if tmpl_record:
+                        tmpl_record.write({
+                            'standard_price': price,  # Prix de revient (coût)
+                            'list_price': price,       # Prix de vente (affiché)
+                        })
                 
+                # Convertir en stockable si quantité > 0
+                tmpl = product.product_tmpl_id
+                if quantity and quantity > 0 and tmpl:
+                    tmpl_fields = self.env['product.template']._fields
+                    try:
+                        to_write = {}
+                        if 'detailed_type' in tmpl_fields and getattr(tmpl, 'detailed_type', None) != 'product':
+                            to_write['detailed_type'] = 'consu'
+                        if 'type' in tmpl_fields and getattr(tmpl, 'type', None) != 'product':
+                            to_write['type'] = 'consu'
+                        if to_write:
+                            tmpl.sudo().write(to_write)
+                            # Assurer la propagation au variant si nécessaire
+                            try:
+                                product_fields = self.env['product.product']._fields
+                                if 'type' in product_fields and getattr(product, 'type', None) != 'product':
+                                    product.sudo().write({'type': 'consu'})
+                                if 'is_storable' in product_fields and getattr(product, 'is_storable', None) is False:
+                                    product.sudo().write({'is_storable': True})
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                # Garde: convertir non-stockables ignorés
+                tmpl2 = product.product_tmpl_id
+                if tmpl2:
+                    tmpl_fields2 = self.env['product.template']._fields
+                    current_type = getattr(tmpl2, 'detailed_type', None) if 'detailed_type' in tmpl_fields2 else getattr(tmpl2, 'type', None)
+                    is_storable_flag = getattr(product, 'is_storable', None)
+                    allowed = (current_type == 'product') or (current_type == 'consu' and bool(is_storable_flag))
+                    if not allowed:
+                        errors.append(f"Ligne {i+2}: Produit '{product_code}' non stockable, ignoré")
+                        _logger.error(f"❌ Erreur ligne {i+2}: Produit non stockable (type={current_type}, is_storable={is_storable_flag})")
+                        continue
                 # Créer ou mettre à jour le quant
                 quant = self.env['stock.quant'].search([
                     ('product_id', '=', product.id),
@@ -953,8 +1142,15 @@ Recherche ou crée un entrepôt.
                 
                 if quant:
                     # Le quant existe déjà, mettre à jour directement la quantité (sans action_apply_inventory)
+                    old_quantity = quant.quantity
                     quant.write({'quantity': quantity})
                     updated_count += 1
+                    
+                    # Créer un mouvement de stock si l'option est activée
+                    if self.create_stock_moves and inventory_loc:
+                        difference = quantity - old_quantity
+                        if difference != 0:
+                            self._create_stock_move(product, location, inventory_loc, abs(difference), difference > 0)
                 else:
                     # Créer un nouveau quant directement (sans action_apply_inventory)
                     quant = self.env['stock.quant'].create({
@@ -963,6 +1159,10 @@ Recherche ou crée un entrepôt.
                         'company_id': self.company_id.id,
                         'quantity': quantity,
                     })
+                    
+                    # Créer un mouvement de stock si l'option est activée
+                    if self.create_stock_moves and inventory_loc and quantity > 0:
+                        self._create_stock_move(product, location, inventory_loc, quantity, True)
                 
                 created_count += 1
                 
@@ -972,12 +1172,14 @@ Recherche ou crée un entrepôt.
         
         _logger.info(f"✅ Import terminé: {created_count} stock(s) traité(s) ({created_count - updated_count} créés, {updated_count} mis à jour)")
         
-        # Progression à 100%
+        # Progression à 100% - Commit final unique
         self.write({
             'progress': 100.0,
             'progress_message': f'Import terminé : {created_count} stock(s) traité(s)'
         })
+        # Un seul commit à la fin pour éviter de fermer le curseur en cours de traitement
         self.env.cr.commit()
+        _logger.info("💾 Commit final effectué")
         
         # Message récapitulatif dans les logs
         message = f"✅ {created_count} stock(s) traité(s)"
@@ -997,3 +1199,55 @@ Recherche ou crée un entrepôt.
         _logger.info(message)
         
         return created_count
+    
+    def _create_stock_move(self, product, location, inventory_loc, quantity, is_incoming):
+        """Crée un mouvement de stock pour l'import initial.
+        
+        Args:
+            product: Le produit concerné
+            location: L'emplacement de stock
+            inventory_loc: L'emplacement d'inventaire virtuel
+            quantity: La quantité à déplacer
+            is_incoming: True si c'est une entrée de stock, False si c'est une sortie
+        """
+        try:
+            StockMove = self.env['stock.move']
+            
+            # Créer un stock.move pour l'ajustement
+            move_vals = {
+                'name': f'Stock Initial - {product.display_name}',
+                'product_id': product.id,
+                'product_uom': product.uom_id.id,
+                'product_uom_qty': quantity,
+                'company_id': self.company_id.id,
+                'date': self.date or fields.Datetime.now(),
+                'origin': f'Stock Initial {self.name}',
+                'reference': f'Ajustement stock initial {self.name}',
+            }
+            
+            # Si c'est une entrée : depuis inventory vers location
+            # Si c'est une sortie : depuis location vers inventory
+            if is_incoming:
+                move_vals.update({
+                    'location_id': inventory_loc.id,
+                    'location_dest_id': location.id,
+                })
+            else:
+                move_vals.update({
+                    'location_id': location.id,
+                    'location_dest_id': inventory_loc.id,
+                })
+            
+            # Créer et valider le mouvement
+            move = StockMove.create(move_vals)
+            move._action_confirm()
+            move._action_assign()
+            move._action_done()
+            
+            _logger.debug(
+                f"📦 Mouvement de stock créé: {quantity} x {product.default_code} "
+                f"{'📥' if is_incoming else '📤'} {location.name}"
+            )
+            
+        except Exception as e:
+            _logger.error(f"❌ Erreur création mouvement stock pour {product.default_code}: {str(e)}")

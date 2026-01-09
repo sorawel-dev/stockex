@@ -148,37 +148,40 @@ class ResConfigSettings(models.TransientModel):
     # Règle de valorisation
     stockex_valuation_rule = fields.Selection(
         selection=[
-            ('standard', 'Coût Standard'),
-            ('average', 'Coût Moyen (AVCO)'),
-            ('fifo', 'Premier Entré Premier Sorti (FIFO)'),
-            ('economic', 'Coût économique réel'),
+            ('standard', '📌 Coût Standard'),
+            ('average', '⚖️ Coût Moyen (AVCO)'),
+            ('fifo', '🔄 Premier Entré Premier Sorti (FIFO)'),
+            ('economic', '💰 Coût économique réel'),
         ],
         string='Méthode de valorisation',
         default='standard',
         config_parameter='stockex.valuation_rule',
-        help="Coût Standard: Prix fixe défini manuellement\n"
-             "Coût Moyen (AVCO): Moyenne pondérée des achats\n"
-             "FIFO: Premier entré, premier sorti\n"
-             "Coût économique réel: Dernier prix d'achat réel (défini dans les paramètres Stockex)"
+        help="📌 Coût Standard: Prix fixe défini manuellement\n"
+             "⚖️ Coût Moyen (AVCO): Moyenne pondérée des achats\n"
+             "🔄 FIFO: Premier entré, premier sorti\n"
+             "💰 Coût économique réel: Dernier prix d'achat réel (défini dans les paramètres Stockex)"
     )
     
     @api.onchange('stockex_valuation_rule')
     def _onchange_stockex_valuation_rule(self):
-        """Avertit l'utilisateur que les catégories seront mises à jour."""
+        """Avertit uniquement si la valeur change par rapport aux paramètres enregistrés."""
         if self.stockex_valuation_rule:
-            method_labels = {
-                'standard': 'Coût Standard',
-                'average': 'Coût Moyen (AVCO)',
-                'fifo': 'Premier Entré Premier Sorti (FIFO)',
-                'economic': 'Coût économique réel'
-            }
-            method_name = method_labels.get(self.stockex_valuation_rule, self.stockex_valuation_rule)
-            return {
-                'warning': {
-                    'title': 'Mise à jour des catégories',
-                    'message': f'Les catégories de produits seront mises à jour avec la méthode "{method_name}" lors de la sauvegarde.'
+            params = self.env['ir.config_parameter'].sudo()
+            current = params.get_param('stockex.valuation_rule', default='standard')
+            if self.stockex_valuation_rule != current:
+                method_labels = {
+                    'standard': 'Coût Standard',
+                    'average': 'Coût Moyen (AVCO)',
+                    'fifo': 'Premier Entré Premier Sorti (FIFO)',
+                    'economic': 'Coût économique réel'
                 }
-            }
+                method_name = method_labels.get(self.stockex_valuation_rule, self.stockex_valuation_rule)
+                return {
+                    'warning': {
+                        'title': 'Mise à jour des catégories',
+                        'message': f'Les catégories de produits seront mises à jour avec la méthode "{method_name}" lors de la sauvegarde.'
+                    }
+                }
     
     def set_values(self):
         """Surcharge pour mettre à jour les catégories lors de la sauvegarde
@@ -280,7 +283,95 @@ class ResConfigSettings(models.TransientModel):
     
     # Statistiques
 
+    # Configuration MinIO
+    minio_enabled = fields.Boolean(
+        string='Activer MinIO',
+        default=False,
+        config_parameter='minio.enabled',
+        help='Activer le stockage des pièces jointes sur MinIO',
+        store=False
+    )
     
+    minio_endpoint = fields.Char(
+        string='Endpoint MinIO',
+        config_parameter='minio.endpoint',
+        help='Adresse du serveur MinIO (ex: minio.example.com:9000)',
+        store=False
+    )
+    
+    minio_access_key = fields.Char(
+        string='MinIO Access Key',
+        config_parameter='minio.access_key',
+        help='Clé d\'accès MinIO',
+        store=False
+    )
+    
+    minio_secret_key = fields.Char(
+        string='MinIO Secret Key',
+        config_parameter='minio.secret_key',
+        help='Clé secrète MinIO',
+        store=False
+    )
+    
+    minio_bucket = fields.Char(
+        string='Bucket',
+        default='stockex-documents',
+        config_parameter='minio.bucket',
+        help='Nom du bucket MinIO pour stocker les documents',
+        store=False
+    )
+    
+    minio_secure = fields.Boolean(
+        string='Utiliser HTTPS',
+        default=True,
+        config_parameter='minio.secure',
+        help='Utiliser une connexion sécurisée (HTTPS) pour MinIO',
+        store=False
+    )
+    
+    minio_region = fields.Char(
+        string='Région',
+        default='Deutchland',
+        config_parameter='minio.region',
+        help='Région du serveur MinIO',
+        store=False
+    )
+
+    def test_minio_connection(self):
+        """Teste la connexion au serveur MinIO."""
+        MinioStorage = self.env['minio.storage']
+        try:
+            client = MinioStorage._get_minio_client()
+            bucket = MinioStorage._get_bucket_name()
+            
+            # Vérifier la connexion et créer le bucket si nécessaire
+            if not client.bucket_exists(bucket):
+                client.make_bucket(bucket)
+                message = f"✅ Connexion réussie ! Bucket '{bucket}' créé."
+            else:
+                message = f"✅ Connexion réussie ! Bucket '{bucket}' existe déjà."
+            
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Test MinIO',
+                    'message': message,
+                    'type': 'success',
+                    'sticky': False,
+                }
+            }
+        except Exception as e:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Erreur MinIO',
+                    'message': f"❌ Échec de la connexion: {str(e)}",
+                    'type': 'danger',
+                    'sticky': True,
+                }
+            }
 
     
 

@@ -38,17 +38,17 @@ Ce module permet de gérer les inventaires de stock avec :
 
     'author': 'Sorawel, www.sorawel.com',
     'website': 'https://www.sorawel.com',
-    'depends': ['base', 'mail', 'stock', 'product', 'account'],
+    'depends': ['base', 'mail', 'stock', 'stock_account', 'product', 'account'],
     'external_dependencies': {
         'python': ['openpyxl'],
     },
     'category': 'Inventory/Inventory',
-    'version': '19.0.7.87.0',
+    'version': '19.0.10.0.0',
     'data': [
         'security/stockex_security.xml',
         'security/ir.model.access.csv',
         'data/sequence.xml',
-        'data/dashboard_data.xml',
+        'data/remove_dashboard.xml',
         'data/stock_accounts_ohada.xml',
         # 'data/product_categories_config.xml',  # Désactivé : auto-configuration gère les catégories
         'data/auto_configure_categories.xml',
@@ -64,9 +64,20 @@ Ce module permet de gérer les inventaires de stock avec :
         'views/product_category_config_views.xml',
         'views/product_views.xml',  # Hérite vue liste produits pour masquer colonnes
         'views/kobo_config_views.xml',
-        # Wizards (DOIVENT être chargés EN PREMIER - définissent les actions)
-        'wizards/import_method_wizard_views.xml',  # Définit action_import_method_wizard
-        'wizards/import_inventory_wizard_views.xml',  # Définit action_import_inventory_wizard
+        # Vues de base (avant les wizards)
+        'views/stock_inventory_views.xml',
+        'views/stock_reports_views.xml',
+        'views/stock_analysis_views.xml',
+        'views/stock_analysis_pivot_views.xml',  # Tableau croisé dynamique puissant
+        'views/depreciation_report_views.xml',
+        'views/lot_tracking_views.xml',  # Définit action_stock_lot_expiring
+        'views/inventory_dashboard_views.xml',  # Dashboard moderne OWL
+        'reports/inventory_report.xml',
+        # Menus (AVANT les wizards pour que menu_stockex_reporting existe)
+        'views/menus.xml',
+        # Wizards (APRÈS menus - peuvent référencer menu_stockex_reporting)
+        'wizards/import_method_wizard_views.xml',
+        'wizards/import_inventory_wizard_views.xml',
         'wizards/import_excel_wizard_views.xml',
         'wizards/import_kobo_wizard_views.xml',
         'wizards/fix_locations_wizard_views.xml',
@@ -75,29 +86,18 @@ Ce module permet de gérer les inventaires de stock avec :
         'wizards/import_flexible_inventory_wizard_views.xml',
         'wizards/stock_accounts_config_wizard_views.xml',
         'wizards/warehouse_valuation_export_wizard_views.xml',
-        # Vues de base (utilisent les actions wizards)
-        'views/stock_inventory_views.xml',  # Utilise action_import_inventory_wizard
-        # Wizards qui héritent des vues de base
-        'wizards/initial_stock_wizard_views.xml',  # Hérite de stock_inventory_views
-        # Actions dashboard et reports (utilisent les actions wizards)
-        'views/stock_reports_views.xml',
-        'views/stock_analysis_views.xml',
-        'views/depreciation_report_views.xml',
-        'views/lot_tracking_views.xml',  # Définit action_stock_lot_expiring
-        'views/dashboard_simple.xml',  # Dashboard simplifié compatible Odoo 19
-        'reports/inventory_report.xml',
-        # Menus (utilisent toutes les actions - DOIVENT être EN DERNIER)
-        'views/menus.xml',
+        'wizards/stock_valuation_date_wizard_views.xml',
+        'wizards/initial_stock_wizard_views.xml',
         # Vues complémentaires
         'views/mobile_templates.xml',
     ],
     'assets': {
         'web.assets_backend': [
-            'stockex/static/src/css/dashboard.css',
-            'stockex/static/src/css/dashboard_home.css',
-            'stockex/static/src/css/dashboard_insights.css',
             'stockex/static/src/css/cleanup_wizard.css',
-            # 'stockex/static/src/js/dashboard_charts.js',  # Désactivé : utilise script inline dans XML
+            'stockex/static/src/css/inventory_dashboard.css',
+            'stockex/static/src/js/inventory_dashboard.js',
+            'stockex/static/src/xml/inventory_dashboard.xml',
+            'stockex/static/src/js/minio_upload.js',
         ],
         'web.assets_frontend': [
             'stockex/static/src/css/mobile.css',

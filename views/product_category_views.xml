@@ -36,7 +36,7 @@
         </field>
     </record>
     
-    <!-- Vue Kanban moderne pour Catégories d'articles -->
+    <!-- Vue Kanban pour Catégories (style entrepôts) -->
     <record id="product_category_kanban_stockex" model="ir.ui.view">
         <field name="name">product.category.kanban.stockex</field>
         <field name="model">product.category</field>
@@ -51,10 +51,9 @@
                 <field name="product_count"/>
                 <templates>
                     <t t-name="card">
-                        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 28px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';">
-                            <!-- Dropdown menu -->
-                            <div class="o_dropdown_kanban dropdown position-absolute" style="top: 10px; right: 10px; z-index: 10;">
-                                <a class="dropdown-toggle o-no-caret btn btn-sm" role="button" data-bs-toggle="dropdown" href="#" aria-label="Menu" title="Menu">
+                        <div class="oe_kanban_card oe_kanban_global_click rounded" t-att-class="record.accounts_configured.raw_value ? 'bg-light border-start border-3 border-success' : 'bg-light border-start border-3 border-warning'">
+                            <div class="o_dropdown_kanban dropdown">
+                                <a class="dropdown-toggle o-no-caret btn" role="button" data-bs-toggle="dropdown" href="#" aria-label="Dropdown menu" title="Menu">
                                     <span class="fa fa-ellipsis-v"/>
                                 </a>
                                 <div class="dropdown-menu" role="menu">
@@ -62,87 +61,52 @@
                                     <a role="menuitem" type="edit" class="dropdown-item">Modifier</a>
                                 </div>
                             </div>
-                            
-                            <!-- Header avec gradient -->
-                            <div class="card-header border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem;">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle p-3 me-3" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
-                                            <span style="font-size: 1.5rem;">📋</span>
-                                        </div>
-                                        <div>
-                                            <h5 class="text-white mb-1" style="font-weight: 700; font-size: 1.1rem;">
-                                                <field name="name"/>
-                                            </h5>
-                                            <p class="text-white text-opacity-75 mb-0" style="font-size: 0.85rem;" t-if="record.code.raw_value">
-                                                Code: <field name="code"/>
-                                            </p>
-                                            <p class="text-white text-opacity-50 mb-0" style="font-size: 0.75rem;" t-else="">
-                                                Aucun code
-                                            </p>
-                                        </div>
+                            <div class="oe_kanban_content px-3 py-1 position-relative">
+                                <!-- Image en filigrane -->
+                                <img src="/stockex/static/description/category_watermark.svg" 
+                                     class="position-absolute opacity-25" 
+                                     style="width: 120px; height: 120px; right: -10px; top: 50%; transform: translateY(-50%); z-index: 0; object-fit: contain;"
+                                     alt="Catégorie"/>
+                                <div class="oe_kanban_card_header position-relative" style="z-index: 1;">
+                                    <div class="oe_kanban_card_header_title mb-0">
+                                        <span class="fa fa-folder-open fa-lg text-primary me-1" title="Catégorie"/> 
+                                        <strong t-if="record.code.raw_value"><field name="code"/></strong>
+                                        <span t-if="record.code.raw_value"> - </span>
+                                        <field name="name"/>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Body avec infos -->
-                            <div class="card-body p-4">
-                                <!-- Catégorie parente -->
-                                <div class="mb-3" t-if="record.parent_id.raw_value">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fa fa-sitemap text-primary me-2" style="font-size: 1.1rem;" title="Catégorie parente"/>
-                                        <div>
-                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Catégorie parente</small>
-                                            <strong style="font-size: 0.9rem;"><field name="parent_id"/></strong>
-                                        </div>
+                                <div class="oe_kanban_card_body position-relative" style="z-index: 1;">
+                                    <!-- Catégorie parente -->
+                                    <div class="mb-0" t-if="record.parent_id.raw_value">
+                                        <i class="fa fa-sitemap fa-lg text-info me-1" title="Catégorie parente"/> 
+                                        <span><field name="parent_id"/></span>
                                     </div>
-                                </div>
-                                <div class="mb-3" t-else="">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fa fa-layer-group text-warning me-2" style="font-size: 1.1rem;" title="Catégorie racine"/>
-                                        <span class="badge" style="background: rgba(255, 193, 7, 0.1); color: #ffc107; border-radius: 8px; padding: 6px 12px; font-size: 0.8rem;">
-                                            Catégorie racine
+                                    <div class="mb-0" t-else="">
+                                        <i class="fa fa-layer-group fa-lg text-warning me-1" title="Catégorie racine"/> 
+                                        <span class="badge bg-warning text-dark">Catégorie racine</span>
+                                    </div>
+                                    
+                                    <!-- Nombre de produits -->
+                                    <div class="mb-0">
+                                        <i class="fa fa-box-open fa-lg text-primary me-1"/>
+                                        <strong>Produits:</strong> <field name="product_count"/> articles
+                                    </div>
+                                    
+                                    <!-- Badges compacts -->
+                                    <div class="d-flex gap-1 mb-0">
+                                        <span class="badge rounded-pill text-bg-primary" title="Nombre de produits">
+                                            <i class="fa fa-cubes me-1" title="Produits"/> <field name="product_count"/> art.
                                         </span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Nombre de produits -->
-                                <div class="mb-3">
-                                    <div class="d-flex align-items-center justify-content-between p-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px;">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fa fa-box-open text-primary me-2" style="font-size: 1.3rem;" title="Articles"/>
-                                            <div>
-                                                <small class="text-muted d-block" style="font-size: 0.75rem;">Articles</small>
-                                                <strong class="text-primary" style="font-size: 1.2rem;">
-                                                    <field name="product_count"/> produits
-                                                </strong>
-                                            </div>
-                                        </div>
-                                        <span class="badge bg-primary" style="border-radius: 50px; padding: 8px 16px;">
-                                            <i class="fa fa-cubes me-1" title="Lots"/>
+                                        <span t-att-class="record.accounts_configured.raw_value ? 'badge rounded-pill text-bg-success' : 'badge rounded-pill text-bg-warning'" title="État comptes comptables">
+                                            <i t-att-class="record.accounts_configured.raw_value ? 'fa fa-check-circle me-1' : 'fa fa-exclamation-triangle me-1'" title="Comptes"/> 
+                                            <span t-if="record.accounts_configured.raw_value">Comptes OK</span>
+                                            <span t-else="">Comptes à config.</span>
                                         </span>
                                     </div>
-                                </div>
-                                
-                                <!-- Comptes comptables -->
-                                <div class="mb-2">
-                                    <div class="d-flex align-items-center justify-content-between p-3" t-attf-style="background: linear-gradient(135deg, {{record.accounts_configured.raw_value ? '#e8f5e9' : '#ffebee'}} 0%, {{record.accounts_configured.raw_value ? '#c8e6c9' : '#ffcdd2'}} 100%); border-radius: 8px;">
-                                        <div class="d-flex align-items-center">
-                                            <i t-attf-class="fa {{record.accounts_configured.raw_value ? 'fa-check-circle text-success' : 'fa-exclamation-circle text-danger'}} me-2" style="font-size: 1.3rem;" title="État des comptes"/>
-                                            <div>
-                                                <small class="text-muted d-block" style="font-size: 0.75rem;">Comptes comptables</small>
-                                                <strong t-attf-class="{{record.accounts_configured.raw_value ? 'text-success' : 'text-danger'}}" style="font-size: 0.95rem;">
-                                                    <span t-if="record.accounts_configured.raw_value">✓ Configurés</span>
-                                                    <span t-else="">⚠ Non configurés</span>
-                                                </strong>
-                                            </div>
-                                        </div>
-                                        <span t-if="record.accounts_configured.raw_value" class="badge bg-success" style="border-radius: 50px; padding: 8px 16px;">
-                                            <i class="fa fa-check" title="OK"/>
-                                        </span>
-                                        <span t-else="" class="badge bg-danger" style="border-radius: 50px; padding: 8px 16px;">
-                                            <i class="fa fa-times" title="Non configuré"/>
-                                        </span>
+                                    
+                                    <!-- Code catégorie (si existe) -->
+                                    <div class="mb-0" t-if="record.code.raw_value">
+                                        <i class="fa fa-barcode text-muted me-1"/> Code: <strong><field name="code"/></strong>
                                     </div>
                                 </div>
                             </div>
@@ -151,6 +115,11 @@
                 </templates>
             </kanban>
         </field>
+    </record>
+    
+    <!-- Hériter de l'action par défaut Odoo pour ajouter le mode kanban -->
+    <record id="product.product_category_action_form" model="ir.actions.act_window">
+        <field name="view_mode">kanban,list,form</field>
     </record>
     
 </odoo>

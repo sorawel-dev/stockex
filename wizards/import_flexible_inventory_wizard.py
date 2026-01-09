@@ -6,6 +6,7 @@ import logging
 
 from odoo import models, fields, api
 from odoo.exceptions import UserError
+from markupsafe import Markup
 
 _logger = logging.getLogger(__name__)
 
@@ -17,7 +18,9 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
     name = fields.Char(
         string='Nom de l\'inventaire',
         required=True,
-        default=lambda self: f'Inventaire {fields.Date.today().strftime("%d/%m/%Y")}',
+        compute='_compute_inventory_name',
+        store=True,
+        readonly=False,
     )
     date = fields.Date(
         string='Date',
@@ -73,6 +76,22 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
         string='Entrepôt',
         help='Entrepôt à utiliser si le fichier ne contient pas de colonne entrepôt'
     )
+    
+    @api.depends('date', 'manual_warehouse_id')
+    def _compute_inventory_name(self):
+        """Génère automatiquement le nom de l'inventaire selon le format: Inventaire du {Date} - {Entrepot}."""
+        for wizard in self:
+            date_str = wizard.date.strftime('%d/%m/%Y') if wizard.date else fields.Date.today().strftime('%d/%m/%Y')
+            if wizard.manual_warehouse_id:
+                wizard.name = f'Inventaire du {date_str} - {wizard.manual_warehouse_id.name}'
+            else:
+                wizard.name = f'Inventaire du {date_str}'
+    
+    @api.onchange('manual_warehouse_id')
+    def _onchange_manual_warehouse_id(self):
+        """Lorsqu'un entrepôt est sélectionné, basculer automatiquement en mode 'Inventaires Séparés'."""
+        if self.manual_warehouse_id:
+            self.multi_warehouse_mode = 'split'
     
     # Prévisualisation
     state = fields.Selection([
@@ -233,9 +252,11 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
         
         # Vérifier les colonnes obligatoires
         if 'code' not in mapping or 'quantity' not in mapping:
+            # Filtrer les headers None pour l'affichage
+            headers_display = [str(h) if h is not None else '<vide>' for h in parsed['headers'][:10]]
             raise UserError(
                 "Colonnes obligatoires manquantes !\n\n"
-                f"Colonnes détectées : {', '.join(parsed['headers'][:10])}\n\n"
+                f"Colonnes détectées : {', '.join(headers_display)}\n\n"
                 "Colonnes requises :\n"
                 "- CODE PRODUIT (ou Material, Code d'article)\n"
                 "- QUANTITE (ou Quantité, Quantity)\n\n"
@@ -723,7 +744,7 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
         
         # Poster le message avec gestion d'erreur transaction
         try:
-            inventory.message_post(body=message)
+            inventory.message_post(body=Markup(message))
         except Exception as msg_error:
             _logger.warning(f"⚠️ Impossible de poster le message dans le chatter: {msg_error}")
             # En cas d'erreur de transaction, rollback et retry
@@ -732,7 +753,7 @@ class ImportFlexibleInventoryWizard(models.TransientModel):
                 self.env.cr.commit()
                 inventory.invalidate_recordset()
                 inventory = self.env['stockex.stock.inventory'].browse(inventory.id)
-                inventory.message_post(body=message)
+                inventory.message_post(body=Markup(message))
             except Exception as retry_error:
                 _logger.error(f"❌ Échec définitif message_post: {retry_error}")
         

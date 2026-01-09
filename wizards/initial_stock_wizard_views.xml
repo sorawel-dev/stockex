@@ -25,33 +25,28 @@
                         <label for="location_id" string="" invisible="1"/>
 
                     </group>
-                    <group>
+                    <group string="📋 Options d'Import">
                         <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                         <field name="create_products"/>
                         <field name="create_categories"/>
                         <field name="create_warehouses"/>
+                        <field name="create_stock_moves"/>
                     </group>
                 </group>
                 
                 <group invisible="state != 'step1'">
-                    <group string="⚠️ Options Avancées (DANGER)">
-                        <field name="force_reset" 
-                               widget="boolean_toggle"
-                               class="text-danger"/>
-                        
-                        <field name="incremental_update" 
-                               widget="boolean_toggle"
-                               class="text-success"/>
-                    </group>
                     <group string="Import Excel (Requis)">
                         <field name="filename" invisible="1"/>
                         <field name="import_file" filename="filename"/>
                     </group>
+                    <group string="⚠️ Options Avancées (DANGER)">
+                        <field name="incremental_update" widget="boolean_toggle" class="text-warning"/>
+                        <field name="force_reset" widget="boolean_toggle" class="text-danger"/>
+                    </group>
+                    <group>
+                        <!-- Espace vide pour alignement -->
+                    </group>
                 </group>
-                
-
-                
-
                 
                 <!-- Étape 2 : Prévisualisation -->
                 <group invisible="state != 'step2'">

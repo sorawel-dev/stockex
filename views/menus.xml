@@ -1,21 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    
-    <!-- Menu racine principal -->
+    <!-- Menu racine Stockex -->
     <menuitem id="menu_stockex_root"
-              name="Gestion d'Inventaire"
+              name="Gestion Inventaire"
+              sequence="20"
               web_icon="stockex,static/description/icon.png"
-              sequence="45"
               groups="base.group_user"/>
-    
-    <!-- Sous-menu : Vue d'ensemble (dashboard simplifié) -->
-    <menuitem id="menu_stockex_home"
-              name="📊 Tableau de bord"
-              parent="menu_stockex_root"
-              action="action_stockex_dashboard_simple"
-              sequence="1"
-              groups="base.group_user"/>
-    
+
     <!-- Sous-menu : Opérations -->
     <menuitem id="menu_stockex_operations"
               name="⚙️ Opérations"
@@ -25,9 +16,24 @@
     <menuitem id="menu_stockex_inventory"
               name="📦 Inventaires de Stock"
               parent="menu_stockex_operations"
-              action="action_stockex_inventory"
+              action="stockex.action_stockex_inventory"
               sequence="10"
               groups="base.group_user"/>
+    
+    <!-- Liste des stocks initiaux (inventaires marqués comme stock initial) -->
+    <record id="action_stockex_initial_inventory_list" model="ir.actions.act_window">
+        <field name="name">Liste des stocks initiaux</field>
+        <field name="res_model">stockex.stock.inventory</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[("is_initial_stock", "=", True)]</field>
+    </record>
+    
+    <menuitem id="menu_stockex_initial_inventory_list"
+              name="📂 Liste des stocks initiaux"
+              parent="menu_stockex_operations"
+              action="action_stockex_initial_inventory_list"
+              sequence="15"
+              groups="base.group_system"/>
     
     <!-- Action Stock Initial (définie ici pour éviter les problèmes de référence) -->
     <record id="action_initial_stock_wizard_menu" model="ir.actions.act_window">
@@ -71,7 +77,7 @@
               parent="menu_stockex_config"
               action="action_warehouse_stockex"
               sequence="10"
-              groups="base.group_user"/>
+              groups="stock.group_stock_user,stockex.group_stockex_user,stockex.group_stockex_manager"/>
     
     <!-- Action Réseaux Interconnectés ENEO -->
     <record id="action_eneo_network_menu" model="ir.actions.act_window">
@@ -111,7 +117,7 @@
               parent="menu_stockex_config"
               action="stock.action_location_form"
               sequence="20"
-              groups="base.group_user"/>
+              groups="stock.group_stock_user,stockex.group_stockex_user,stockex.group_stockex_manager"/>
     
     <!-- Action pour les produits -->
     <menuitem id="menu_stockex_products"
@@ -136,6 +142,22 @@
               action="action_kobo_config"
               sequence="40"
               groups="stockex.group_stockex_user,stockex.group_stockex_manager"/>
+    
+    <!-- Configuration MinIO -->
+    <record id="action_stockex_minio_config" model="ir.actions.act_window">
+        <field name="name">Configuration MinIO</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="context">{'module': 'stockex'}</field>
+    </record>
+    
+    <menuitem id="menu_stockex_minio_config"
+              name="📦 Stockage MinIO"
+              parent="menu_stockex_config"
+              action="action_stockex_minio_config"
+              sequence="41"
+              groups="base.group_system"/>
     
     <!-- Menu Corriger Types Produits (wizard) -->
     <menuitem id="menu_fix_product_types"
@@ -198,12 +220,14 @@
         </field>
     </record>
     
+    <!-- Menu désactivé : Stock par Emplacement
     <menuitem id="menu_stockex_stock_analysis"
               name="📦 Stock"
               parent="menu_stockex_reporting"
               action="action_stockex_stock_quants"
               sequence="5"
               groups="stock.group_stock_user,stockex.group_stockex_user,stockex.group_stockex_manager"/>
+    -->
     
     <!-- Action pour Analyse des mouvements -->
     <record id="action_stock_move_analysis" model="ir.actions.act_window">
@@ -232,20 +256,25 @@
     <menuitem id="menu_stockex_inventory_report"
               name="📋 Liste des Inventaires"
               parent="menu_stockex_reporting"
-              action="action_stockex_inventory"
+              action="stockex.action_stockex_inventory"
               sequence="10"
               groups="base.group_user"/>
     
+    <!-- Menu désactivé : Analyse des Stocks
     <menuitem id="menu_stock_analysis"
               name="📈 Analyse des Stocks"
               parent="menu_stockex_reporting"
-              sequence="12"/>
+              sequence="12"
+              groups="base.group_user"/>
+    -->
     
+    <!-- Menu désactivé : Rapport de Décote
     <menuitem id="menu_depreciation_report"
               name="📉 Rapport de Décote"
               parent="menu_stockex_reporting"
               action="action_depreciation_report"
               sequence="15"/>
+    -->
     
     <!-- Menu lots expirants : action commentée car nécessite module product_expiry -->
     <!--
@@ -279,13 +308,14 @@
         </field>
     </record>
     
-    <!-- Menus natifs Odoo Stock -->
+    <!-- Menu désactivé : Valorisation du stock
     <menuitem id="menu_stockex_stock_products"
               name="💰 Valorisation du stock"
               parent="menu_stockex_reporting"
               action="action_product_stock_view_filtered"
               sequence="65"
               groups="stock.group_stock_user,stockex.group_stockex_user,stockex.group_stockex_manager"/>
+    -->
     
     <!-- DÉSACTIVÉ - dashboard_home_views.xml incompatible avec Odoo 19 -->
     

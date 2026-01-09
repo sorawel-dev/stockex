@@ -15,9 +15,6 @@ access_stockex_cancel_inventory_wizard,access_stockex_cancel_inventory_wizard,mo
 access_stockex_import_flexible_inventory_wizard_user,Access Import Flexible Inventory Wizard - User,model_stockex_import_flexible_inventory_wizard,stockex.group_stockex_user,1,1,1,1
 access_stockex_kobo_config_user,Access Kobo Config - User,model_stockex_kobo_config,stockex.group_stockex_user,1,1,1,0
 access_stockex_kobo_config_manager,Access Kobo Config - Manager,model_stockex_kobo_config,stockex.group_stockex_manager,1,1,1,1
-access_stockex_inventory_summary_user,Access Inventory Summary - User,model_stockex_inventory_summary,stockex.group_stockex_user,1,1,0,0
-access_stockex_inventory_summary_manager,Access Inventory Summary - Manager,model_stockex_inventory_summary,stockex.group_stockex_manager,1,1,0,0
-access_stockex_inventory_summary_public,Access Inventory Summary - Public,model_stockex_inventory_summary,base.group_user,1,1,0,0
 
 access_stockex_kobo_submission_user,Access Kobo Submission - User,model_stockex_kobo_submission,stockex.group_stockex_user,1,0,0,0
 access_stockex_kobo_submission_manager,Access Kobo Submission - Manager,model_stockex_kobo_submission,stockex.group_stockex_manager,1,1,1,1
@@ -42,3 +39,13 @@ access_stockex_variance_analysis_wizard_user,Access Variance Analysis Wizard - U
 access_stockex_eneo_region_user,Access ENEO Region - User,model_stockex_eneo_region,stockex.group_stockex_user,1,0,0,0
 access_stockex_eneo_region_manager,Access ENEO Region - Manager,model_stockex_eneo_region,stockex.group_stockex_manager,1,1,1,1
 access_stockex_eneo_region_all,Access ENEO Region - All Users,model_stockex_eneo_region,base.group_user,1,0,0,0
+access_stockex_stock_analysis_pivot_user,Access Stock Analysis Pivot - User,model_stockex_stock_analysis_pivot,stockex.group_stockex_user,1,0,0,0
+access_stockex_stock_analysis_pivot_manager,Access Stock Analysis Pivot - Manager,model_stockex_stock_analysis_pivot,stockex.group_stockex_manager,1,0,0,0
+access_stockex_stock_analysis_pivot_all,Access Stock Analysis Pivot - All,model_stockex_stock_analysis_pivot,base.group_user,1,0,0,0
+access_stockex_stock_valuation_date_wizard_user,Access Stock Valuation Date Wizard - User,model_stockex_stock_valuation_date_wizard,stockex.group_stockex_user,1,1,1,1
+access_stockex_stock_valuation_date_wizard_manager,Access Stock Valuation Date Wizard - Manager,model_stockex_stock_valuation_date_wizard,stockex.group_stockex_manager,1,1,1,1
+access_stockex_stock_valuation_date_line_user,Access Stock Valuation Date Line - User,model_stockex_stock_valuation_date_line,stockex.group_stockex_user,1,1,1,1
+access_stockex_stock_valuation_date_line_manager,Access Stock Valuation Date Line - Manager,model_stockex_stock_valuation_date_line,stockex.group_stockex_manager,1,1,1,1
+access_stockex_inventory_dashboard_user,Access Inventory Dashboard - User,model_stockex_inventory_dashboard,stockex.group_stockex_user,1,0,0,0
+access_stockex_inventory_dashboard_manager,Access Inventory Dashboard - Manager,model_stockex_inventory_dashboard,stockex.group_stockex_manager,1,0,0,0
+access_stockex_inventory_dashboard_all,Access Inventory Dashboard - All Users,model_stockex_inventory_dashboard,base.group_user,1,0,0,0
