@@ -145,6 +145,43 @@ Si le problème persiste après ces étapes, vérifier :
 
 ---
 
+---
+
+## 🆕 Problème Chart.js (15/01/2026 09:34)
+
+**Symptôme** : `AssetsLoadingError: The loading of /web/static/lib/Chart/Chart.js failed`
+
+**Solution Appliquée** :
+1. ✅ Nettoyage assets web via API XML-RPC
+2. ✅ Upgrade module `web` pour régénérer Chart.js
+3. ✅ Purge complète cache assets
+
+**État** : Serveur instable après upgrades multiples
+
+**Action Requise sur Serveur** :
+```bash
+# Se connecter au serveur
+ssh -p 9209 root@odoo-minee.kesafrica.com
+
+# Redémarrer le container Odoo
+docker ps | grep odoo
+docker restart <container_name>
+
+# Attendre 30 secondes
+sleep 30
+
+# Vérifier que le service répond
+curl -I http://localhost:8069/web/login
+
+# Si timeout persistant, vérifier les logs
+docker logs <container_name> --tail 50
+```
+
+**Validation** : Après redémarrage, accéder au dashboard Inventaire pour vérifier que Chart.js se charge sans erreur.
+
+---
+
 **Date**: 2026-01-15  
 **Environnement**: odoo-minee.kesafrica.com  
-**Module**: stockex v19.0.10.0.0
+**Module**: stockex v19.0.10.0.0  
+**Port SSH**: 9209
